@@ -1,88 +1,143 @@
 "use client";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
-
-const loginSchema = z.object({
-    email: z.string().email({ message: "유효한 이메일을 입력해주세요." }),
-    password: z.string().min(1, { message: "비밀번호를 입력해주세요." }),
-});
-
-type LoginForm = z.infer<typeof loginSchema>;
+import { Mail, Lock, MessageCircle, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
+    const { login } = useAuthStore();
     const router = useRouter();
-    const login = useAuthStore((state) => state.login);
+    const [loading, setLoading] = useState(false);
 
-    const {
-        register,
-        handleSubmit,
-        formState: { errors, isSubmitting },
-    } = useForm<LoginForm>({
-        resolver: zodResolver(loginSchema),
-    });
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setTimeout(() => {
+            login({ id: 1, email: "test@example.com", name: "김코딩" }, "mock-jwt-token");
+            setLoading(false);
+            router.push("/recruit");
+        }, 1200);
+    };
 
-    const onSubmit = async (data: LoginForm) => {
-        try {
-            const res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(data),
-            });
-
-            if (!res.ok) throw new Error("로그인 실패");
-
-            const responseData = await res.json();
-            login(responseData.user); // Zustand Store 업데이트
-
-            // 포트폴리오 체크 로직 (Flow: 포트폴리오 없으면 강제 이동)
-            // 여기서는 Mocking 상황이므로 임의로 체크
-            // 실제로는 /api/portfoliosCount 같은걸 찔러봐야 함
-
-            router.push("/my/dashboard"); // 일단 대시보드로 이동
-        } catch (error) {
-            alert("로그인에 실패했습니다.");
-        }
+    const handleKakaoLogin = () => {
+        alert("카카오 로그인은 추후 도입 예정입니다.");
     };
 
     return (
-        <Card className="w-full">
-            <CardHeader className="space-y-1">
-                <CardTitle className="text-2xl text-center">로그인</CardTitle>
-                <CardDescription className="text-center">
-                    이메일과 비밀번호를 입력하여 로그인하세요.
-                </CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit(onSubmit)}>
-                <CardContent className="grid gap-4">
-                    <div className="grid gap-2">
-                        <Label htmlFor="email">이메일</Label>
-                        <Input id="email" type="email" placeholder="m@example.com" {...register("email")} />
-                        {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="password">비밀번호</Label>
-                        <Input id="password" type="password" {...register("password")} />
-                        {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
-                    </div>
-                </CardContent>
-                <CardFooter className="flex flex-col gap-4">
-                    <Button className="w-full" type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "로그인 중..." : "로그인"}
-                    </Button>
-                    <div className="text-sm text-muted-foreground text-center">
-                        계정이 없으신가요? <Link href="/signup" className="text-primary hover:underline">회원가입</Link>
-                    </div>
-                </CardFooter>
-            </form>
-        </Card>
+        <div className="flex items-center justify-center min-h-screen px-4 bg-slate-50/50 animate-in fade-in duration-700">
+            <div className="w-full max-w-[600px] space-y-6">
+
+                {/* Branding Section */}
+                <div className="text-center space-y-2">
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                        Pro-NLP <span className="text-blue-600">Login</span>
+                    </h1>
+                    <p className="text-slate-500">
+                        다시 오신 것을 환영합니다. 당신의 성장을 지원합니다.
+                    </p>
+                </div>
+
+                <Card className="shadow-2xl border-slate-200 bg-white overflow-hidden rounded-xl">
+                    <CardHeader className="space-y-1 text-center bg-slate-50/50 border-b border-slate-100 py-8">
+                        <CardTitle className="text-xl font-bold text-slate-800">계정 로그인</CardTitle>
+                        <CardDescription className="text-slate-400 text-sm">
+                            이메일 주소와 비밀번호를 입력해주세요.
+                        </CardDescription>
+                    </CardHeader>
+
+                    <CardContent className="space-y-6 p-10">
+                        <form onSubmit={handleLogin} className="space-y-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="email" className="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">이메일 주소</Label>
+                                <div className="relative border-none">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                        <Mail className="h-4 w-4" />
+                                    </div>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="name@example.com"
+                                        required
+                                        defaultValue="test@example.com"
+                                        className="pl-11 h-11 border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30 text-sm transition-all focus:bg-white rounded-md"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between ml-1">
+                                    <Label htmlFor="password" className="text-xs font-bold text-slate-500 uppercase tracking-wider">비밀번호</Label>
+                                    <Link href="#" className="text-xs text-slate-400 hover:text-blue-500 transition-colors">비밀번호 찾기</Link>
+                                </div>
+                                <div className="relative border-none">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                                        <Lock className="h-4 w-4" />
+                                    </div>
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        required
+                                        defaultValue="password"
+                                        placeholder="••••••••"
+                                        className="pl-11 h-11 border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30 text-sm transition-all focus:bg-white rounded-md"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-2">
+                                <Button
+                                    variant="brand"
+                                    size="lg"
+                                    className="w-full rounded-md"
+                                    type="submit"
+                                    disabled={loading}
+                                >
+                                    {loading ? (
+                                        "로그인 중..."
+                                    ) : (
+                                        <span className="flex items-center gap-2">
+                                            로그인하기 <ArrowRight className="h-4 w-4" />
+                                        </span>
+                                    )}
+                                </Button>
+                            </div>
+                        </form>
+
+                        <div className="relative">
+                            <div className="absolute inset-0 flex items-center">
+                                <span className="w-full border-t border-slate-100" />
+                            </div>
+                            <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                                <span className="bg-white px-4 text-slate-300">OR</span>
+                            </div>
+                        </div>
+
+                        <Button
+                            type="button"
+                            className="w-full h-11 bg-[#FEE500] hover:bg-[#FEE500]/90 text-slate-900 text-sm font-bold shadow-sm transition-all active:scale-[0.98] rounded-md border border-[#E6CF00]/30"
+                            onClick={handleKakaoLogin}
+                        >
+                            <MessageCircle className="mr-2 h-5 w-5 fill-current" />
+                            카카오로 3초만에 시작하기
+                        </Button>
+                    </CardContent>
+
+                    <CardFooter className="flex justify-center pb-8 pt-0">
+                        <p className="text-sm text-slate-500">
+                            계정이 없으신가요?{" "}
+                            <Link href="/signup" className="text-blue-600 font-bold hover:underline transition-colors ml-1">
+                                회원가입하기
+                            </Link>
+                        </p>
+                    </CardFooter>
+                </Card>
+            </div>
+        </div>
     );
 }
