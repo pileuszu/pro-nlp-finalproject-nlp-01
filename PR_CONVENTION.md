@@ -1,46 +1,46 @@
-# PR 컨벤션 (Pull Request Convention)
+# Pull Request Convention (PR Convention)
 
-일관된 코드 리뷰와 원활한 협업을 위해 아래의 PR 규칙을 준수합니다.
+To ensure consistent code reviews and smooth collaboration, please follow the guidelines below when creating Pull Requests.
 
-## 1. PR 제목 규칙
+## 1. PR Title Rules
 
-제목은 커밋 메시지 컨벤션과 동일한 태그를 사용하여 작성합니다.
+The PR title should follow the same tags as defined in the Commit Convention.
 
-`[type] PR 제목`
+`[type] PR Subject`
 
-- 예시: `[feat] 노션 워크스페이스 연동 기능 구현`
-- 예시: `[fix] 로그인 가드 리다이렉션 오류 수정`
+- Example: `[feat] implement notion workspace integration`
+- Example: `[fix] resolve redirection error in login guard`
 
 ---
 
-## 2. PR 본문 템플릿
+## 2. PR Description Template
 
-PR 작성 시 아래의 본문 내용을 포함하여 리뷰어가 변경 사항을 쉽게 파악할 수 있도록 합니다.
+Include the following sections in your PR description so that reviewers can easily understand the changes.
 
 ```markdown
-## 📝 요약 (Summary)
-<!-- 이번 PR에서 변경된 핵심 내용을 한 줄로 요약합니다. -->
+## 📝 Summary
+<!-- Provide a concise summary of the core changes in this PR. -->
 
-## 🚀 주요 변경 사항 (Changes)
-<!-- 변경된 내용을 구체적으로 기술합니다. 체크리스트 형태를 권장합니다. -->
-- [ ] 설명 1
-- [ ] 설명 2
+## 🚀 Key Changes
+<!-- Describe the changes in detail. A checklist format is recommended. -->
+- [ ] Task 1
+- [ ] Task 2
 
-## 📸 스크린샷 (Screenshots)
-<!-- UI 변경이 있는 경우, 전/후 스크린샷이나 움짤(GIF)을 첨부합니다. -->
+## 📸 Screenshots
+<!-- For UI changes, please attach before/after screenshots or GIFs. -->
 
-## 🔍 리뷰 포인트 (Review Point)
-<!-- 리뷰어가 집중해서 봐주었으면 하는 부분이나 논의가 필요한 사항을 적습니다. -->
+## 🔍 Review Points
+<!-- Mention specific parts of the code you want reviewers to focus on or any points of concern. -->
 
-## 🔗 관련 이슈 (Related Issues)
-<!-- 해결된 이슈나 관련 있는 PR 번호를 적습니다. (예: Resolves #123) -->
+## 🔗 Related Issues
+<!-- Link resolved issues or related PR numbers. (e.g., Resolves #123) -->
 ```
 
 ---
 
-## 3. PR 및 리뷰 가이드라인
+## 3. PR & Review Guidelines
 
-- **PR 크기 지향**: 하나의 PR은 가능한 한 하나의 기능(feature) 또는 논리적 단위로 작게 유지합니다.
-- **Self Review**: PR을 올리기 전, 본인이 작성한 코드를 다시 한번 검토하고 불필요한 `console.log`나 주석이 없는지 확인합니다.
-- **Conflict 해결**: 상위 브랜치(develop 등)의 최신 코드를 반영하여 충돌이 없는 상태로 PR을 요청합니다.
-- **승인(Approve) 조건**: 최소 1명 이상의 리뷰어로부터 승인을 얻어야 병합(Merge)이 가능합니다.
+- **PR Size**: Keep each PR focused on a single feature or logical unit to make reviews more manageable.
+- **Self Review**: Before requesting a review, go through your own code to check for unnecessary `console.log` statements or TODO comments.
+- **Resolve Conflicts**: Ensure your PR is up-to-date with the base branch (e.g., `develop`) and is free of merge conflicts.
+- **Approval Condition**: At least one approval from a reviewer is required before merging.
