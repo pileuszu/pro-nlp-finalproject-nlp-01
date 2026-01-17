@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
 
     // 1. 공개 경로 확인 (루트, 로그인/회원가입, 채용공고는 누구나 접근 가능)
