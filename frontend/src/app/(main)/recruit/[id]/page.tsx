@@ -15,12 +15,18 @@ interface RecruitDetail extends Recruit {
     content: string;
 }
 
+interface ExistingDoc {
+    id: number;
+    title: string;
+    updatedAt: string;
+}
+
 export default function RecruitDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
     const { isAuthenticated } = useAuthStore();
     const [recruit, setRecruit] = useState<RecruitDetail | null>(null);
-    const [existingDocs, setExistingDocs] = useState<any[]>([]);
+    const [existingDocs, setExistingDocs] = useState<ExistingDoc[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -111,7 +117,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                 작성 중인 자소가 있습니다
                             </h4>
                             <ul className="space-y-2">
-                                {existingDocs.map((doc: any) => (
+                                {existingDocs.map((doc) => (
                                     <li key={doc.id}>
                                         <Link href={`/my/cover-letters/${doc.id}`} className="block bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-200 transition-all group shadow-sm hover:shadow-md">
                                             <div className="font-medium text-sm text-slate-900 group-hover:text-blue-600 truncate transition-colors">{doc.title}</div>

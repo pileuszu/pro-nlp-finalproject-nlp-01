@@ -105,7 +105,7 @@ export const handlers = [
         let source = 'Unknown';
         let type = 'link';
         try {
-            const body = await request.json() as any;
+            const body = await request.json() as { source?: string; type?: string };
             source = body.source || source;
             type = body.type || type;
         } catch (e) {
@@ -137,7 +137,7 @@ export const handlers = [
     }),
 
     // 로그인
-    http.post('/api/auth/login', async ({ request }) => {
+    http.post('/api/auth/login', async () => {
         return HttpResponse.json({
             user: { id: 1, email: 'test@example.com', name: '김코딩' },
             token: 'mock-jwt-token'
@@ -175,10 +175,10 @@ export const handlers = [
     // 포트폴리오 업데이트
     http.patch('/api/portfolios/:id', async ({ request, params }) => {
         const { id } = params;
-        const data = await request.json() as any;
+        const data = await request.json() as Record<string, unknown>;
         const index = PORTFOLIOS.findIndex(p => p.id === Number(id));
         if (index !== -1) {
-            PORTFOLIOS[index] = { ...PORTFOLIOS[index], ...data };
+            PORTFOLIOS[index] = { ...PORTFOLIOS[index], ...data } as typeof PORTFOLIOS[0];
             return HttpResponse.json(PORTFOLIOS[index]);
         }
         return new HttpResponse(null, { status: 404 });
@@ -237,21 +237,21 @@ export const handlers = [
 
     // 자소서 생성/저장 (Mock)
     http.post('/api/cover-letters', async ({ request }) => {
-        const data = await request.json() as any;
+        const data = await request.json() as Record<string, unknown>;
         const newLetter = {
             ...data,
             id: Date.now(),
             updatedAt: new Date().toISOString().split('T')[0]
         };
-        COVER_LETTERS.push(newLetter);
+        COVER_LETTERS.push(newLetter as typeof COVER_LETTERS[0]);
         return HttpResponse.json(newLetter);
     }),
 
     // 자소서 업데이트 (Mock)
     http.patch('/api/cover-letters/:id', async ({ request, params }) => {
         const { id } = params;
-        const data = await request.json() as any;
-        COVER_LETTERS = COVER_LETTERS.map(cl => cl.id === Number(id) ? { ...cl, ...data } : cl);
+        const data = await request.json() as Record<string, unknown>;
+        COVER_LETTERS = COVER_LETTERS.map(cl => cl.id === Number(id) ? { ...cl, ...data } as typeof COVER_LETTERS[0] : cl);
         return HttpResponse.json({ success: true });
     }),
 
@@ -264,7 +264,13 @@ export const handlers = [
 
     // AI 자소서 생성 API (Core AI Logic Mock)
     http.post('/api/cover-letters/generate', async ({ request }) => {
-        const { mode, tone, focus, portfolioIds, question } = await request.json() as any;
+        const { mode, tone, focus, portfolioIds, question } = await request.json() as {
+            mode?: string;
+            tone?: string;
+            focus?: string;
+            portfolioIds: number[];
+            question?: string;
+        };
 
         await delay(1500); // AI 분석 연출을 위한 딜레이
 
