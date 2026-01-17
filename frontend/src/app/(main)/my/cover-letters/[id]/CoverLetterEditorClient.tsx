@@ -258,9 +258,9 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 </div>
 
                 {/* Info Panel */}
-                <div className={cn("sticky top-0 h-screen transition-all duration-500 overflow-hidden shrink-0 hidden lg:block", showRecruitPanel ? "w-[480px]" : "w-0")}>
-                    <div className="w-[480px] h-full p-8 pt-20 flex flex-col gap-6">
-                        <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl h-full flex flex-col overflow-hidden">
+                <div className={cn("sticky top-0 h-screen transition-all duration-500 overflow-hidden shrink-0 hidden lg:block", showRecruitPanel ? "w-[480px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
+                    <div className="w-[480px] h-full px-8 pt-20 pb-24 flex flex-col overflow-visible">
+                        <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl flex-1 flex flex-col overflow-hidden">
                             <Tabs value={panelTab} onValueChange={setPanelTab} className="h-full flex flex-col">
                                 <div className="p-6 border-b border-slate-100 bg-slate-50/50">
                                     <div className="flex justify-between items-center mb-4">

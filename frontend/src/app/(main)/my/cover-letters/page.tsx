@@ -19,7 +19,13 @@ export default function CoverLettersPage() {
     const fetchLetters = () => {
         fetch("/api/cover-letters", { cache: 'no-store' })
             .then(res => res.json())
-            .then(data => setCoverLetters(data))
+            .then(data => {
+                if (data.items) {
+                    setCoverLetters(data.items);
+                } else {
+                    setCoverLetters(data);
+                }
+            })
             .catch(err => console.error(err));
     };
 

@@ -17,7 +17,13 @@ export default function PortfoliosPage() {
     useEffect(() => {
         fetch("/api/portfolios")
             .then(res => res.json())
-            .then(data => setPortfolios(data))
+            .then(data => {
+                if (data.items) {
+                    setPortfolios(data.items);
+                } else {
+                    setPortfolios(data); // 폴백 (배열로 올 경우 대비)
+                }
+            })
             .catch(err => console.error(err));
     }, []);
 

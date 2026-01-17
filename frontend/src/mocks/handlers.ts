@@ -144,20 +144,133 @@ export const handlers = [
         })
     }),
 
+    // 회원가입
+    http.post('/api/auth/signup', async () => {
+        return HttpResponse.json({
+            success: true,
+            message: '회원가입이 완료되었습니다.'
+        })
+    }),
+
+    // 프로필 조회
+    http.get('/api/auth/me', () => {
+        return HttpResponse.json({
+            id: 1,
+            email: 'test@example.com',
+            name: '김코딩'
+        })
+    }),
+
     // 전체 채용 공고 리스트
     http.get('/api/recruits', () => {
         return HttpResponse.json(ALL_RECRUITS)
     }),
 
-    // 추천 공고 리스트 (isRecommended 플래그 활용)
-    http.get('/api/recruits/recommend', () => {
-        const recommended = ALL_RECRUITS.filter(r => r.isRecommended);
-        return HttpResponse.json(recommended)
+    // 전체 채용 공고 리스트 (필터링, 검색, 페이지네이션 지원)
+    http.get('/api/recruits', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '10')
+        const category = url.searchParams.get('category')
+        const techStack = url.searchParams.get('techStack')
+        const keyword = url.searchParams.get('keyword')
+        const sort = url.searchParams.get('sort')
+
+        let filtered = [...ALL_RECRUITS]
+
+        // 카테고리 필터링 (Mock 데이터 제목/태그 기반 시뮬레이션)
+        if (category && category !== 'all') {
+            filtered = filtered.filter(r => {
+                const title = r.title.toLowerCase()
+                const tags = r.tags.map(t => t.toLowerCase())
+                if (category === 'frontend') return title.includes('frontend') || tags.includes('react')
+                if (category === 'backend') return title.includes('backend') || tags.includes('spring')
+                if (category === 'ai') return title.includes('ai') || title.includes('nlp')
+                return true
+            })
+        }
+
+        // 기술 스택 필터링
+        if (techStack) {
+            const techs = techStack.split(',').map(t => t.toLowerCase())
+            filtered = filtered.filter(r =>
+                techs.every(t => r.tags.some(tag => tag.toLowerCase().includes(t)))
+            )
+        }
+
+        // 키워드 검색
+        if (keyword) {
+            const q = keyword.toLowerCase()
+            filtered = filtered.filter(r =>
+                r.title.toLowerCase().includes(q) || r.company.toLowerCase().includes(q)
+            )
+        }
+
+        // 정렬
+        if (sort === 'popular') {
+            filtered.sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0))
+        }
+
+        const total = filtered.length
+        const totalPages = Math.ceil(total / limit)
+        const rawItems = filtered.slice((page - 1) * limit, page * limit)
+
+        // 데이터 클렌징: isPopular, isRecommended 필드 제거
+        const items = rawItems.map(({ isPopular, isRecommended, ...rest }) => rest)
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
     }),
 
-    // 포트폴리오 리스트
-    http.get('/api/portfolios', () => {
-        return HttpResponse.json(PORTFOLIOS)
+    // 추천 공고 리스트 (추천 플래그 + 필터링 지원)
+    http.get('/api/recruits/recommend', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '9')
+
+        const recommended = ALL_RECRUITS.filter(r => r.isRecommended);
+
+        const total = recommended.length
+        const totalPages = Math.ceil(total / limit)
+        const rawItems = recommended.slice((page - 1) * limit, page * limit)
+
+        // 내부용 플래그 제거
+        const items = rawItems.map(({ isPopular, isRecommended, ...rest }) => rest)
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
+    }),
+
+    // 포트폴리오 리스트 (페이지네이션 추가)
+    http.get('/api/portfolios', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '10')
+
+        const total = PORTFOLIOS.length
+        const totalPages = Math.ceil(total / limit)
+        const items = PORTFOLIOS.slice((page - 1) * limit, page * limit)
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
+    }),
+
+    // 포트폴리오 생성
+    http.post('/api/portfolios', async ({ request }) => {
+        const data = await request.json() as Record<string, unknown>;
+        const newPortfolio = {
+            ...data,
+            id: Date.now(),
+            createdAt: new Date().toISOString().split('T')[0]
+        };
+        PORTFOLIOS.push(newPortfolio as typeof PORTFOLIOS[0]);
+        return HttpResponse.json(newPortfolio);
     }),
 
     // 포트폴리오 상세
@@ -195,10 +308,12 @@ export const handlers = [
         return new HttpResponse(null, { status: 404 });
     }),
 
-    // 자소서 리스트 (필터링 지원 및 데이터 매핑)
+    // 자소서 리스트 (필터링 및 페이지네이션)
     http.get('/api/cover-letters', ({ request }) => {
         const url = new URL(request.url);
         const recruitId = url.searchParams.get('recruitId');
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const limit = parseInt(url.searchParams.get('limit') || '10');
 
         // 데이터 매핑 (Join)
         const enrichedCoverLetters = COVER_LETTERS.map(cl => {
@@ -211,11 +326,19 @@ export const handlers = [
             };
         });
 
+        let filtered = enrichedCoverLetters;
         if (recruitId) {
-            return HttpResponse.json(enrichedCoverLetters.filter(cl => cl.recruitId === Number(recruitId)));
+            filtered = filtered.filter(cl => cl.recruitId === Number(recruitId));
         }
 
-        return HttpResponse.json(enrichedCoverLetters);
+        const total = filtered.length;
+        const totalPages = Math.ceil(total / limit);
+        const items = filtered.slice((page - 1) * limit, page * limit);
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        });
     }),
 
     // 자소서 상세 조회
