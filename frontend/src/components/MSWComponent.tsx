@@ -21,6 +21,9 @@ export const MSWComponent = ({ children }: { children: React.ReactNode }) => {
                     const { worker } = await import('@/mocks/browser');
                     await worker.start({
                         onUnhandledRequest: 'bypass',
+                        serviceWorker: {
+                            url: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/mockServiceWorker.js`
+                        }
                     });
                     console.log("[MSW] Mock Service Worker started");
                     setMswReady(true);

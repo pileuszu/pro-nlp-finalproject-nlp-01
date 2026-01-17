@@ -10,6 +10,11 @@ jobs:
     name: Build & Test (Mocking Enabled)
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -34,12 +39,37 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nextjs-${{ hashFiles('frontend/package-lock.json') }}-
 
+      - name: Run Lint
+        working-directory: ./frontend
+        run: npm run lint
+
+      # - name: Run Tests
+      #   working-directory: ./frontend
+      #   run: npm test
+
       - name: Build Project
         working-directory: ./frontend
         env:
           NEXT_PUBLIC_API_MOCKING: enabled
+          NEXT_PUBLIC_BASE_PATH: /pro-nlp-finalproject-nlp-01
         run: npm run build
 
-      - name: Run Lint
-        working-directory: ./frontend
-        run: npm run lint
+      - name: Upload Artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/out
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

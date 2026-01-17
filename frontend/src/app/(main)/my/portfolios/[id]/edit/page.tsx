@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 
 
+export function generateStaticParams() {
+    return [{ id: '1' }];
+}
+
 export default function EditPortfolioPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);

@@ -21,6 +21,10 @@ interface ExistingDoc {
     updatedAt: string;
 }
 
+export function generateStaticParams() {
+    return [{ id: '1' }];
+}
+
 export default function RecruitDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);

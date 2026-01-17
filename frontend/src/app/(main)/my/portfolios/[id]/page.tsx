@@ -18,6 +18,10 @@ interface Portfolio {
     content?: string;
 }
 
+export function generateStaticParams() {
+    return [{ id: '1' }];
+}
+
 export default function PortfolioDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);

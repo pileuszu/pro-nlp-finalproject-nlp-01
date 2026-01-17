@@ -29,6 +29,10 @@ interface Portfolio {
 type AiMode = 'draft' | 'strategy' | 'refine';
 type ToneType = 'professional' | 'passionate' | 'humble' | 'confident';
 
+export function generateStaticParams() {
+    return [{ id: 'new' }, { id: '1' }];
+}
+
 export default function CoverLetterEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
