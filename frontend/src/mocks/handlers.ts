@@ -1,7 +1,14 @@
 import { http, HttpResponse, delay } from 'msw'
+import { Recruit } from '@/types'
+
+// Mock 데이터 내부에만 존재하는 필드를 포함하는 확장 타입
+interface MockRecruit extends Recruit {
+    isPopular?: boolean;
+    isRecommended?: boolean;
+}
 
 // Mock Data 정의 - 모든 공고의 Master List
-const ALL_RECRUITS = [
+const ALL_RECRUITS: MockRecruit[] = [
     { id: 1, title: 'Frontend Developer', company: 'Google', startDate: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'], isPopular: true },
     { id: 2, title: 'Backend Engineer', company: 'Amazon', startDate: '2026-01-15', deadline: '2026-02-15', tags: ['Java', 'Spring Boot', 'AWS'], isPopular: true },
     { id: 3, title: 'AI Researcher', company: 'OpenAI', startDate: '2026-03-10', deadline: '2026-04-10', tags: ['Python', 'PyTorch', 'LLM'], isRecommended: true, isPopular: true },
@@ -215,8 +222,13 @@ export const handlers = [
         const totalPages = Math.ceil(total / limit)
         const rawItems = filtered.slice((page - 1) * limit, page * limit)
 
-        // 데이터 클렌징: isPopular, isRecommended 필드 제거
-        const items = rawItems.map(({ isPopular: _isPopular, isRecommended: _isRecommended, ...rest }) => rest)
+        // 데이터 클렌징: 내부용 필드(isPopular, isRecommended) 제거 후 전달
+        const items = rawItems.map((r) => {
+            const item = { ...r };
+            delete item.isPopular;
+            delete item.isRecommended;
+            return item as Recruit;
+        });
 
         return HttpResponse.json({
             items,
@@ -237,7 +249,12 @@ export const handlers = [
         const rawItems = recommended.slice((page - 1) * limit, page * limit)
 
         // 내부용 플래그 제거
-        const items = rawItems.map(({ isPopular: _isPopular, isRecommended: _isRecommended, ...rest }) => rest)
+        const items = rawItems.map((r) => {
+            const item = { ...r };
+            delete item.isPopular;
+            delete item.isRecommended;
+            return item as Recruit;
+        });
 
         return HttpResponse.json({
             items,

@@ -4,9 +4,11 @@ import { useAuthStore } from '@/stores/useAuthStore';
 
 // Next.js Link와 Framer Motion 등의 모킹이 필요할 수 있습니다.
 jest.mock('next/link', () => {
-    return ({ children, href }: { children: React.ReactNode; href: string }) => (
+    const MockLink = ({ children, href }: { children: React.ReactNode; href: string }) => (
         <a href={href}>{children}</a>
     );
+    MockLink.displayName = 'MockLink';
+    return MockLink;
 });
 
 describe('RecruitPage Integration Test with MSW', () => {
