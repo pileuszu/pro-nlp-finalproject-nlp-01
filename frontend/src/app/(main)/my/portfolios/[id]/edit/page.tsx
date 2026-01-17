@@ -10,14 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
 
-interface Portfolio {
-    id: number;
-    title: string;
-    type: 'link' | 'file' | 'github';
-    url?: string;
-    description: string;
-    content: string;
-}
 
 export default function EditPortfolioPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
