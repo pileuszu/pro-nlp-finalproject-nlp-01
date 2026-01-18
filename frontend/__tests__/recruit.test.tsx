@@ -5,14 +5,23 @@ import { http, HttpResponse } from 'msw';
 
 // Mock framer-motion to avoid animation related issues in tests
 jest.mock('framer-motion', () => {
-    const React = require('react');
+    const React = require('react'); // eslint-disable-line @typescript-eslint/no-var-requires
+
+    interface MockProps {
+        children?: React.ReactNode;
+        [key: string]: unknown;
+    }
+
+    const MockDiv = React.forwardRef(({ children, ...props }: MockProps, ref: React.Ref<HTMLDivElement>) => (
+        <div {...props} ref={ref}>{children}</div>
+    ));
+    MockDiv.displayName = 'MotionDiv';
+
     return {
         motion: {
-            div: React.forwardRef(({ children, ...props }: any, ref: any) => (
-                <div {...props} ref={ref}>{children}</div>
-            )),
+            div: MockDiv,
         },
-        AnimatePresence: ({ children }: any) => <>{children}</>,
+        AnimatePresence: ({ children }: MockProps) => <>{children}</>,
     };
 });
 
