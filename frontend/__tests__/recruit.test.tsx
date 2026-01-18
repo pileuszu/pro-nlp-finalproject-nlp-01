@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 
 // Mock framer-motion to avoid animation related issues in tests
 jest.mock('framer-motion', () => {
-    const React = require('react'); // eslint-disable-line @typescript-eslint/no-var-requires
+    const React = require('react'); // eslint-disable-line @typescript-eslint/no-require-imports
 
     interface MockProps {
         children?: React.ReactNode;
