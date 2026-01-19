@@ -108,7 +108,7 @@ export default function RecruitPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.05 }}
                                 >
-                                    <Link href={`/recruit/${recruit.id}`} className="block h-full group">
+                                    <Link href={`/recruit/${recruit.id}`} prefetch={false} className="block h-full group">
                                         <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out hover:-translate-y-1.5 cursor-pointer border-slate-200 bg-white rounded-2xl overflow-hidden ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm">
                                             <CardHeader className="pb-4">
                                                 <div className="flex justify-between items-start mb-2">
@@ -160,7 +160,7 @@ export default function RecruitPage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.05 }}
                                 >
-                                    <Link href={`/recruit/${recruit.id}`} className="block group">
+                                    <Link href={`/recruit/${recruit.id}`} prefetch={false} className="block group">
                                         <div className="flex flex-col md:flex-row md:items-center justify-between p-5 rounded-xl border border-slate-100 bg-white transition-all duration-500 ease-in-out group-hover:border-blue-200 group-hover:bg-slate-50/50 group-hover:translate-x-1.5 hover:shadow-md">
                                             <div className="flex flex-col md:flex-row md:items-center gap-6 flex-1 min-w-0 pr-4">
                                                 <div className="h-14 w-14 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-600 transition-[background-color,border-color,color] duration-300 shrink-0">

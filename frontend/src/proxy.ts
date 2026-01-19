@@ -48,13 +48,14 @@ export function proxy(request: NextRequest) {
 export const config = {
     matcher: [
         /*
-         * Match all request paths except for the ones starting with:
-         * - api (API routes)
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - files with extension (images, fonts, etc.)
+         * 1. 다음으로 시작하는 경로는 모두 제외 (최우선)
+         * - api, _next/static, _next/image, favicon.ico, sitemap, robots
          */
-        '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico|sitemap|robots|.*\\..*).*)',
+
+        /* 
+         * 2. 혹은 좀 더 보수적으로 특정 경로 그룹만 지정하는 방식도 가능합니다.
+         * 여기서는 위 방식을 유지하되 불필요한 실행을 내부 로직에서 한 번 더 거릅니다.
+         */
     ],
 }
