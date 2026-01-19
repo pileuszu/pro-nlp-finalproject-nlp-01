@@ -107,64 +107,62 @@ let COVER_LETTERS = [
 ];
 
 export const handlers = [
-    // AI 포트폴리오 분석 및 생성 시뮬레이션
-    http.post('*/api/portfolios/analyze', async ({ request }) => {
-        let source = 'Unknown';
-        let type = 'link';
-        try {
-            const body = await request.json() as { source?: string; type?: string };
-            source = body.source || source;
-            type = body.type || type;
-        } catch (e) {
-            console.warn('[MSW] Analyze handler failed to parse body:', e);
-        }
-
+    // 1. 포트폴리오 데이터 추출 (External Source)
+    http.post('/api/portfolios/extract', async ({ request }) => {
+        const { source, type } = await request.json() as { source: string; type: string };
         await delay(1000);
+        return HttpResponse.json({
+            success: true,
+            extractedText: `[Extracted from ${type}: ${source}]\n이것은 모의 추출된 텍스트 데이터입니다...`
+        });
+    }),
+
+    // 2. LLM 기반 프로젝트 분석 (Structuring)
+    http.post('/api/portfolios/analyze', async ({ request }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const body = await request.json();
+        await delay(1500);
 
         const generated = [
             {
                 id: Date.now() + 1,
-                title: `${source} 기반 프로젝트 A`,
-                type: type === 'github' ? 'github' : 'link',
+                title: `AI 분석 프로젝트 A`,
+                type: 'link',
                 description: 'AI가 추출한 프로젝트의 핵심 설명입니다.',
-                content: '- 주요 성과: 성능 20% 개선\n- 활용 기술: React, Node.js\n- 상세 내용: 대규모 트래픽 처리를 위한 아키텍처 설계 및 구현',
-                createdAt: new Date().toISOString().split('T')[0]
-            },
-            {
-                id: Date.now() + 2,
-                title: `${source} 기반 프로젝트 B`,
-                type: type === 'github' ? 'github' : 'file',
-                description: '데이터 시각화 및 대시보드 구축 경험입니다.',
-                content: '- 주요 성과: 가시성 확보로 의사결정 속도 향상\n- 활용 기술: D3.js, TypeScript\n- 상세 내용: 복잡한 데이터셋을 한눈에 파악할 수 있는 인터랙티브 차트 구현',
+                content: '- 주요 성과: 성능 20% 개선\n- 활용 기술: React, Node.js',
                 createdAt: new Date().toISOString().split('T')[0]
             }
         ];
-
         return HttpResponse.json(generated);
     }),
 
-    // 로그인
-    http.post('/api/auth/login', async () => {
-        return HttpResponse.json({
-            user: { id: 1, email: 'test@example.com', name: '김코딩' },
-            token: 'mock-jwt-token'
-        })
-    }),
+    // 카카오 로그인 콜백
+    http.get('/api/auth/kakao/callback', async ({ request }) => {
+        const url = new URL(request.url);
+        const code = url.searchParams.get('code');
 
-    // 회원가입
-    http.post('/api/auth/signup', async () => {
+        if (!code) {
+            return new HttpResponse(null, { status: 400 });
+        }
+
         return HttpResponse.json({
-            success: true,
-            message: '회원가입이 완료되었습니다.'
-        })
+            user: {
+                id: 1,
+                email: 'user@kakao.com',
+                name: '카카오본인',
+                profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
+            },
+            token: 'mock-jwt-token'
+        });
     }),
 
     // 프로필 조회
     http.get('/api/auth/me', () => {
         return HttpResponse.json({
             id: 1,
-            email: 'test@example.com',
-            name: '김코딩'
+            email: 'user@kakao.com',
+            name: '카카오본인',
+            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
         })
     }),
 
@@ -402,39 +400,30 @@ export const handlers = [
         return HttpResponse.json({ success: true });
     }),
 
-    // AI 자소서 생성 API (Core AI Logic Mock)
+    // 실시간 AI 자소서 첨삭 (Refine)
+    http.post('/api/cover-letters/refine', async ({ request }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { currentText, focus } = await request.json() as { currentText: string; focus: string };
+        await delay(1000);
+        return HttpResponse.json({
+            result: `[AI 첨삭 제안]\n\n"${focus}" 관점에서 수정한 문장입니다:\n\n"저는 단순히 기술을 사용하는 것을 넘어, 리소스 최적화와 사용자 경험 개선에 깊은 관심을 가지고 프로젝트에 임해왔습니다..."`
+        });
+    }),
+
+    // AI 자소서 생성 (Generate)
     http.post('/api/cover-letters/generate', async ({ request }) => {
-        const { mode, tone, focus, portfolioIds, question } = await request.json() as {
-            mode?: string;
+        const { tone, portfolioIds, question } = await request.json() as {
             tone?: string;
-            focus?: string;
             portfolioIds: number[];
             question?: string;
         };
 
-        await delay(1500); // AI 분석 연출을 위한 딜레이
-
+        await delay(1500);
         const selectedPfs = PORTFOLIOS.filter(p => portfolioIds.includes(p.id));
-        const pfHighlights = selectedPfs.map(p => {
-            const lines = p.content?.split('\n').filter(l => l.startsWith('-')) || [];
-            return lines.length > 0 ? lines[0].replace('- ', '') : p.title;
-        }).join(', ');
+        const pfHighlights = selectedPfs.map(p => p.title).join(', ');
 
-        if (mode === 'strategy') {
-            return HttpResponse.json({
-                result: `[전략 가제안: ${question}]\n\n1. 핵심 가치: ${focus || '성과 중심의 전문성'}\n2. 활용 데이터: ${pfHighlights}\n3. 서술 흐름:\n   - 도입: ${selectedPfs[0]?.title}에서의 주요 성과를 통한 강점 어필\n   - 본문: 구체적인 기술 스택 및 성과(${pfHighlights})를 강조하며 실질적 기여도 서술 (Tone: ${tone})\n   - 결론: 기업의 성장 방향과 나의 전문성 정렬\n4. 추천 키워드: 전문성, 문제해결력, ${pfHighlights.split(' ')[0]}`
-            });
-        }
-
-        if (mode === 'refine') {
-            return HttpResponse.json({
-                result: `기존 메모를 포트폴리오 데이터 기반으로 ${tone}하게 정밀화한 결과입니다:\n\n"저는 ${pfHighlights} 경험을 통해 실전형 역량을 쌓았습니다. 특히 ${focus || '본 프로젝트'} 과정에서 발생한 문제를 기술적으로 해결한 경험이 있으며, 이는 귀사에서도..."`
-            });
-        }
-
-        // Default: Draft mode
         return HttpResponse.json({
-            result: `[AI 생성 초안]\n\n질문: ${question}\n\n저는 ${pfHighlights} 등 다양한 프로젝트를 통해 탄탄한 기본기를 다져왔습니다. 특히 ${selectedPfs[0]?.title}를 진행하며 다음과 같은 역량을 입증했습니다.\n\n해당 과정에서 ${pfHighlights}와 같은 핵심 과업을 성공적으로 완수하며 팀의 목표 달성에 기여했습니다. ${focus}\n\n이러한 저의 ${tone}한 자세는 귀사가 지향하는 가치와 맞닿아 있으며...`
+            result: `[AI 생성 초안]\n\n질문: ${question}\n\n사용자께서 선택하신 [${pfHighlights}] 경험을 바탕으로 ${tone || '일반'}적인 톤으로 작성된 초안입니다...\n\n성과 지표를 중심으로 다음과 같이 구성하였습니다...`
         });
     }),
 
