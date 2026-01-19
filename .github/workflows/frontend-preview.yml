@@ -42,10 +42,7 @@ jobs:
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend
-          vercel-args: '--prod'
-          # Vercel 빌드 시 환경 변수 주입
-          vercel-build-env: |
-            NEXT_PUBLIC_API_MOCKING=enabled
+          vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=enabled -b NEXT_PUBLIC_API_MOCKING=enabled'
 
       - name: Display Deployment Summary
         run: |
