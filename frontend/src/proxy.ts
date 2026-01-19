@@ -3,6 +3,22 @@ import type { NextRequest } from 'next/server'
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl
+    const host = request.headers.get('host');
+    const productionDomain = 'pro-nlp-finalproject-nlp-01.vercel.app';
+
+    // 0. 도메인 체크 (이전 배포 주소 및 브랜치 미리보기 주소를 최신 프로덕션으로 리다이렉트)
+    if (
+        process.env.NODE_ENV === 'production' &&
+        host &&
+        host !== productionDomain &&
+        !host.includes('localhost') &&
+        !host.includes('127.0.0.1')
+    ) {
+        const url = request.nextUrl.clone();
+        url.host = productionDomain;
+        url.protocol = 'https:';
+        return NextResponse.redirect(url, 307);
+    }
 
     // 1. 공개 경로 확인 (루트, 로그인/회원가입, 채용공고는 누구나 접근 가능)
     const isPublicPath =
