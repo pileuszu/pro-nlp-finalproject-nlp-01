@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
 
-const isGha = !!process.env.GITHUB_ACTIONS;
-
 const nextConfig: NextConfig = {
-  output: isGha ? 'export' : undefined,
-  basePath: isGha ? '/pro-nlp-finalproject-nlp-01' : '',
+  // Vercel handles deployments automatically without 'export' mode
   images: {
     unoptimized: true,
   },
