@@ -35,6 +35,7 @@ jobs:
         run: npm test
 
       - name: Deploy to Vercel
+        id: deploy-vercel
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
@@ -42,3 +43,15 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./frontend
           vercel-args: '--prod'
+          # Vercel 빌드 시 환경 변수 주입
+          vercel-build-env: |
+            NEXT_PUBLIC_API_MOCKING=enabled
+
+      - name: Display Deployment Summary
+        run: |
+          echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Preview URL:** [${{ steps.deploy-vercel.outputs.preview-url }}](${{ steps.deploy-vercel.outputs.preview-url }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production (Mocking Enabled)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "테스트가 성공적으로 완료되었으며, Vercel에 최신 버전이 배포되었습니다." >> $GITHUB_STEP_SUMMARY
