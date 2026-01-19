@@ -36,11 +36,12 @@ jobs:
 
       - name: Deploy to Vercel
         id: deploy-vercel
-        uses: amondnet/vercel-action@v35
+        uses: amondnet/vercel-action@v25.2.0
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-version: latest
           working-directory: ./frontend
           vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=enabled -b NEXT_PUBLIC_API_MOCKING=enabled'
 
