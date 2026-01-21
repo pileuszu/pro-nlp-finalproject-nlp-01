@@ -1,2 +1,6 @@
 llm-pipeline/notebooks/extracted_readmes/
 llm-pipeline/notebooks/extracted_notion_data/
+llm-pipeline/notebooks/extracted_notion_data_v2/
+llm-pipeline/notebooks/ocr_results/
+llm-pipeline/notebooks/results/
+llm-pipeline/notebooks/tessdata
