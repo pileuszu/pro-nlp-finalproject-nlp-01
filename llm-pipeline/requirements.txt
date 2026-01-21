@@ -7,3 +7,4 @@ langgraph
 langfuse
 python-dotenv
 httpx
+notion-client
