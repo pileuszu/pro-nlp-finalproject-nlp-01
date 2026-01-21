@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Portfolio } from "@/types";
 import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +17,13 @@ export default function PortfoliosPage() {
     useEffect(() => {
         fetch("/api/portfolios")
             .then(res => res.json())
-            .then(data => setPortfolios(data))
+            .then(data => {
+                if (data.items) {
+                    setPortfolios(data.items);
+                } else {
+                    setPortfolios(data); // 폴백 (배열로 올 경우 대비)
+                }
+            })
             .catch(err => console.error(err));
     }, []);
 

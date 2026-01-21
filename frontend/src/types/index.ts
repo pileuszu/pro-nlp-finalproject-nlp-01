@@ -5,7 +5,7 @@ export interface Recruit {
     startDate: string;
     deadline: string;
     tags: string[];
-    content?: string; // 상세 내용 (Optional)
+    content?: string;
 }
 
 export interface Portfolio {

@@ -1,3 +1,5 @@
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from "next";
 import { Noto_Sans_KR as FontSans } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -29,6 +31,8 @@ export default function RootLayout({
                 <MSWComponent>
                     {children}
                 </MSWComponent>
+                <Analytics />
+                <SpeedInsights />
             </body>
         </html>
     );

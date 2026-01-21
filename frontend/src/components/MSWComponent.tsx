@@ -7,8 +7,11 @@ export const MSWComponent = ({ children }: { children: React.ReactNode }) => {
 
     useEffect(() => {
         const initMsw = async () => {
-            // 개발 환경이 아니면 바로 통과
-            if (process.env.NODE_ENV !== 'development') {
+            // 개발 환경이거나, 환경 변수로 모킹이 활성화된 경우에만 실행
+            const isMockingEnabled = process.env.NODE_ENV === 'development' ||
+                process.env.NEXT_PUBLIC_API_MOCKING === 'enabled';
+
+            if (!isMockingEnabled) {
                 setMswReady(true);
                 return;
             }
@@ -18,6 +21,9 @@ export const MSWComponent = ({ children }: { children: React.ReactNode }) => {
                     const { worker } = await import('@/mocks/browser');
                     await worker.start({
                         onUnhandledRequest: 'bypass',
+                        serviceWorker: {
+                            url: `${process.env.NEXT_PUBLIC_BASE_PATH || ''}/mockServiceWorker.js`
+                        }
                     });
                     console.log("[MSW] Mock Service Worker started");
                     setMswReady(true);

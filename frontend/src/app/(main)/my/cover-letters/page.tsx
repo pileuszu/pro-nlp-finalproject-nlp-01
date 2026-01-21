@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { CoverLetter } from "@/types";
-import { Plus, PenTool, Sparkles, FileText, Calendar, Trash2, X, LayoutList, Check, LayoutGrid, List, ArrowRight } from "lucide-react";
+import { PenTool, FileText, Calendar, Trash2, X, LayoutList, Check, LayoutGrid, List, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -19,7 +19,13 @@ export default function CoverLettersPage() {
     const fetchLetters = () => {
         fetch("/api/cover-letters", { cache: 'no-store' })
             .then(res => res.json())
-            .then(data => setCoverLetters(data))
+            .then(data => {
+                if (data.items) {
+                    setCoverLetters(data.items);
+                } else {
+                    setCoverLetters(data);
+                }
+            })
             .catch(err => console.error(err));
     };
 

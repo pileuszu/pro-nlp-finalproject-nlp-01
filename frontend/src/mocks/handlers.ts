@@ -1,7 +1,14 @@
 import { http, HttpResponse, delay } from 'msw'
+import { Recruit } from '@/types'
+
+// Mock 데이터 내부에만 존재하는 필드를 포함하는 확장 타입
+interface MockRecruit extends Recruit {
+    isPopular?: boolean;
+    isRecommended?: boolean;
+}
 
 // Mock Data 정의 - 모든 공고의 Master List
-const ALL_RECRUITS = [
+const ALL_RECRUITS: MockRecruit[] = [
     { id: 1, title: 'Frontend Developer', company: 'Google', startDate: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'], isPopular: true },
     { id: 2, title: 'Backend Engineer', company: 'Amazon', startDate: '2026-01-15', deadline: '2026-02-15', tags: ['Java', 'Spring Boot', 'AWS'], isPopular: true },
     { id: 3, title: 'AI Researcher', company: 'OpenAI', startDate: '2026-03-10', deadline: '2026-04-10', tags: ['Python', 'PyTorch', 'LLM'], isRecommended: true, isPopular: true },
@@ -100,64 +107,181 @@ let COVER_LETTERS = [
 ];
 
 export const handlers = [
-    // AI 포트폴리오 분석 및 생성 시뮬레이션
-    http.post('*/api/portfolios/analyze', async ({ request }) => {
-        let source = 'Unknown';
-        let type = 'link';
-        try {
-            const body = await request.json() as any;
-            source = body.source || source;
-            type = body.type || type;
-        } catch (e) {
-            console.warn('[MSW] Analyze handler failed to parse body:', e);
-        }
-
+    // 1. 포트폴리오 데이터 추출 (External Source)
+    http.post('/api/portfolios/extract', async ({ request }) => {
+        const { source, type } = await request.json() as { source: string; type: string };
         await delay(1000);
+        return HttpResponse.json({
+            success: true,
+            extractedText: `[Extracted from ${type}: ${source}]\n이것은 모의 추출된 텍스트 데이터입니다...`
+        });
+    }),
+
+    // 2. LLM 기반 프로젝트 분석 (Structuring)
+    http.post('/api/portfolios/analyze', async ({ request }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const body = await request.json();
+        await delay(1500);
 
         const generated = [
             {
                 id: Date.now() + 1,
-                title: `${source} 기반 프로젝트 A`,
-                type: type === 'github' ? 'github' : 'link',
+                title: `AI 분석 프로젝트 A`,
+                type: 'link',
                 description: 'AI가 추출한 프로젝트의 핵심 설명입니다.',
-                content: '- 주요 성과: 성능 20% 개선\n- 활용 기술: React, Node.js\n- 상세 내용: 대규모 트래픽 처리를 위한 아키텍처 설계 및 구현',
-                createdAt: new Date().toISOString().split('T')[0]
-            },
-            {
-                id: Date.now() + 2,
-                title: `${source} 기반 프로젝트 B`,
-                type: type === 'github' ? 'github' : 'file',
-                description: '데이터 시각화 및 대시보드 구축 경험입니다.',
-                content: '- 주요 성과: 가시성 확보로 의사결정 속도 향상\n- 활용 기술: D3.js, TypeScript\n- 상세 내용: 복잡한 데이터셋을 한눈에 파악할 수 있는 인터랙티브 차트 구현',
+                content: '- 주요 성과: 성능 20% 개선\n- 활용 기술: React, Node.js',
                 createdAt: new Date().toISOString().split('T')[0]
             }
         ];
-
-        return HttpResponse.json(generated);
+        return HttpResponse.json({ items: generated });
     }),
 
-    // 로그인
-    http.post('/api/auth/login', async ({ request }) => {
+    // 카카오 로그인 콜백
+    http.get('/api/auth/kakao/callback', async ({ request }) => {
+        const url = new URL(request.url);
+        const code = url.searchParams.get('code');
+
+        if (!code) {
+            return new HttpResponse(null, { status: 400 });
+        }
+
         return HttpResponse.json({
-            user: { id: 1, email: 'test@example.com', name: '김코딩' },
+            user: {
+                id: 1,
+                email: 'user@kakao.com',
+                name: '카카오본인',
+                profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
+            },
             token: 'mock-jwt-token'
+        });
+    }),
+
+    // 프로필 조회
+    http.get('/api/auth/me', () => {
+        return HttpResponse.json({
+            id: 1,
+            email: 'user@kakao.com',
+            name: '카카오본인',
+            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
         })
     }),
 
-    // 전체 채용 공고 리스트
-    http.get('/api/recruits', () => {
-        return HttpResponse.json(ALL_RECRUITS)
+
+
+    // 전체 채용 공고 리스트 (필터링, 검색, 페이지네이션 지원)
+    http.get('/api/recruits', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '10')
+        const category = url.searchParams.get('category')
+        const techStack = url.searchParams.get('techStack')
+        const keyword = url.searchParams.get('keyword')
+        const sort = url.searchParams.get('sort')
+
+        let filtered = [...ALL_RECRUITS]
+
+        // 카테고리 필터링
+        if (category && category !== 'all') {
+            filtered = filtered.filter(r => {
+                const title = r.title.toLowerCase()
+                const tags = r.tags.map(t => t.toLowerCase())
+                if (category === 'frontend') return title.includes('frontend') || tags.includes('react')
+                if (category === 'backend') return title.includes('backend') || tags.includes('spring')
+                if (category === 'ai') return title.includes('ai') || title.includes('nlp')
+                return true
+            })
+        }
+
+        // 기술 스택 필터링
+        if (techStack) {
+            const techs = techStack.split(',').map(t => t.toLowerCase())
+            filtered = filtered.filter(r =>
+                techs.every(t => r.tags.some(tag => tag.toLowerCase().includes(t)))
+            )
+        }
+
+        // 키워드 검색
+        if (keyword) {
+            const q = keyword.toLowerCase()
+            filtered = filtered.filter(r =>
+                r.title.toLowerCase().includes(q) || r.company.toLowerCase().includes(q)
+            )
+        }
+
+        // 정렬
+        if (sort === 'popular') {
+            filtered.sort((a, b) => (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0))
+        }
+
+        const total = filtered.length
+        const totalPages = Math.ceil(total / limit)
+        const rawItems = filtered.slice((page - 1) * limit, page * limit)
+
+        const items = rawItems.map((r) => {
+            const item = { ...r };
+            delete item.isPopular;
+            delete item.isRecommended;
+            return item as Recruit;
+        });
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
     }),
 
-    // 추천 공고 리스트 (isRecommended 플래그 활용)
-    http.get('/api/recruits/recommend', () => {
+    // 추천 공고 리스트 (추천 플래그 + 필터링 지원)
+    http.get('/api/recruits/recommend', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '9')
+
         const recommended = ALL_RECRUITS.filter(r => r.isRecommended);
-        return HttpResponse.json(recommended)
+
+        const total = recommended.length
+        const totalPages = Math.ceil(total / limit)
+        const rawItems = recommended.slice((page - 1) * limit, page * limit)
+
+        // 내부용 플래그 제거
+        const items = rawItems.map((r) => {
+            const item = { ...r };
+            delete item.isPopular;
+            delete item.isRecommended;
+            return item as Recruit;
+        });
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
     }),
 
-    // 포트폴리오 리스트
-    http.get('/api/portfolios', () => {
-        return HttpResponse.json(PORTFOLIOS)
+    // 포트폴리오 리스트 (페이지네이션 추가)
+    http.get('/api/portfolios', ({ request }) => {
+        const url = new URL(request.url)
+        const page = parseInt(url.searchParams.get('page') || '1')
+        const limit = parseInt(url.searchParams.get('limit') || '10')
+
+        const total = PORTFOLIOS.length
+        const totalPages = Math.ceil(total / limit)
+        const items = PORTFOLIOS.slice((page - 1) * limit, page * limit)
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        })
+    }),
+
+    // 포트폴리오 생성
+    http.post('/api/portfolios', async ({ request }) => {
+        const data = await request.json() as Record<string, unknown>;
+        const newPortfolio = {
+            ...data,
+            id: Date.now(),
+            createdAt: new Date().toISOString().split('T')[0]
+        };
+        PORTFOLIOS.push(newPortfolio as typeof PORTFOLIOS[0]);
+        return HttpResponse.json(newPortfolio);
     }),
 
     // 포트폴리오 상세
@@ -175,10 +299,10 @@ export const handlers = [
     // 포트폴리오 업데이트
     http.patch('/api/portfolios/:id', async ({ request, params }) => {
         const { id } = params;
-        const data = await request.json() as any;
+        const data = await request.json() as Record<string, unknown>;
         const index = PORTFOLIOS.findIndex(p => p.id === Number(id));
         if (index !== -1) {
-            PORTFOLIOS[index] = { ...PORTFOLIOS[index], ...data };
+            PORTFOLIOS[index] = { ...PORTFOLIOS[index], ...data } as typeof PORTFOLIOS[0];
             return HttpResponse.json(PORTFOLIOS[index]);
         }
         return new HttpResponse(null, { status: 404 });
@@ -195,10 +319,12 @@ export const handlers = [
         return new HttpResponse(null, { status: 404 });
     }),
 
-    // 자소서 리스트 (필터링 지원 및 데이터 매핑)
+    // 자소서 리스트 (필터링 및 페이지네이션)
     http.get('/api/cover-letters', ({ request }) => {
         const url = new URL(request.url);
         const recruitId = url.searchParams.get('recruitId');
+        const page = parseInt(url.searchParams.get('page') || '1');
+        const limit = parseInt(url.searchParams.get('limit') || '10');
 
         // 데이터 매핑 (Join)
         const enrichedCoverLetters = COVER_LETTERS.map(cl => {
@@ -211,11 +337,19 @@ export const handlers = [
             };
         });
 
+        let filtered = enrichedCoverLetters;
         if (recruitId) {
-            return HttpResponse.json(enrichedCoverLetters.filter(cl => cl.recruitId === Number(recruitId)));
+            filtered = filtered.filter(cl => cl.recruitId === Number(recruitId));
         }
 
-        return HttpResponse.json(enrichedCoverLetters);
+        const total = filtered.length;
+        const totalPages = Math.ceil(total / limit);
+        const items = filtered.slice((page - 1) * limit, page * limit);
+
+        return HttpResponse.json({
+            items,
+            meta: { total, page, limit, totalPages }
+        });
     }),
 
     // 자소서 상세 조회
@@ -237,21 +371,21 @@ export const handlers = [
 
     // 자소서 생성/저장 (Mock)
     http.post('/api/cover-letters', async ({ request }) => {
-        const data = await request.json() as any;
+        const data = await request.json() as Record<string, unknown>;
         const newLetter = {
             ...data,
             id: Date.now(),
             updatedAt: new Date().toISOString().split('T')[0]
         };
-        COVER_LETTERS.push(newLetter);
+        COVER_LETTERS.push(newLetter as typeof COVER_LETTERS[0]);
         return HttpResponse.json(newLetter);
     }),
 
     // 자소서 업데이트 (Mock)
     http.patch('/api/cover-letters/:id', async ({ request, params }) => {
         const { id } = params;
-        const data = await request.json() as any;
-        COVER_LETTERS = COVER_LETTERS.map(cl => cl.id === Number(id) ? { ...cl, ...data } : cl);
+        const data = await request.json() as Record<string, unknown>;
+        COVER_LETTERS = COVER_LETTERS.map(cl => cl.id === Number(id) ? { ...cl, ...data } as typeof COVER_LETTERS[0] : cl);
         return HttpResponse.json({ success: true });
     }),
 
@@ -262,33 +396,30 @@ export const handlers = [
         return HttpResponse.json({ success: true });
     }),
 
-    // AI 자소서 생성 API (Core AI Logic Mock)
-    http.post('/api/cover-letters/generate', async ({ request }) => {
-        const { mode, tone, focus, portfolioIds, question } = await request.json() as any;
-
-        await delay(1500); // AI 분석 연출을 위한 딜레이
-
-        const selectedPfs = PORTFOLIOS.filter(p => portfolioIds.includes(p.id));
-        const pfHighlights = selectedPfs.map(p => {
-            const lines = p.content?.split('\n').filter(l => l.startsWith('-')) || [];
-            return lines.length > 0 ? lines[0].replace('- ', '') : p.title;
-        }).join(', ');
-
-        if (mode === 'strategy') {
-            return HttpResponse.json({
-                result: `[전략 가제안: ${question}]\n\n1. 핵심 가치: ${focus || '성과 중심의 전문성'}\n2. 활용 데이터: ${pfHighlights}\n3. 서술 흐름:\n   - 도입: ${selectedPfs[0]?.title}에서의 주요 성과를 통한 강점 어필\n   - 본문: 구체적인 기술 스택 및 성과(${pfHighlights})를 강조하며 실질적 기여도 서술 (Tone: ${tone})\n   - 결론: 기업의 성장 방향과 나의 전문성 정렬\n4. 추천 키워드: 전문성, 문제해결력, ${pfHighlights.split(' ')[0]}`
-            });
-        }
-
-        if (mode === 'refine') {
-            return HttpResponse.json({
-                result: `기존 메모를 포트폴리오 데이터 기반으로 ${tone}하게 정밀화한 결과입니다:\n\n"저는 ${pfHighlights} 경험을 통해 실전형 역량을 쌓았습니다. 특히 ${focus || '본 프로젝트'} 과정에서 발생한 문제를 기술적으로 해결한 경험이 있으며, 이는 귀사에서도..."`
-            });
-        }
-
-        // Default: Draft mode
+    // 실시간 AI 자소서 첨삭 (Refine)
+    http.post('/api/cover-letters/refine', async ({ request }) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { currentText, focus } = await request.json() as { currentText: string; focus: string };
+        await delay(1000);
         return HttpResponse.json({
-            result: `[AI 생성 초안]\n\n질문: ${question}\n\n저는 ${pfHighlights} 등 다양한 프로젝트를 통해 탄탄한 기본기를 다져왔습니다. 특히 ${selectedPfs[0]?.title}를 진행하며 다음과 같은 역량을 입증했습니다.\n\n해당 과정에서 ${pfHighlights}와 같은 핵심 과업을 성공적으로 완수하며 팀의 목표 달성에 기여했습니다. ${focus}\n\n이러한 저의 ${tone}한 자세는 귀사가 지향하는 가치와 맞닿아 있으며...`
+            result: `[AI 첨삭 제안]\n\n"${focus}" 관점에서 수정한 문장입니다:\n\n"저는 단순히 기술을 사용하는 것을 넘어, 리소스 최적화와 사용자 경험 개선에 깊은 관심을 가지고 프로젝트에 임해왔습니다..."`
+        });
+    }),
+
+    // AI 자소서 생성 (Generate)
+    http.post('/api/cover-letters/generate', async ({ request }) => {
+        const { tone, portfolioIds, question } = await request.json() as {
+            tone?: string;
+            portfolioIds: number[];
+            question?: string;
+        };
+
+        await delay(1500);
+        const selectedPfs = PORTFOLIOS.filter(p => portfolioIds.includes(p.id));
+        const pfHighlights = selectedPfs.map(p => p.title).join(', ');
+
+        return HttpResponse.json({
+            result: `[AI 생성 초안]\n\n질문: ${question}\n\n사용자께서 선택하신 [${pfHighlights}] 경험을 바탕으로 ${tone || '일반'}적인 톤으로 작성된 초안입니다...\n\n성과 지표를 중심으로 다음과 같이 구성하였습니다...`
         });
     }),
 

@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Link as LinkIcon, Github, Sparkles, ExternalLink, Plus, Check, Loader2, Info, FileText, Building, Calendar, ArrowRight } from "lucide-react";
+import { ArrowLeft, Upload, Github, Sparkles, ExternalLink, Plus, Check, FileText } from "lucide-react";
 
 interface AnalyzedPortfolio {
     id: number;
@@ -57,8 +57,9 @@ export default function NewPortfolioPage() {
                 body: JSON.stringify({ source, type, customPrompt: prompt })
             });
             const data = await res.json();
-            // 기존 데이터에 추가 분석 결과를 합침
-            setAnalyzedItems(prev => [...prev, ...data]);
+            // API 응답 규격({items: []})에 맞춰 데이터 추출
+            const newItems = Array.isArray(data) ? data : (data.items || []);
+            setAnalyzedItems(prev => [...prev, ...newItems]);
             setStep('review');
         } catch (e) {
             console.error(e);

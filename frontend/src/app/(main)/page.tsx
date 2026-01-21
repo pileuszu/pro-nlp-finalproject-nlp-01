@@ -18,18 +18,11 @@ export default function LandingPage() {
                 AI가 당신의 커리어 여정을 완벽하게 서포트합니다.
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
-                <Link href={isAuthenticated ? "/recruit" : "/login"}>
+                <Link href="/recruit">
                     <Button size="lg" className="h-12 px-8 text-lg shadow-lg hover:shadow-xl transition-all font-bold">
                         {isAuthenticated ? "채용 공고 보러가기" : "지금 시작하기"}
                     </Button>
                 </Link>
-                {!isAuthenticated && (
-                    <Link href="/login">
-                        <Button variant="outline" size="lg" className="h-12 px-8 text-lg border-slate-300">
-                            로그인
-                        </Button>
-                    </Link>
-                )}
             </div>
         </div>
     );
