@@ -1,0 +1,42 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches: [ "backend", "develop" ]
+  pull_request:
+    branches: [ "develop" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          
+      - name: Install dependencies
+        run: |
+          cd backend
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run tests
+        env:
+          DATABASE_URL: sqlite:///./test.db # Use local sqlite for CI testing
+        run: |
+          cd backend
+          PYTHONPATH=. python -m pytest tests/test_main.py
+
+  deploy-trigger:
+    needs: test
+    if: github.ref == 'refs/heads/backend' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deployment
+        run: |
+          # If you have Render Deploy Hook URL, uncomment the line below
+          # curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          echo "CI passed! If you connect your Render service to this GitHub repo, it will auto-deploy now."
