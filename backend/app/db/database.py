@@ -6,9 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from sqlalchemy.pool import NullPool
+
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/pro_nlp_db")
 
-engine = create_engine(DATABASE_URL)
+# Use NullPool for free tier to avoid connection limit issues
+engine = create_engine(DATABASE_URL, poolclass=NullPool)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

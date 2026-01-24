@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import auth, recruits, portfolios, cover_letters
+from app.api.endpoints import auth, recruits, portfolios, cover_letters, health
 
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
@@ -24,6 +24,7 @@ async def root():
     return {"message": "Welcome to Pro-NLP AI Recruitment Platform API", "docs": "/docs"}
 
 # Include routers
+app.include_router(health.router, prefix="/api/health", tags=["System"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
 app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
