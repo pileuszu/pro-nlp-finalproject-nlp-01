@@ -4,33 +4,15 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import Link from "next/link";
-import { Mail, Lock, MessageCircle, ArrowRight } from "lucide-react";
+import { MessageCircle, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
-    const { login } = useAuthStore();
     const router = useRouter();
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setTimeout(() => {
-            // Zustand 상태 저장
-            login({ id: 1, email: "test@example.com", name: "김코딩" }, "mock-jwt-token");
-
-            // 미들웨어를 위한 쿠키 설정
-            document.cookie = "accessToken=mock-jwt-token; path=/; max-age=86400";
-
-            setLoading(false);
-            router.push("/recruit");
-        }, 1200);
-    };
-
     const handleKakaoLogin = () => {
+        setLoading(true);
         const client_id = "36cb87d77a70e26540f4e7c71bc02c87";
         const redirect_uri = window.location.origin + "/auth/kakao/callback";
         const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
@@ -39,7 +21,7 @@ export default function LoginPage() {
 
     return (
         <div className="flex items-center justify-center min-h-screen px-4 bg-slate-50/50 animate-in fade-in duration-700">
-            <div className="w-full max-w-[600px] space-y-6">
+            <div className="w-full max-w-[500px] space-y-6">
 
                 {/* Branding Section */}
                 <div className="text-center space-y-2">
@@ -51,38 +33,40 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                <CardHeader className="space-y-2 text-center bg-slate-50/50 border-b border-slate-100 py-10">
-                    <CardTitle className="text-2xl font-bold text-slate-800">환영합니다!</CardTitle>
-                    <CardDescription className="text-slate-400 text-sm max-w-[280px] mx-auto">
-                        카카오 계정으로 안전하고 빠르게 서비스를 시작해 보세요.
-                    </CardDescription>
-                </CardHeader>
+                <Card className="shadow-2xl border-slate-200 bg-white overflow-hidden rounded-2xl">
+                    <CardHeader className="space-y-2 text-center bg-slate-50/50 border-b border-slate-100 py-10">
+                        <CardTitle className="text-2xl font-bold text-slate-800">환영합니다!</CardTitle>
+                        <CardDescription className="text-slate-400 text-sm max-w-[280px] mx-auto">
+                            카카오 계정으로 안전하고 빠르게 서비스를 시작해 보세요.
+                        </CardDescription>
+                    </CardHeader>
 
-                <CardContent className="space-y-8 p-12">
-                    <div className="flex flex-col gap-4">
-                        <Button
-                            type="button"
-                            size="lg"
-                            className="w-full h-14 bg-[#FEE500] hover:bg-[#FEE500]/90 text-slate-900 text-base font-bold shadow-sm transition-all active:scale-[0.98] rounded-xl border border-[#E6CF00]/30"
-                            onClick={handleKakaoLogin}
-                        >
-                            <MessageCircle className="mr-3 h-6 w-6 fill-current" />
-                            카카오로 3초만에 시작하기
-                        </Button>
+                    <CardContent className="space-y-8 p-12">
+                        <div className="flex flex-col gap-4">
+                            <Button
+                                type="button"
+                                size="lg"
+                                className="w-full h-14 bg-[#FEE500] hover:bg-[#FEE500]/90 text-slate-900 text-base font-bold shadow-sm transition-all active:scale-[0.98] rounded-xl border border-[#E6CF00]/30"
+                                onClick={handleKakaoLogin}
+                                disabled={loading}
+                            >
+                                <MessageCircle className="mr-3 h-6 w-6 fill-current" />
+                                {loading ? "이동 중..." : "카카오로 3초만에 시작하기"}
+                            </Button>
 
-                        <p className="text-[11px] text-center text-slate-400 leading-relaxed px-4">
-                            로그인 시 Pro-NLP의 <span className="underline cursor-pointer">이용약관</span> 및 <span className="underline cursor-pointer">개인정보처리방침</span>에 동의하게 됩니다.
-                        </p>
-                    </div>
-                </CardContent>
+                            <p className="text-[11px] text-center text-slate-400 leading-relaxed px-4">
+                                로그인 시 Pro-NLP의 <span className="underline cursor-pointer">이용약관</span> 및 <span className="underline cursor-pointer">개인정보처리방침</span>에 동의하게 됩니다.
+                            </p>
+                        </div>
+                    </CardContent>
 
-                <CardFooter className="flex justify-center pb-10 pt-0 border-t border-slate-50 mt-4">
-                    <div className="flex items-center gap-2 mt-8 text-xs font-bold text-slate-300 tracking-widest uppercase">
-                        <ArrowRight className="h-3 w-3" /> Secure AI Recruitment Platform
-                    </div>
-                </CardFooter>
-            </Card>
+                    <CardFooter className="flex justify-center pb-10 pt-0 border-t border-slate-50 mt-4">
+                        <div className="flex items-center gap-2 mt-8 text-xs font-bold text-slate-300 tracking-widest uppercase">
+                            <ArrowRight className="h-3 w-3" /> Secure AI Recruitment Platform
+                        </div>
+                    </CardFooter>
+                </Card>
+            </div>
         </div>
-        </div >
     );
 }
