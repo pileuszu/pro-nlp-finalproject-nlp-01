@@ -35,6 +35,16 @@ export default function RecruitPage() {
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+    // Debounce searchQuery
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const JOB_CATEGORIES = [
         { label: "전체", value: "all" },
@@ -57,7 +67,7 @@ export default function RecruitPage() {
                 limit: itemsPerPage.toString(),
                 category: selectedCategory,
                 techStack: selectedTechs.join(','),
-                keyword: searchQuery,
+                keyword: debouncedSearchQuery,
             });
 
             if (activeTab === 'popular') {
@@ -75,7 +85,7 @@ export default function RecruitPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, searchQuery]);
+    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery]);
 
     useEffect(() => {
         fetchRecruits();
