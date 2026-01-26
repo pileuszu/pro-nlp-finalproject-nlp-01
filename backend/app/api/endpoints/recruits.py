@@ -7,7 +7,7 @@ from app.services import recruit_service
 
 router = APIRouter()
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=schemas.RecruitmentListResponse)
 async def list_recruits(
     page: int = 1, 
     limit: int = 10, 

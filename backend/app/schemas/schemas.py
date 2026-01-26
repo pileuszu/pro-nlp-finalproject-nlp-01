@@ -27,6 +27,7 @@ class RecruitmentBase(BaseModel):
     content: Optional[str] = None
     tags: Optional[List[str]] = None
     category: Optional[str] = None
+    location: Optional[str] = None
 
 class RecruitmentCreate(RecruitmentBase):
     pass
@@ -37,6 +38,10 @@ class Recruitment(RecruitmentBase):
 
     class Config:
         from_attributes = True
+
+class RecruitmentListResponse(BaseModel):
+    items: List[Recruitment]
+    meta: dict
 
 # Portfolio Schemas
 class PortfolioBase(BaseModel):
@@ -56,6 +61,9 @@ class Portfolio(PortfolioBase):
     class Config:
         from_attributes = True
 
+class PortfolioListResponse(BaseModel):
+    items: List[Portfolio]
+
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):
     title: Optional[str] = None
@@ -73,6 +81,9 @@ class CoverLetter(CoverLetterBase):
 
     class Config:
         from_attributes = True
+
+class CoverLetterListResponse(BaseModel):
+    items: List[CoverLetter]
 
 # AI Related Schemas
 class PortfolioAnalyzeRequest(BaseModel):

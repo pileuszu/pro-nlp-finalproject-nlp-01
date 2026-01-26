@@ -6,7 +6,7 @@ from app.services import cover_letter_service
 
 router = APIRouter()
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=schemas.CoverLetterListResponse)
 async def list_cover_letters(db: Session = Depends(get_db)):
     user_id = 1
     items = cover_letter_service.get_cover_letters(db, user_id=user_id)
