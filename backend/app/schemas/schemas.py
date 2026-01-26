@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import date, datetime
 
@@ -14,9 +14,7 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Recruitment Schemas
 class RecruitmentBase(BaseModel):
@@ -35,13 +33,12 @@ class RecruitmentCreate(RecruitmentBase):
 class Recruitment(RecruitmentBase):
     id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class RecruitmentListResponse(BaseModel):
     items: List[Recruitment]
     meta: dict
+    model_config = ConfigDict(from_attributes=True)
 
 # Portfolio Schemas
 class PortfolioBase(BaseModel):
@@ -57,12 +54,11 @@ class Portfolio(PortfolioBase):
     id: int
     user_id: int
     created_at: datetime
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class PortfolioListResponse(BaseModel):
     items: List[Portfolio]
+    model_config = ConfigDict(from_attributes=True)
 
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):
@@ -78,12 +74,11 @@ class CoverLetter(CoverLetterBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CoverLetterListResponse(BaseModel):
     items: List[CoverLetter]
+    model_config = ConfigDict(from_attributes=True)
 
 # AI Related Schemas
 class PortfolioAnalyzeRequest(BaseModel):

@@ -26,6 +26,7 @@ class Recruitment(Base):
     content = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)  # List of strings
     category = Column(String, nullable=True)
+    location = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     cover_letters = relationship("CoverLetter", back_populates="recruitment")
