@@ -1,13 +1,11 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { MessageCircle, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
 
     const handleKakaoLogin = () => {
