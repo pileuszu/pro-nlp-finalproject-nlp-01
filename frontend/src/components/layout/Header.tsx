@@ -12,9 +12,16 @@ export function Header() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // 클라이언트 사이드에서만 쿠키 체크
+        const hasToken = document.cookie.split(';').some((item) => item.trim().startsWith('accessToken='));
+
+        // 쿠키는 없는데 상태는 로그인인 경우 로그아웃 처리
+        if (!hasToken && isAuthenticated) {
+            logout();
+        }
+
         setMounted(true);
-    }, []);
+    }, [isAuthenticated, logout]);
 
     const handleLogout = () => {
         logout();
@@ -71,9 +78,6 @@ export function Header() {
                         <>
                             <Link href="/login">
                                 <Button variant="ghost" size="sm" className="text-gray-600 font-medium hover:text-gray-900">로그인</Button>
-                            </Link>
-                            <Link href="/signup">
-                                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm px-4">회원가입</Button>
                             </Link>
                         </>
                     )}

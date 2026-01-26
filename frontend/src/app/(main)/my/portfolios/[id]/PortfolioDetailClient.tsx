@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit } from "lucide-react";
 import Link from "next/link";
+import { getApiUrl } from "@/lib/apiUtils";
 
 interface Portfolio {
     id: number;
@@ -25,7 +26,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`/api/portfolios/${id}`)
+        fetch(getApiUrl(`/portfolios/${id}`))
             .then(res => {
                 if (!res.ok) throw new Error("Not Found");
                 return res.json();

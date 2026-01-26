@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
+import { getApiUrl } from "@/lib/apiUtils";
 
 // --- Types ---
 interface QuestionItem {
@@ -58,7 +59,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     useEffect(() => {
         const loadData = async () => {
             try {
-                const pfRes = await fetch('/api/portfolios');
+                const pfRes = await fetch(getApiUrl('/portfolios'));
                 if (pfRes.ok) {
                     const data = await pfRes.json();
                     setPortfolios(data.items || data || []);
@@ -67,18 +68,18 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             if (!isNew) {
                 try {
-                    const res = await fetch(`/api/cover-letters/${id}`);
+                    const res = await fetch(getApiUrl(`/cover-letters/${id}`));
                     const data = await res.json();
                     setTitle(data.title);
                     if (data.questions?.length > 0) setQuestions(data.questions);
                     if (data.recruitId) {
-                        const rRes = await fetch(`/api/recruits/${data.recruitId}`);
+                        const rRes = await fetch(getApiUrl(`/recruits/${data.recruitId}`));
                         if (rRes.ok) { setLinkedRecruit(await rRes.json()); setShowRecruitPanel(true); }
                     }
                 } catch (e) { console.error(e); }
             } else if (jobId) {
                 try {
-                    const rRes = await fetch(`/api/recruits/${jobId}`);
+                    const rRes = await fetch(getApiUrl(`/recruits/${jobId}`));
                     if (rRes.ok) {
                         const data = await rRes.json();
                         setLinkedRecruit(data);
@@ -95,7 +96,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const handleSave = async () => {
         try {
             const body = { title, questions, recruitId: linkedRecruit?.id };
-            const res = await fetch(isNew ? '/api/cover-letters' : `/api/cover-letters/${id}`, {
+            const res = await fetch(isNew ? getApiUrl('/cover-letters') : getApiUrl(`/cover-letters/${id}`), {
                 method: isNew ? 'POST' : 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -130,7 +131,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         setIsGenerating(true);
         try {
             const activeQuestionContent = questions.find(q => q.id === activeAiQuestionId)?.question || "";
-            const res = await fetch('/api/cover-letters/generate', {
+            const res = await fetch(getApiUrl('/cover-letters/generate'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -190,7 +191,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     onClick={async () => {
                                         if (confirm("정말 이 자기소개서를 삭제하시겠습니까?")) {
                                             try {
-                                                const res = await fetch(`/api/cover-letters/${id}`, { method: 'DELETE' });
+                                                const res = await fetch(getApiUrl(`/cover-letters/${id}`), { method: 'DELETE' });
                                                 if (res.ok) {
                                                     alert("삭제되었습니다.");
                                                     router.push('/my/cover-letters');

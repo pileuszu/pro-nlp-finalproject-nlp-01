@@ -9,6 +9,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { getApiUrl } from "@/lib/apiUtils";
 
 export default function CoverLettersPage() {
     const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
@@ -17,7 +18,7 @@ export default function CoverLettersPage() {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const fetchLetters = () => {
-        fetch("/api/cover-letters", { cache: 'no-store' })
+        fetch(getApiUrl("/cover-letters"), { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
                 if (data.items) {
@@ -47,7 +48,7 @@ export default function CoverLettersPage() {
         if (!confirm(`선택한 ${selectedIds.length}개의 자기소개서를 정말 삭제하시겠습니까?`)) return;
 
         try {
-            await Promise.all(selectedIds.map(id => fetch(`/api/cover-letters/${id}`, { method: 'DELETE' })));
+            await Promise.all(selectedIds.map(id => fetch(getApiUrl(`/cover-letters/${id}`), { method: 'DELETE' })));
             alert("삭제되었습니다.");
             setSelectedIds([]);
             setIsSelectionMode(false);
