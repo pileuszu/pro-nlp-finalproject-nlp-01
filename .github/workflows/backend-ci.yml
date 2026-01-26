@@ -37,6 +37,5 @@ jobs:
     steps:
       - name: Trigger Render Deployment
         run: |
-          # If you have Render Deploy Hook URL, uncomment the line below
-          # curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-          echo "CI passed! If you connect your Render service to this GitHub repo, it will auto-deploy now."
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          echo "CI passed and Render deployment triggered!"
