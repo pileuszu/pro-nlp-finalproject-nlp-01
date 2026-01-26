@@ -12,6 +12,11 @@ export function Header() {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMounted(true);
+    }, []);
+
+    useEffect(() => {
         // 클라이언트 사이드에서만 쿠키 체크
         const hasToken = document.cookie.split(';').some((item) => item.trim().startsWith('accessToken='));
 
@@ -19,8 +24,6 @@ export function Header() {
         if (!hasToken && isAuthenticated) {
             logout();
         }
-
-        setMounted(true);
     }, [isAuthenticated, logout]);
 
     const handleLogout = () => {
