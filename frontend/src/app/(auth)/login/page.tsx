@@ -34,14 +34,14 @@ export default function LoginPage() {
                 </div>
 
                 <Card className="shadow-2xl border-slate-200 bg-white overflow-hidden rounded-2xl">
-                    <CardHeader className="space-y-2 text-center bg-slate-50/50 border-b border-slate-100 py-10">
+                    <CardHeader className="space-y-2 text-center bg-slate-50/50 border-b border-slate-100 py-8">
                         <CardTitle className="text-2xl font-bold text-slate-800">환영합니다!</CardTitle>
                         <CardDescription className="text-slate-400 text-sm max-w-[280px] mx-auto">
                             카카오 계정으로 안전하고 빠르게 서비스를 시작해 보세요.
                         </CardDescription>
                     </CardHeader>
 
-                    <CardContent className="space-y-8 p-12">
+                    <CardContent className="space-y-6 pt-10 pb-8 px-10">
                         <div className="flex flex-col gap-4">
                             <Button
                                 type="button"
@@ -54,15 +54,15 @@ export default function LoginPage() {
                                 {loading ? "이동 중..." : "카카오로 3초만에 시작하기"}
                             </Button>
 
-                            <p className="text-[11px] text-center text-slate-400 leading-relaxed px-4">
+                            <p className="text-[10px] text-center text-slate-400 leading-relaxed px-4">
                                 로그인 시 Pro-NLP의 <span className="underline cursor-pointer">이용약관</span> 및 <span className="underline cursor-pointer">개인정보처리방침</span>에 동의하게 됩니다.
                             </p>
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex justify-center pb-10 pt-0 border-t border-slate-50 mt-4">
-                        <div className="flex items-center gap-2 mt-8 text-xs font-bold text-slate-300 tracking-widest uppercase">
-                            <ArrowRight className="h-3 w-3" /> Secure AI Recruitment Platform
+                    <CardFooter className="flex justify-center pb-8 pt-4 border-t border-slate-50/50">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-300 tracking-widest uppercase">
+                            <ArrowRight className="h-2.5 w-2.5" /> Secure AI Recruitment Platform
                         </div>
                     </CardFooter>
                 </Card>

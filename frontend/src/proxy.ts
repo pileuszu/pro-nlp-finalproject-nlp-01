@@ -27,6 +27,7 @@ export function proxy(request: NextRequest) {
         pathname === '/signup' ||
         pathname === '/favicon.ico' ||
         pathname.startsWith('/recruit') ||
+        pathname.startsWith('/auth/kakao') ||
         pathname.startsWith('/api');
 
     if (isPublicPath) {
