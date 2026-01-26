@@ -3,7 +3,7 @@ name: Frontend Build & Deploy (Vercel)
 on:
   push:
     branches:
-      - frontend
+      - develop
   workflow_dispatch:
 
 jobs:
