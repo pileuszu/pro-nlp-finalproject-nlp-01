@@ -43,13 +43,13 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-version: latest
           working-directory: ./frontend
-          vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=enabled -b NEXT_PUBLIC_API_MOCKING=enabled'
+          vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=https://pro-nlp-finalproject-nlp-01.onrender.com -b NEXT_PUBLIC_API_URL=https://pro-nlp-finalproject-nlp-01.onrender.com'
 
       - name: Display Deployment Summary
         run: |
           echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Preview URL:** [${{ steps.deploy-vercel.outputs.preview-url }}](${{ steps.deploy-vercel.outputs.preview-url }})" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** Production (Mocking Enabled)" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** Production (Cloud API Enabled)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "테스트가 성공적으로 완료되었으며, Vercel에 최신 버전이 배포되었습니다." >> $GITHUB_STEP_SUMMARY
