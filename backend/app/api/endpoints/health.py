@@ -5,7 +5,7 @@ from app.db.database import get_db
 
 router = APIRouter()
 
-@router.get("")
+@router.get("/")
 async def health_check(db: Session = Depends(get_db)):
     """
     Check if the API and Database connection are working.

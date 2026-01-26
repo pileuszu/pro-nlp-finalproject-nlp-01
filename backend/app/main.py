@@ -9,7 +9,8 @@ app = FastAPI(
     description="AI 기반 채용 플랫폼의 프론트엔드-백엔드 협업을 위한 표준 API 규격서입니다.",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    redirect_slashes=False
 )
 
 # CORS configuration
