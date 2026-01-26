@@ -1,0 +1,4 @@
+id,title,type,source_url,content,user_id,created_at
+1,나만의 기술 블로그,link,https://velog.io/@test,"[주요 포지셔닝 요약]\n- React 렌더링 최적화 전략...",2,2026-01-26 23:44:50
+2,졸업 프로젝트 (PDF),file,,[멀티 모달 AI 감정 분석 플랫폼]\n- 역할: 팀장 및 백엔드 인프라 설계,2,2026-01-26 23:44:50
+3,오픈소스 기여 내역,github,https://github.com/facebook/react,"[React 공식 레포지토리 기여]\n- PR 제목: Fix memory leak in useEffect cleanup",2,2026-01-26 23:44:50

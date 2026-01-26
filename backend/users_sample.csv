@@ -1,0 +1,3 @@
+id,email,name,profile_image,created_at
+1,test@example.com,testuser,https://api.dicebear.com/7.x/avataaars/svg?seed=testuser,2026-01-26 23:44:50
+2,user@kakao.com,카카오본인,https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao,2026-01-26 23:44:50
