@@ -39,7 +39,8 @@ def seed():
                         title=row['title'],
                         company=row['company'],
                         content=row.get('content'),
-                        category=row.get('category')
+                        category=row.get('category'),
+                        location=row.get('location')
                     )
                     # Handle tags if it's a JSON/List
                     if 'tags' in row and pd.notna(row['tags']):
