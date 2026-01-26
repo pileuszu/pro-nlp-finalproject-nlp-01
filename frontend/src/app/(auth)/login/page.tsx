@@ -31,7 +31,10 @@ export default function LoginPage() {
     };
 
     const handleKakaoLogin = () => {
-        alert("카카오 로그인은 추후 도입 예정입니다.");
+        const client_id = "36cb87d77a70e26540f4e7c71bc02c87";
+        const redirect_uri = window.location.origin + "/auth/kakao/callback";
+        const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
+        window.location.href = kakaoAuthUrl;
     };
 
     return (

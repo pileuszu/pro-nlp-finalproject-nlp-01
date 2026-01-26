@@ -7,7 +7,7 @@ from app.services import recruit_service
 
 router = APIRouter()
 
-@router.get("/", response_model=schemas.RecruitmentListResponse)
+@router.get("", response_model=schemas.RecruitmentListResponse)
 async def list_recruits(
     page: int = 1, 
     limit: int = 10, 
@@ -37,7 +37,7 @@ async def get_recruit(recruit_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Recruitment not found")
     return db_recruit
 
-@router.post("/", response_model=schemas.Recruitment, status_code=201)
+@router.post("", response_model=schemas.Recruitment, status_code=201)
 async def create_recruit(recruit: schemas.RecruitmentCreate, db: Session = Depends(get_db)):
     """Admin endpoint to create a new recruitment posting."""
     return recruit_service.create_recruitment(db, recruit)

@@ -7,7 +7,7 @@ from app.services import portfolio_service
 
 router = APIRouter()
 
-@router.get("/", response_model=schemas.PortfolioListResponse)
+@router.get("", response_model=schemas.PortfolioListResponse)
 async def list_portfolios(db: Session = Depends(get_db)):
     # In a real app, user_id would come from the auth token
     user_id = 1 
