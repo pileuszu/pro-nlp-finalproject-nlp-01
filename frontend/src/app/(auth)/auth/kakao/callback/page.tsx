@@ -43,11 +43,16 @@ export default function KakaoCallbackPage() {
     }, [searchParams, login, router]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
-            <div className="space-y-4 text-center">
-                <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                <h2 className="text-xl font-bold text-slate-800">카카오 로그인 처리 중...</h2>
-                <p className="text-slate-500">잠시만 기다려 주세요.</p>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50/30">
+            <div className="space-y-6 text-center animate-in fade-in duration-1000">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-slate-100 rounded-full mx-auto"></div>
+                    <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto absolute inset-0"></div>
+                </div>
+                <div className="space-y-2">
+                    <h2 className="text-xl font-black text-slate-800 tracking-tight">카카오 로그인 처리 중</h2>
+                    <p className="text-sm text-slate-400 font-medium">안전한 로그인을 위해 잠시만 기다려 주세요.</p>
+                </div>
             </div>
         </div>
     );

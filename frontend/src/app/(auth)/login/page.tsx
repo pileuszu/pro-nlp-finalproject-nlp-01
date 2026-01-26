@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { MessageCircle, ArrowRight } from "lucide-react";
@@ -30,7 +31,10 @@ export default function LoginPage() {
                     </p>
                 </div>
 
-                <Card className="shadow-2xl border-slate-200 bg-white overflow-hidden rounded-[32px]">
+                <Card className={cn(
+                    "border-slate-200 bg-white overflow-hidden rounded-[32px] transition-all duration-500",
+                    loading ? "shadow-none" : "shadow-2xl"
+                )}>
                     <CardHeader className="space-y-2 text-center bg-slate-50/30 border-b border-slate-100/50 py-8">
                         <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">환영합니다!</CardTitle>
                         <CardDescription className="text-slate-400 text-[13px] max-w-[240px] mx-auto leading-relaxed font-medium">
