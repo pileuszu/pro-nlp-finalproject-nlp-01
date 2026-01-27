@@ -1,0 +1,9 @@
+id,title,company,start_date,deadline,content,tags,category,location,created_at
+1,Frontend Developer,Google,2026-02-01,2026-03-01,"Google에서 역량 있는 인진를 모십니다.","[""React"", ""Next.js"", ""TypeScript""]",frontend,서울 강남구,2026-01-26 23:44:50
+2,Backend Engineer,Amazon,2026-01-15,2026-02-15,"Amazon에서 클라우드 기반 백엔드 엔지니어를 모집합니다.","[""Java"", ""Spring Boot"", ""AWS""]",backend,서울 중구,2026-01-26 23:44:50
+3,AI Researcher,OpenAI,2026-03-10,2026-04-10,"OpenAI에서 LLM 연구원을 모십니다.","[""Python"", ""PyTorch"", ""LLM""]",ai,미국 샌프란시스코,2026-01-26 23:44:50
+4,Product Manager,Toss,2026-01-28,2026-02-28,"Toss에서 금융 혁신을 이끌 PM을 찾습니다.","[""Agile"", ""Jira"", ""Data Analysis""]",fullstack,서울 강남구,2026-01-26 23:44:50
+5,DevOps Engineer,Netflix,2026-02-20,2026-03-20,"Netflix에서 인프라 자동화 전문가를 모십니다.","[""Kubernetes"", ""Terraform"", ""Go""]",devops,미국 로스앤젤레스,2026-01-26 23:44:50
+9,NLP Research Engineer,Naver Clova,2026-02-15,2026-03-15,"Naver에서 HyperCLOVA 연구원을 모십니다.","[""NLP"", ""Python"", ""HyperCLOVA""]",ai,경기 성남시,2026-01-26 23:44:50
+10,LLM Service Developer,Upstage,2026-03-01,2026-03-30,"Upstage에서 LLM 기반 서비스 개발자를 모집합니다.","[""LangChain"", ""Python""]",ai,서울 강남구,2026-01-26 23:44:50
+11,UI/UX Designer,Line,2024-12-01,2024-12-31,"Line에서 사용자 중심 디자이너를 모십니다.","[""Figma"", ""Prototyping""]",frontend,경기 성남시,2026-01-26 23:44:50

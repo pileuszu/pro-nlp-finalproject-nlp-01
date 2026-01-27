@@ -19,6 +19,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { Sparkles, Flame, LayoutGrid, List, ArrowRight, Building, Calendar, MoreHorizontal, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { getApiUrl } from "@/lib/apiUtils";
 
 export default function RecruitPage() {
     const { isAuthenticated } = useAuthStore();
@@ -34,6 +35,16 @@ export default function RecruitPage() {
     const [selectedCategory, setSelectedCategory] = useState("all");
     const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+    // Debounce searchQuery
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
 
     const JOB_CATEGORIES = [
         { label: "전체", value: "all" },
@@ -56,15 +67,15 @@ export default function RecruitPage() {
                 limit: itemsPerPage.toString(),
                 category: selectedCategory,
                 techStack: selectedTechs.join(','),
-                keyword: searchQuery,
+                keyword: debouncedSearchQuery,
             });
 
             if (activeTab === 'popular') {
                 params.append('sort', 'popular');
             }
 
-            const endpoint = activeTab === 'recommend' ? '/api/recruits/recommend' : '/api/recruits';
-            const res = await fetch(`${endpoint}?${params.toString()}`);
+            const endpoint = activeTab === 'recommend' ? '/recruits/recommend' : '/recruits';
+            const res = await fetch(getApiUrl(`${endpoint}?${params.toString()}`));
             const data = await res.json();
 
             setRecruits(data.items || []);
@@ -74,7 +85,7 @@ export default function RecruitPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, searchQuery]);
+    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery]);
 
     useEffect(() => {
         fetchRecruits();

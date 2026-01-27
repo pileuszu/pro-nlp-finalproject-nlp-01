@@ -6,10 +6,16 @@ export const MSWComponent = ({ children }: { children: React.ReactNode }) => {
     const [mswReady, setMswReady] = useState(false);
 
     useEffect(() => {
+        // 프로덕션 환경에서는 즉시 종료
+        if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_API_MOCKING !== 'enabled') {
+            setMswReady(true);
+            return;
+        }
+
         const initMsw = async () => {
             // 개발 환경이거나, 환경 변수로 모킹이 활성화된 경우에만 실행
-            const isMockingEnabled = process.env.NODE_ENV === 'development' ||
-                process.env.NEXT_PUBLIC_API_MOCKING === 'enabled';
+            const isMockingEnabled = process.env.NEXT_PUBLIC_API_MOCKING !== 'disabled' &&
+                (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_API_MOCKING === 'enabled');
 
             if (!isMockingEnabled) {
                 setMswReady(true);

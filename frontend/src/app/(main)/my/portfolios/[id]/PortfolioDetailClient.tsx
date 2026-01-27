@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit } from "lucide-react";
 import Link from "next/link";
+import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 
 interface Portfolio {
     id: number;
@@ -25,7 +26,7 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch(`/api/portfolios/${id}`)
+        fetchWithAuth(getApiUrl(`/portfolios/${id}`))
             .then(res => {
                 if (!res.ok) throw new Error("Not Found");
                 return res.json();
@@ -40,10 +41,22 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
             });
     }, [id]);
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (confirm("정말로 삭제하시겠습니까?")) {
-            alert("삭제되었습니다. (Mock)");
-            router.push('/my/portfolios');
+            try {
+                const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`), {
+                    method: 'DELETE',
+                });
+                if (res.ok) {
+                    alert("삭제되었습니다.");
+                    router.push('/my/portfolios');
+                } else {
+                    alert("삭제에 실패했습니다.");
+                }
+            } catch (e) {
+                console.error(e);
+                alert("삭제 중 오류가 발생했습니다.");
+            }
         }
     };
 
