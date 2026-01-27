@@ -18,7 +18,7 @@ async def list_cover_letters(
     items = cover_letter_service.get_cover_letters(db, user_id=current_user.id, recruitment_id=recruitId)
     return {"items": items}
 
-@router.post("/", response_model=schemas.CoverLetter, status_code=201)
+@router.post("", response_model=schemas.CoverLetter, status_code=201)
 async def create_cover_letter(
     cl: schemas.CoverLetterCreateRequest,
     db: Session = Depends(get_db),

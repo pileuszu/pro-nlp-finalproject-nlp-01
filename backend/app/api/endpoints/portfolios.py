@@ -18,7 +18,7 @@ async def list_portfolios(
     items = portfolio_service.get_portfolios(db, user_id=current_user.id)
     return {"items": items}
 
-@router.post("/", response_model=schemas.Portfolio, status_code=201)
+@router.post("", response_model=schemas.Portfolio, status_code=201)
 async def create_portfolio(
     portfolio: schemas.PortfolioCreateRequest,
     db: Session = Depends(get_db),
