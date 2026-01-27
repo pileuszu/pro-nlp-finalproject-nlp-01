@@ -28,6 +28,17 @@ async def create_portfolio(
     internal_portfolio = schemas.PortfolioCreate(**portfolio_data, user_id=current_user.id)
     return portfolio_service.create_portfolio(db, internal_portfolio)
 
+@router.get("/{portfolio_id}", response_model=schemas.Portfolio)
+async def get_portfolio(
+    portfolio_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    portfolio = portfolio_service.get_portfolio(db, portfolio_id, current_user.id)
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    return portfolio
+
 @router.delete("/{portfolio_id}")
 async def delete_portfolio(
     portfolio_id: int, 

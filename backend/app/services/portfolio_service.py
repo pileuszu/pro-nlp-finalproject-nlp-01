@@ -5,6 +5,9 @@ from app.schemas import schemas
 def get_portfolios(db: Session, user_id: int):
     return db.query(models.Portfolio).filter(models.Portfolio.user_id == user_id).all()
 
+def get_portfolio(db: Session, portfolio_id: int, user_id: int):
+    return db.query(models.Portfolio).filter(models.Portfolio.id == portfolio_id, models.Portfolio.user_id == user_id).first()
+
 def create_portfolio(db: Session, portfolio: schemas.PortfolioCreate):
     db_portfolio = models.Portfolio(**portfolio.model_dump())
     db.add(db_portfolio)
