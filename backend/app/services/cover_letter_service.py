@@ -2,8 +2,11 @@ from sqlalchemy.orm import Session
 from app.models import models
 from app.schemas import schemas
 
-def get_cover_letters(db: Session, user_id: int):
-    return db.query(models.CoverLetter).filter(models.CoverLetter.user_id == user_id).all()
+def get_cover_letters(db: Session, user_id: int, recruitment_id: int = None):
+    query = db.query(models.CoverLetter).filter(models.CoverLetter.user_id == user_id)
+    if recruitment_id:
+        query = query.filter(models.CoverLetter.recruitment_id == recruitment_id)
+    return query.all()
 
 def get_cover_letter(db: Session, cl_id: int, user_id: int):
     return db.query(models.CoverLetter).filter(models.CoverLetter.id == cl_id, models.CoverLetter.user_id == user_id).first()

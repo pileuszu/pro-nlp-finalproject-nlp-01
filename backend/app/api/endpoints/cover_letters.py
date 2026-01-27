@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
 from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.schemas import schemas
@@ -10,10 +11,11 @@ router = APIRouter()
 
 @router.get("", response_model=schemas.CoverLetterListResponse)
 async def list_cover_letters(
+    recruitId: Optional[int] = Query(None),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    items = cover_letter_service.get_cover_letters(db, user_id=current_user.id)
+    items = cover_letter_service.get_cover_letters(db, user_id=current_user.id, recruitment_id=recruitId)
     return {"items": items}
 
 @router.post("/", response_model=schemas.CoverLetter, status_code=201)
