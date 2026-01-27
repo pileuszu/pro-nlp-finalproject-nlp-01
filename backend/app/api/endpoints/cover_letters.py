@@ -31,6 +31,17 @@ async def create_cover_letter(
     internal_cl = schemas.CoverLetterCreate(**cl_data, user_id=current_user.id)
     return cover_letter_service.create_cover_letter(db, internal_cl)
 
+@router.get("/{cl_id}", response_model=schemas.CoverLetter)
+async def get_cover_letter(
+    cl_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    db_cl = cover_letter_service.get_cover_letter(db, cl_id, current_user.id)
+    if not db_cl:
+        raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
+    return db_cl
+
 @router.put("/{cl_id}", response_model=schemas.CoverLetter)
 async def update_cover_letter(
     cl_id: int, 
