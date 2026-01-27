@@ -1,66 +1,66 @@
-# Portfolio Processing Pipeline (Experimental)
+# 포트폴리오 처리 파이프라인 (실험용)
 
-This module implements an experimental pipeline for processing user portfolios from various sources (Files, GitHub, Notion), refining the content using an LLM, and storing it as vector embeddings in Chroma DB.
+이 모듈은 다양한 소스(파일, GitHub, Notion)에서 사용자 포트폴리오를 처리하고, LLM을 사용하여 내용을 정제한 후, Chroma DB에 벡터 임베딩으로 저장하는 실험적인 파이프라인을 구현합니다.
 
-## Features
+## 주요 기능
 
--   **Multi-Source Extraction**:
-    -   **File**: Text files (`.txt`, `.md`, `.json`), Images (`.png`, `.jpg` via Surya OCR).
-    -   **GitHub**: Extracts raw content from GitHub READMEs or files.
-    -   **Notion**: (Planned) Extracts content via Notion API.
--   **LLM Refinement**: Uses Google Gemini to clean, structure, and correct extracted text.
--   **Vector Storage**: stores embeddings using HuggingFace models in a local Chroma DB instance.
+-   **다중 소스 추출**:
+    -   **파일**: 텍스트 파일 (`.txt`, `.md`, `.json`), 이미지 (`.png`, `.jpg` - Surya OCR 사용).
+    -   **GitHub**: GitHub README 또는 파일에서 원본 콘텐츠 추출.
+    -   **Notion**: (계획됨) Notion API를 통한 콘텐츠 추출.
+-   **LLM 정제**: Google Gemini를 사용하여 추출된 텍스트를 정리, 구조화 및 교정.
+-   **벡터 저장소**: HuggingFace 모델을 사용하여 로컬 Chroma DB 인스턴스에 임베딩 저장.
 
-## Setup
+## 설정 (Setup)
 
-1.  **Environment Variables**:
-    Create a `.env` file in `llm-pipeline/portfolios/` (or use the one in `llm-pipeline/`):
+1.  **환경 변수**:
+    `llm-pipeline/portfolios/` 폴더 내에 `.env` 파일을 생성합니다 (또는 `llm-pipeline/`의 파일을 사용):
     ```ini
     GOOGLE_API_KEY=your_google_api_key
     ```
 
-2.  **Installation**:
-    It is recommended to use the dedicated virtual environment.
+2.  **설치**:
+    전용 가상 환경(virtual environment)을 사용하는 것을 권장합니다.
     ```bash
-    # Create venv (if not exists)
+    # 가상 환경 생성 (없는 경우)
     python -m venv llm-pipeline/portfolios/venv
 
-    # Install dependencies
+    # 의존성 패키지 설치
     llm-pipeline/portfolios/venv/Scripts/pip install -r llm-pipeline/portfolios/requirements.txt
     ```
 
-    > **Note**: For image extraction, `surya-ocr` requires PyTorch and may download models on the first run.
+    > **참고**: 이미지 추출을 위한 `surya-ocr`은 PyTorch를 필요로 하며, 첫 실행 시 모델을 다운로드할 수 있습니다.
 
-## Usage
+## 사용법 (Usage)
 
-Run the `main.py` script from the project root.
+프로젝트 루트에서 `main.py` 스크립트를 실행합니다.
 
-### 1. Process a Local File
+### 1. 로컬 파일 처리
 ```bash
 llm-pipeline/portfolios/venv/Scripts/python llm-pipeline/portfolios/main.py --source_type file --source_path llm-pipeline/portfolios/data/sample_portfolio.txt
 ```
 
-### 2. Process a GitHub URL
+### 2. GitHub URL 처리
 ```bash
 llm-pipeline/portfolios/venv/Scripts/python llm-pipeline/portfolios/main.py --source_type github --source_path https://github.com/user/repo/blob/main/README.md
 ```
 
-### 3. Process Notion (Planned)
+### 3. Notion 처리 (계획됨)
 ```bash
 llm-pipeline/portfolios/venv/Scripts/python llm-pipeline/portfolios/main.py --source_type notion --source_path <page_id>
 ```
 
-## Directory Structure
+## 디렉토리 구조
 
 ```
 llm-pipeline/portfolios/
 ├── src/
-│   ├── extractors/       # Source-specific extractors (File, GitHub, Notion)
-│   ├── processors/       # Text processing (LLM Refinement)
-│   └── storage/          # Vector database interactions (Chroma)
-├── data/                 # Sample data
-├── venv/                 # Virtual environment
-├── main.py               # Entry point script
-├── requirements.txt      # Dependencies
-└── README.md             # This file
+│   ├── extractors/       # 소스별 추출기 (File, GitHub, Notion)
+│   ├── processors/       # 텍스트 처리기 (LLM Refinement)
+│   └── storage/          # 벡터 데이터베이스 연동 (Chroma)
+├── data/                 # 샘플 데이터
+├── venv/                 # 가상 환경
+├── main.py               # 진입점(Entry point) 스크립트
+├── requirements.txt      # 의존성 패키지 목록
+└── README.md             # 본 파일
 ```
