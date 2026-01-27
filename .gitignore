@@ -23,6 +23,7 @@ wheels/
 
 # Virtual Environment
 venv/
+llm-pipeline/portfolios/venv/
 ENV/
 
 # Database
