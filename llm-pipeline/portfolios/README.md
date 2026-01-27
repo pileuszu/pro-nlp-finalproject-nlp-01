@@ -5,10 +5,10 @@
 ## 주요 기능
 
 -   **다중 소스 추출**:
-    -   **파일**: 텍스트 파일 (`.txt`, `.md`, `.json`), 이미지 (`.png`, `.jpg` - Surya OCR 사용).
-    -   **GitHub**: GitHub README 또는 파일에서 원본 콘텐츠 추출.
-    -   **Notion**: (계획됨) Notion API를 통한 콘텐츠 추출.
--   **LLM 정제**: Google Gemini를 사용하여 추출된 텍스트를 정리, 구조화 및 교정.
+    -   **파일**: (작업 중) 로컬 파일 처리 로직 구현 대기 중.
+    -   **GitHub**: GitHub README (단일 Repo) 또는 사용자 전체 Public Repo README 추출 지원.
+    -   **Notion**: Notion 페이지 및 데이터베이스 재귀적 크롤링 지원.
+-   **LLM 정제**: (작업 중) Google Gemini를 사용한 정제 로직 구현 대기 중.
 -   **벡터 저장소**: HuggingFace 모델을 사용하여 로컬 Chroma DB 인스턴스에 임베딩 저장.
 
 ## 설정 (Setup)
