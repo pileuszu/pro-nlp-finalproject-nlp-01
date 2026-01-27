@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Upload, Github, Sparkles, ExternalLink, Plus, Check, FileText } from "lucide-react";
-import { getApiUrl } from "@/lib/apiUtils";
+import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 
 interface AnalyzedPortfolio {
     id: number;
@@ -52,7 +52,7 @@ export default function NewPortfolioPage() {
         setIsAnalyzing(true);
         setIsCustomAnalysisOpen(false);
         try {
-            const res = await fetch(getApiUrl('/portfolios/analyze'), {
+            const res = await fetchWithAuth(getApiUrl('/portfolios/analyze'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ source, type, customPrompt: prompt })

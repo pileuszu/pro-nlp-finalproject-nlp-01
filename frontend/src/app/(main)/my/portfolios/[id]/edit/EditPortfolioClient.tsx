@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
-import { getApiUrl } from "@/lib/apiUtils";
+import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 
 
 export default function EditPortfolioPage({ params }: { params: Promise<{ id: string }> }) {
@@ -25,7 +25,7 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
     const [type, setType] = useState<'link' | 'file' | 'github'>('link');
 
     useEffect(() => {
-        fetch(getApiUrl(`/portfolios/${id}`))
+        fetchWithAuth(getApiUrl(`/portfolios/${id}`))
             .then(res => res.json())
             .then(data => {
                 setTitle(data.title);
@@ -44,7 +44,7 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(getApiUrl(`/portfolios/${id}`), {
+            const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ title, description, content, url })

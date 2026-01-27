@@ -7,21 +7,20 @@ from app.models import models
 from jose import jwt
 from datetime import datetime, timedelta
 
+from app.core.config import settings
+from app.api import deps
+from app.schemas import schemas
+
 router = APIRouter()
 
-# Environment variables
-KAKAO_REST_API_KEY = os.getenv("KAKAO_REST_API_KEY")
-KAKAO_CLIENT_SECRET = os.getenv("KAKAO_CLIENT_SECRET")
-KAKAO_REDIRECT_URI = os.getenv("KAKAO_REDIRECT_URI", "https://pro-nlp-finalproject-nlp-01.onrender.com/api/auth/kakao/callback")
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+# Environment variables are now in settings
+# KAKAO_* and JWT settings are accessed via settings.X
 
 def create_access_token(data: dict):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 @router.get("/kakao/callback")
@@ -32,9 +31,9 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
             "https://kauth.kakao.com/oauth/token",
             data={
                 "grant_type": "authorization_code",
-                "client_id": KAKAO_REST_API_KEY,
-                "client_secret": KAKAO_CLIENT_SECRET,
-                "redirect_uri": KAKAO_REDIRECT_URI,
+                "client_id": settings.KAKAO_REST_API_KEY,
+                "client_secret": settings.KAKAO_CLIENT_SECRET,
+                "redirect_uri": settings.KAKAO_REDIRECT_URI,
                 "code": code,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"},
@@ -91,7 +90,6 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
             }
         }
 
-@router.get("/me")
-async def get_me():
-    # Placeholder - in real app, use a dependency to verify token
-    return {"id": 1, "email": "user@pro-nlp.com", "name": "Tester"}
+@router.get("/me", response_model=schemas.User)
+async def get_me(current_user: models.User = Depends(deps.get_current_user)):
+    return current_user

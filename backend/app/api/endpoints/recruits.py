@@ -3,7 +3,10 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from app.db.database import get_db
 from app.schemas import schemas
+from app.schemas import schemas
 from app.services import recruit_service
+from app.api import deps
+from app.models import models
 
 router = APIRouter()
 
@@ -38,12 +41,21 @@ async def get_recruit(recruit_id: int, db: Session = Depends(get_db)):
     return db_recruit
 
 @router.post("", response_model=schemas.Recruitment, status_code=201)
-async def create_recruit(recruit: schemas.RecruitmentCreate, db: Session = Depends(get_db)):
+async def create_recruit(
+    recruit: schemas.RecruitmentCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
     """Admin endpoint to create a new recruitment posting."""
     return recruit_service.create_recruitment(db, recruit)
 
 @router.put("/{recruit_id}", response_model=schemas.Recruitment)
-async def update_recruit(recruit_id: int, recruit: schemas.RecruitmentCreate, db: Session = Depends(get_db)):
+async def update_recruit(
+    recruit_id: int, 
+    recruit: schemas.RecruitmentCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
     """Admin endpoint to update a recruitment posting."""
     db_recruit = recruit_service.update_recruitment(db, recruit_id, recruit)
     if not db_recruit:
@@ -51,7 +63,11 @@ async def update_recruit(recruit_id: int, recruit: schemas.RecruitmentCreate, db
     return db_recruit
 
 @router.delete("/{recruit_id}")
-async def delete_recruit(recruit_id: int, db: Session = Depends(get_db)):
+async def delete_recruit(
+    recruit_id: int, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
     """Admin endpoint to delete a recruitment posting."""
     success = recruit_service.delete_recruitment(db, recruit_id)
     if not success:

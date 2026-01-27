@@ -9,14 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { getApiUrl } from "@/lib/apiUtils";
+import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 
 export default function PortfoliosPage() {
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     useEffect(() => {
-        fetch(getApiUrl("/portfolios"))
+        fetchWithAuth(getApiUrl("/portfolios"))
             .then(res => res.json())
             .then(data => {
                 if (data.items) {

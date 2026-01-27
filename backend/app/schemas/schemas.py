@@ -60,6 +60,9 @@ class PortfolioListResponse(BaseModel):
     items: List[Portfolio]
     model_config = ConfigDict(from_attributes=True)
 
+class PortfolioCreateRequest(PortfolioBase):
+    pass
+
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):
     title: Optional[str] = None
@@ -79,6 +82,9 @@ class CoverLetter(CoverLetterBase):
 class CoverLetterListResponse(BaseModel):
     items: List[CoverLetter]
     model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterCreateRequest(CoverLetterBase):
+    pass
 
 # AI Related Schemas
 class PortfolioAnalyzeRequest(BaseModel):
