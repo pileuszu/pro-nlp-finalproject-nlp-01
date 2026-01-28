@@ -22,7 +22,9 @@ wheels/
 *.egg
 
 # Virtual Environment
+.venv/
 venv/
+llm-pipeline/portfolios/venv/
 ENV/
 
 # Database
@@ -39,3 +41,12 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+llm-pipeline/notebooks/extracted_readmes/
+llm-pipeline/notebooks/extracted_notion_data/
+llm-pipeline/notebooks/extracted_notion_data_v2/
+llm-pipeline/notebooks/ocr_results/
+llm-pipeline/notebooks/results/
+llm-pipeline/notebooks/tessdata
+llm-pipeline/portfolios/data/
+llm-pipeline/recruit/data/
