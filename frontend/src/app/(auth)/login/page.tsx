@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { MessageCircle, ArrowRight } from "lucide-react";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    const { login } = useAuthStore();
 
     const handleKakaoLogin = () => {
         setLoading(true);
@@ -15,6 +19,16 @@ export default function LoginPage() {
         const redirect_uri = window.location.origin + "/auth/kakao/callback";
         const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
         window.location.href = kakaoAuthUrl;
+    };
+
+    const handleDevLogin = () => {
+        setLoading(true);
+        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzY5NzA5NjE4fQ.HnjbWspQg_Rebzg67uyLSIJqrTrZZoxNKzzjEoEy4K0"; // Generated for User ID 1
+        const user = { id: 1, email: "test@example.com", name: "Dev User" }; // Mock user data
+
+        login(user, token);
+        document.cookie = `accessToken=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+        router.push("/my/portfolios/new");
     };
 
     return (
@@ -61,10 +75,18 @@ export default function LoginPage() {
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex justify-center pb-8 pt-2">
+                    <CardFooter className="flex flex-col justify-center pb-8 pt-2 gap-4">
                         <div className="flex items-center gap-2 text-[8px] font-black text-slate-300 tracking-[0.3em] uppercase">
                             <ArrowRight className="h-2 w-2 opacity-30" /> Powered by Advanced NLP
                         </div>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleDevLogin}
+                            className="text-xs text-slate-300 hover:text-slate-500 h-6"
+                        >
+                            (Dev) Local Login
+                        </Button>
                     </CardFooter>
                 </Card>
             </div>

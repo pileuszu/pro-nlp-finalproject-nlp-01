@@ -5,21 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit, Sparkles, User, Briefcase, Code } from "lucide-react";
 import Link from "next/link";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
+import { Portfolio } from "@/types";
 
-interface Portfolio {
-    id: number;
-    title: string;
-    type: 'link' | 'file' | 'github';
-    url?: string;
-    createdAt: string;
-    description: string;
-    content?: string;
-}
-
-export default function PortfolioDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default function PortfolioDetailClient({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
@@ -74,46 +65,98 @@ export default function PortfolioDetailPage({ params }: { params: Promise<{ id: 
             <Card className="shadow-lg border-slate-200 bg-white overflow-hidden">
                 <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
                     <div className="flex items-center justify-between mb-4">
-                        <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600 px-3 py-1 text-sm font-medium shadow-sm">
-                            {portfolio.type === 'link' ? '웹사이트 / 링크' : portfolio.type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600 px-3 py-1 text-sm font-medium shadow-sm">
+                                {portfolio.type === 'link' ? '웹사이트 / 링크' : portfolio.type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
+                            </Badge>
+                            {portfolio.processingStatus === 'PENDING' && (
+                                <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-xs font-bold animate-pulse">
+                                    분석 중...
+                                </Badge>
+                            )}
+                            {portfolio.processingStatus === 'COMPLETED' && (
+                                <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-xs font-bold gap-1">
+                                    <Sparkles className="h-3 w-3 fill-blue-500" /> AI 분석 완료
+                                </Badge>
+                            )}
+                        </div>
                         <span className="text-slate-400 text-sm flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {portfolio.createdAt} 등록
+                            {new Date(portfolio.createdAt).toLocaleDateString()} 등록
                         </span>
                     </div>
                     <CardTitle className="text-3xl font-bold text-slate-900 leading-tight">
-                        {portfolio.title}
+                        {portfolio.projectName || portfolio.title}
                     </CardTitle>
+                    {portfolio.projectName && portfolio.title !== portfolio.projectName && (
+                        <p className="text-slate-500 mt-2 font-medium">Original Source: {portfolio.title}</p>
+                    )}
                 </CardHeader>
 
-                <CardContent className="p-8 space-y-10 min-h-[300px]">
+                <CardContent className="p-8 space-y-8 min-h-[300px]">
+
+                    {/* Project Details Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
+                                <Calendar className="h-4 w-4" /> Period
+                            </div>
+                            <p className="font-semibold text-slate-800">{portfolio.period || "기간 정보 없음"}</p>
+                        </div>
+                        <div className="space-y-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
+                                <User className="h-4 w-4" /> Role
+                            </div>
+                            <p className="font-semibold text-slate-800">{portfolio.role || "역할 정보 없음"}</p>
+                        </div>
+                        <div className="space-y-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
+                                <Briefcase className="h-4 w-4" /> Job Title
+                            </div>
+                            <p className="font-semibold text-slate-800">{portfolio.extractedJobTitle || "직무 정보 없음"}</p>
+                        </div>
+                    </div>
+
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            기본 설명
+                            <FileText className="h-4 w-4" /> 프로젝트 설명
                         </h3>
                         <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap">
-                            {portfolio.description}
+                            {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
                         </p>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                            AI 분석용 상세 데이터
+                            <Code className="h-4 w-4" /> 기술 스택
+                        </h3>
+                        {portfolio.techStack && portfolio.techStack.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {portfolio.techStack.map((tech, i) => (
+                                    <Badge key={i} variant="secondary" className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm">
+                                        {tech}
+                                    </Badge>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-slate-500 text-sm">기술 스택 정보가 없습니다.</p>
+                        )}
+                    </div>
+
+
+                    <div className="space-y-4 pt-6 border-t border-slate-100">
+                        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                            AI 분석 원본 데이터
                         </h3>
                         {portfolio.content ? (
-                            <div className="rounded-2xl border border-blue-100 bg-blue-50/20 p-6 relative group overflow-hidden">
-                                <div className="absolute top-0 right-0 p-3 bg-blue-100/50 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Badge variant="outline" className="bg-white border-blue-200 text-blue-600 text-[10px] font-bold">AI 최적화 완료</Badge>
-                                </div>
-                                <p className="text-[15px] text-slate-800 leading-8 whitespace-pre-line font-medium">
+                            <div className="rounded-2xl border border-slate-100 bg-slate-50/30 p-6 relative group overflow-hidden">
+                                <p className="text-[14px] text-slate-600 leading-7 whitespace-pre-line font-medium max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                     {portfolio.content}
                                 </p>
                             </div>
                         ) : (
-                            <div className="rounded-2xl border border-dashed border-slate-200 p-12 text-center bg-slate-50/30">
-                                <p className="text-slate-400 font-medium">상세 내용이 등록되지 않았습니다.</p>
-                                <Button variant="link" className="text-blue-500 mt-2">지금 추가하기</Button>
+                            <div className="rounded-2xl border border-dashed border-slate-200 p-8 text-center bg-slate-50/30">
+                                <p className="text-slate-400 font-medium">상세 내용이 없습니다.</p>
                             </div>
                         )}
                     </div>

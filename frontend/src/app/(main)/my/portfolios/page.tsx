@@ -90,27 +90,55 @@ export default function PortfoliosPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <Card className="flex flex-col hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-hidden rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
+                                <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-hidden rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
                                     <CardHeader className="pb-4 relative">
                                         <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800 group-hover:text-blue-700 transition-colors duration-300">
                                             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors duration-300">
                                                 {getIcon(portfolio.type)}
                                             </div>
-                                            <span className="line-clamp-1">{portfolio.title}</span>
+                                            <div className="flex flex-col">
+                                                <span className="line-clamp-1">{portfolio.projectName || portfolio.title}</span>
+                                                {portfolio.projectName && portfolio.title !== portfolio.projectName && (
+                                                    <span className="text-xs text-slate-400 font-normal line-clamp-1">{portfolio.title}</span>
+                                                )}
+                                            </div>
                                         </CardTitle>
-                                        <div className="text-[11px] text-slate-400 font-bold flex items-center justify-between uppercase tracking-wider">
-                                            {portfolio.createdAt}
-                                            {portfolio.content && (
-                                                <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-600 text-[10px] gap-1 font-black animate-pulse py-0.5">
+                                        <div className="text-[11px] text-slate-400 font-bold flex items-center justify-between uppercase tracking-wider mt-2">
+                                            {new Date(portfolio.createdAt).toLocaleDateString()}
+                                            {portfolio.processingStatus === 'PENDING' && (
+                                                <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[10px] gap-1 font-black animate-pulse py-0.5">
+                                                    ANALYZING...
+                                                </Badge>
+                                            )}
+                                            {portfolio.processingStatus === 'COMPLETED' && (
+                                                <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-600 text-[10px] gap-1 font-black py-0.5">
                                                     <Sparkles className="h-2.5 w-2.5 fill-blue-500" /> AI READY
+                                                </Badge>
+                                            )}
+                                            {portfolio.processingStatus === 'FAILED' && (
+                                                <Badge variant="outline" className="bg-red-50 border-red-100 text-red-600 text-[10px] gap-1 font-black py-0.5">
+                                                    FAILED
                                                 </Badge>
                                             )}
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="flex-1 pb-6">
+                                    <CardContent className="flex-1 pb-6 space-y-4">
                                         <p className="text-sm text-slate-500 line-clamp-3 leading-relaxed font-medium">
-                                            {portfolio.description || "포트폴리오에 대한 설명이 없습니다."}
+                                            {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
                                         </p>
+
+                                        {portfolio.techStack && portfolio.techStack.length > 0 && (
+                                            <div className="flex flex-wrap gap-1.5 pt-2">
+                                                {portfolio.techStack.slice(0, 4).map((tech, i) => (
+                                                    <Badge key={i} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200">
+                                                        {tech}
+                                                    </Badge>
+                                                ))}
+                                                {portfolio.techStack.length > 4 && (
+                                                    <span className="text-[10px] text-slate-400 font-bold self-center">+{portfolio.techStack.length - 4}</span>
+                                                )}
+                                            </div>
+                                        )}
                                     </CardContent>
                                     <CardFooter className="pt-4 border-t border-slate-50 p-6 bg-slate-50/30">
                                         <Link href={`/my/portfolios/${portfolio.id}`} className="w-full">
@@ -148,22 +176,27 @@ export default function PortfoliosPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-3 mb-1.5">
                                                     <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
-                                                        {portfolio.title}
+                                                        {portfolio.projectName || portfolio.title}
                                                     </h3>
-                                                    {portfolio.content && (
+                                                    {portfolio.processingStatus === 'COMPLETED' && (
                                                         <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
                                                             AI Ready
                                                         </Badge>
                                                     )}
+                                                    {portfolio.processingStatus === 'PENDING' && (
+                                                        <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[9px] font-black uppercase py-0 px-2 shrink-0 animate-pulse">
+                                                            Processing
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 <p className="text-sm text-slate-400 font-medium truncate italic antialiased leading-relaxed">
-                                                    {portfolio.description || "설명이 없습니다."}
+                                                    {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-8 shrink-0">
                                             <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest hidden sm:block">
-                                                Created: {portfolio.createdAt}
+                                                Created: {new Date(portfolio.createdAt).toLocaleDateString()}
                                             </div>
                                             <div className="h-8 w-8 rounded-full flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all duration-300">
                                                 <LinkIcon className="h-4 w-4" />

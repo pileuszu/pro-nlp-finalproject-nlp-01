@@ -50,10 +50,32 @@ class PortfolioBase(BaseModel):
 class PortfolioCreate(PortfolioBase):
     user_id: int
 
+class PortfolioJobQuery(BaseModel):
+    id: int
+    type: Optional[str]
+    query_text: Optional[str]
+    evidence: Optional[List[str]]
+    model_config = ConfigDict(from_attributes=True)
+
 class Portfolio(PortfolioBase):
     id: int
     user_id: int
     created_at: datetime
+    
+    processing_status: Optional[str] = None
+    extracted_summary: Optional[str] = None
+    extracted_job_title: Optional[str] = None
+    
+    # Flattened Project Details
+    project_name: Optional[str] = None
+    period: Optional[str] = None
+    role: Optional[str] = None
+    description: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
+
+    # Relationship
+    job_queries: List[PortfolioJobQuery] = []
+    
     model_config = ConfigDict(from_attributes=True)
 
 class PortfolioListResponse(BaseModel):
@@ -68,6 +90,12 @@ class PortfolioUpdateRequest(BaseModel):
     type: Optional[str] = None
     source_url: Optional[str] = None
     content: Optional[str] = None
+    extracted_job_title: Optional[str] = None
+    project_name: Optional[str] = None
+    period: Optional[str] = None
+    role: Optional[str] = None
+    description: Optional[str] = None
+    tech_stack: Optional[List[str]] = None
 
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):

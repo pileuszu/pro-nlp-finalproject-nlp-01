@@ -12,3 +12,14 @@ httpx==0.26.0
 pytest==7.4.4
 alembic==1.13.1
 email-validator>=2.0.0
+asyncpg
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+langchain-postgres
+psycopg[binary]
+pypdf
+pdfplumber
+pillow
+surya-ocr

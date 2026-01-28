@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List
-from app.db.database import get_db
-from app.schemas import schemas
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
+
+from app.db.database import get_db, get_async_db
 from app.schemas import schemas
 from app.services import portfolio_service
+from app.services.portfolio_service import PortfolioService
 from app.api import deps
 from app.models import models
 
@@ -27,6 +29,48 @@ async def create_portfolio(
     portfolio_data = portfolio.model_dump()
     internal_portfolio = schemas.PortfolioCreate(**portfolio_data, user_id=current_user.id)
     return portfolio_service.create_portfolio(db, internal_portfolio)
+
+@router.post("/upload", response_model=schemas.Portfolio, status_code=201)
+async def upload_portfolio(
+    background_tasks: BackgroundTasks,
+    title: str = Form(...),
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Upload a portfolio file (PDF/TXT/MD), save it, and trigger background extraction/refinement.
+    """
+    service = PortfolioService(db)
+    return await service.create_portfolio_from_file(current_user.id, title, file, background_tasks)
+
+@router.post("/notion", response_model=schemas.Portfolio, status_code=201)
+async def import_notion_portfolio(
+    background_tasks: BackgroundTasks,
+    title: str = Form(...),
+    url: str = Form(...),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Import portfolio from a Notion URL.
+    """
+    service = PortfolioService(db)
+    return await service.create_portfolio_from_notion(current_user.id, title, url, background_tasks)
+
+@router.post("/github", response_model=schemas.Portfolio, status_code=201)
+async def import_github_portfolio(
+    background_tasks: BackgroundTasks,
+    title: str = Form(...),
+    url: str = Form(...),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Import portfolio from a GitHub Repository or User Profile URL/ID.
+    """
+    service = PortfolioService(db)
+    return await service.create_portfolio_from_github(current_user.id, title, url, background_tasks)
 
 @router.get("/{portfolio_id}", response_model=schemas.Portfolio)
 async def get_portfolio(

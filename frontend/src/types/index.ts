@@ -11,12 +11,23 @@ export interface Recruit {
 export interface Portfolio {
     id: number;
     title: string;
-    type: 'link' | 'file' | 'github';
+    type: 'link' | 'file' | 'github' | 'notion';
     url?: string;
     fileName?: string;
     createdAt: string;
-    description?: string;
     content?: string;
+
+    // Status
+    processingStatus?: 'PENDING' | 'COMPLETED' | 'FAILED';
+
+    // Flattened Project Data
+    extractedSummary?: string;
+    extractedJobTitle?: string;
+    projectName?: string;
+    period?: string;
+    role?: string;
+    description?: string;
+    techStack?: string[]; // Assuming backend sends JSON array or string
 }
 
 export interface CoverLetter {

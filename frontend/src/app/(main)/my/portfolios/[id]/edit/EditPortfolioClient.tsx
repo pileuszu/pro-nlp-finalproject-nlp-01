@@ -24,6 +24,13 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
     const [url, setUrl] = useState("");
     const [type, setType] = useState<'link' | 'file' | 'github'>('link');
 
+    // New Fields
+    const [projectName, setProjectName] = useState("");
+    const [period, setPeriod] = useState("");
+    const [role, setRole] = useState("");
+    const [jobTitle, setJobTitle] = useState("");
+    const [techStack, setTechStack] = useState(""); // Comma separated string for editing
+
     useEffect(() => {
         fetchWithAuth(getApiUrl(`/portfolios/${id}`))
             .then(res => res.json())
@@ -33,6 +40,14 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                 setContent(data.content || "");
                 setUrl(data.url || "");
                 setType(data.type);
+
+                // Flattened fields
+                setProjectName(data.projectName || "");
+                setPeriod(data.period || "");
+                setRole(data.role || "");
+                setJobTitle(data.extractedJobTitle || "");
+                setTechStack(Array.isArray(data.techStack) ? data.techStack.join(", ") : "");
+
                 setLoading(false);
             })
             .catch(err => {
@@ -44,10 +59,22 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
     const handleSave = async () => {
         setSaving(true);
         try {
+            const payload = {
+                title,
+                description,
+                content,
+                url,
+                projectName,
+                period,
+                role,
+                extractedJobTitle: jobTitle,
+                techStack: techStack.split(",").map(s => s.trim()).filter(Boolean)
+            };
+
             const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description, content, url })
+                body: JSON.stringify(payload)
             });
 
             if (res.ok) {
@@ -87,11 +114,65 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             className="text-2xl font-bold bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-slate-300"
-                            placeholder="포트폴리오 제목을 입력하세요"
+                            placeholder="파일/소스 제목 (식별용)"
                         />
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-8 space-y-8">
+                    {/* Project Metadata Section */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/30 rounded-2xl border border-slate-100">
+                        <div className="md:col-span-2 space-y-2">
+                            <Label htmlFor="projectName" className="text-slate-500 font-bold text-xs uppercase tracking-wider">프로젝트 명</Label>
+                            <Input
+                                id="projectName"
+                                value={projectName}
+                                onChange={(e) => setProjectName(e.target.value)}
+                                placeholder="실제 프로젝트 이름"
+                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="period" className="text-slate-500 font-bold text-xs uppercase tracking-wider">기간 (Period)</Label>
+                            <Input
+                                id="period"
+                                value={period}
+                                onChange={(e) => setPeriod(e.target.value)}
+                                placeholder="예: 2023.01 - 2023.06"
+                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="role" className="text-slate-500 font-bold text-xs uppercase tracking-wider">역할 (Role)</Label>
+                            <Input
+                                id="role"
+                                value={role}
+                                onChange={(e) => setRole(e.target.value)}
+                                placeholder="예: Backend Developer"
+                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="jobTitle" className="text-slate-500 font-bold text-xs uppercase tracking-wider">직무 (Job Title)</Label>
+                            <Input
+                                id="jobTitle"
+                                value={jobTitle}
+                                onChange={(e) => setJobTitle(e.target.value)}
+                                placeholder="예: Full Stack Engineer"
+                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="techStack" className="text-slate-500 font-bold text-xs uppercase tracking-wider">기술 스택 (쉼표로 구분)</Label>
+                            <Input
+                                id="techStack"
+                                value={techStack}
+                                onChange={(e) => setTechStack(e.target.value)}
+                                placeholder="Python, React, AWS..."
+                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="url" className="text-slate-500 font-bold text-xs uppercase tracking-wider">연결 주소 (URL)</Label>
                         <Input
@@ -104,27 +185,27 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="desc" className="text-slate-500 font-bold text-xs uppercase tracking-wider">기본 설명</Label>
-                        <Input
+                        <Label htmlFor="desc" className="text-slate-500 font-bold text-xs uppercase tracking-wider">프로젝트 설명</Label>
+                        <Textarea
                             id="desc"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            placeholder="이 포트폴리오에 대한 간단한 설명을 입력하세요."
-                            className="border-slate-200 focus-visible:ring-blue-500"
+                            placeholder="이 프로젝트에 대한 핵심 요약이나 설명을 입력하세요."
+                            className="min-h-[100px] border-slate-200 focus-visible:ring-blue-500"
                         />
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="content" className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider">
-                            상세 데이터 (AI 분석용)
+                            상세 데이터 (AI 분석 원본)
                             <Badge variant="outline" className="text-[10px] bg-blue-50 border-blue-100 uppercase">Recommended</Badge>
                         </Label>
                         <Textarea
                             id="content"
                             value={content}
                             onChange={(e) => setContent(e.target.value)}
-                            placeholder="AI가 참고할 상세 리드미, 프로젝트 요약, 주요 성과 등을 자유롭게 입력하세요."
-                            className="min-h-[300px] border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30 leading-relaxed"
+                            placeholder="AI가 추출한 원본 텍스트입니다. 필요시 수정하세요."
+                            className="min-h-[300px] border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30 leading-relaxed font-mono text-sm"
                         />
                     </div>
                 </CardContent>

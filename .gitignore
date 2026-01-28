@@ -32,7 +32,11 @@ ENV/
 *.sqlite3
 
 # Environment variables
+# Environment variables
 .env
+**/.env
+**/.env.*
+!**/.env.example
 
 # OS
 .DS_Store
