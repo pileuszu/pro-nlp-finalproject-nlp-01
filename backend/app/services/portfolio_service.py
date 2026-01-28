@@ -8,7 +8,7 @@ from typing import Optional, List
 from fastapi import UploadFile, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.models import Portfolio, PortfolioJobQuery, ProcessingStatus
 from app.db.database import AsyncSessionLocal
@@ -76,7 +76,10 @@ class PortfolioService:
         )
         self.db.add(portfolio)
         await self.db.commit()
-        await self.db.refresh(portfolio)
+        # Instead of refresh, we re-fetch with selectinload to avoid lazy loading issues
+        stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+        result = await self.db.execute(stmt)
+        portfolio = result.scalar_one()
 
         background_tasks.add_task(process_portfolio_task, portfolio.id, str(file_path), "file")
         return portfolio
@@ -84,9 +87,6 @@ class PortfolioService:
     async def create_portfolio_from_github(self, user_id: int, title: str, github_url: str, background_tasks: BackgroundTasks) -> Portfolio:
         logger.info(f"Creating portfolio for user {user_id}: {title} ({github_url})")
         
-        # User requested: DB storage should happen upon "Save" in UI.
-        # However, Current API structure expects immediate creation for background processing.
-        # We keep the record but ensure it's marked PENDING.
         portfolio = Portfolio(
             title=title,
             type="github",
@@ -97,7 +97,10 @@ class PortfolioService:
         self.db.add(portfolio)
         try:
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            # Re-fetch with selectinload
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
         except Exception as e:
             logger.error(f"Error during portfolio commit: {e}")
             await self.db.rollback()
@@ -113,9 +116,34 @@ class PortfolioService:
         )
         self.db.add(portfolio)
         await self.db.commit()
-        await self.db.refresh(portfolio)
+        # Re-fetch with selectinload
+        stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+        result = await self.db.execute(stmt)
+        portfolio = result.scalar_one()
+        
         background_tasks.add_task(process_portfolio_task, portfolio.id, notion_url, "notion")
         return portfolio
+
+    async def analyze_portfolio_source(self, source: str, p_type: str):
+        """Extract and Refine without saving to DB (for preview)."""
+        logger.info(f"Analyzing source for preview: {source} ({p_type})")
+        try:
+            if p_type == "github":
+                text = self.github_extractor.extract(source)
+            elif p_type == "notion":
+                text = self.notion_extractor.extract(source)
+            else:
+                return {"error": "Unsupported preview type"}
+
+            if not text or "Error" in text[:20]:
+                return {"error": text or "Extraction failed"}
+
+            # Call LLM Refiner
+            result = self.llm_refiner.extract_user_data_and_queries(text)
+            return result
+        except Exception as e:
+            logger.error(f"Analysis failed: {e}")
+            return {"error": str(e)}
 
     async def _process_portfolio_logic(self, portfolio_id: int, source: str, p_type: str):
         try:

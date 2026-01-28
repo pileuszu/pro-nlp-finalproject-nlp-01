@@ -106,10 +106,12 @@ async def delete_portfolio(
         raise HTTPException(status_code=404, detail="Portfolio not found or unauthorized")
     return {"success": True, "message": "Portfolio deleted"}
 
-@router.post("/analyze", response_model=List[dict])
+@router.post("/analyze")
 async def analyze_portfolio(
     req: schemas.PortfolioAnalyzeRequest,
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    """Mocks AI analysis of a portfolio source."""
-    return portfolio_service.mock_analyze_portfolio(req.source, req.type)
+    """Real AI analysis of a portfolio source for preview."""
+    service = PortfolioService(db)
+    return await service.analyze_portfolio_source(req.source, req.type)
