@@ -58,7 +58,7 @@ class LLMRefiner:
 
     def __init__(
         self,
-        model: str = "gemini-2.5-flash",
+        model: str = "gemini-1.5-flash",
         api_key_env: str = "GEMINI_API_KEY",
     ) -> None:
         api_key = os.environ.get(api_key_env) or os.environ.get("GOOGLE_API_KEY")

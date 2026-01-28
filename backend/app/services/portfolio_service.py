@@ -20,8 +20,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 # Standalone function for background task to ensure fresh session
 from app.db.database import AsyncSessionLocal
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(exist_ok=True)
+UPLOAD_DIR = Path("/tmp/uploads")
+try:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning: Could not create upload directory {UPLOAD_DIR}: {e}")
 
 async def process_portfolio_task(portfolio_id: int, source: str, p_type: str):
     async with AsyncSessionLocal() as db:
