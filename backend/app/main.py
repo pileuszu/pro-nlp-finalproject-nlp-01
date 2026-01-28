@@ -30,7 +30,9 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome to Pro-NLP AI Recruitment Platform API", "docs": "/docs"}
+    return {"status": "ok", "message": "Pro-NLP Backend is running", "docs": "/docs"}
+
+print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FastAPI app READY for port binding.")
 
 # Global Exception Handlers
 @app.exception_handler(RequestValidationError)
