@@ -110,6 +110,28 @@ export default function NewPortfolioPage() {
                             <CardDescription>AI가 추출한 내용을 확인하고 수정하세요. 저장 버튼을 눌러야 최종 반영됩니다.</CardDescription>
                         </CardHeader>
                         <CardContent className="p-8 space-y-8">
+                            {/* Summary & Job Title */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-blue-700 text-xs uppercase">희망/추출 직무</Label>
+                                    <Input
+                                        value={previewData.extracted_job_title || ""}
+                                        onChange={e => setPreviewData({ ...previewData, extracted_job_title: e.target.value })}
+                                        placeholder="예: Backend Developer"
+                                        className="bg-white border-slate-200"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="font-bold text-blue-700 text-xs uppercase">한 줄 요약</Label>
+                                    <Input
+                                        value={previewData.extracted_summary || ""}
+                                        onChange={e => setPreviewData({ ...previewData, extracted_summary: e.target.value })}
+                                        placeholder="AI가 요약한 핵심 강점"
+                                        className="bg-white border-slate-200"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
                                 <div className="md:col-span-2 space-y-2">
                                     <Label className="font-bold text-blue-700 text-xs uppercase">프로젝트 명</Label>
