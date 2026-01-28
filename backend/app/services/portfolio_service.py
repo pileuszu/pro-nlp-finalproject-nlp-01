@@ -147,14 +147,18 @@ class PortfolioService:
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """Save a portfolio that has been reviewed and verified by the user."""
-        portfolio = models.Portfolio(
+        portfolio = Portfolio(
             **req.model_dump(),
             user_id=user_id,
-            processing_status=models.ProcessingStatus.COMPLETED
+            processing_status=ProcessingStatus.COMPLETED
         )
         self.db.add(portfolio)
         await self.db.commit()
-        await self.db.refresh(portfolio)
+        
+        # Re-fetch with selectinload to avoid detaching issues during JSON serialization
+        stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+        result = await self.db.execute(stmt)
+        portfolio = result.scalar_one()
 
         # 2. Add to Vector Store for RAG
         try:
