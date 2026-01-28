@@ -107,6 +107,41 @@ class HybridRetriever:
         return results
 
 
+class ChromaRetriever:
+    """
+    ChromaRetriever: ChromaDB에서 직접 검색 수행
+    (BM25 없이 벡터 검색만 수행하거나, 로드된 문서와 조합 가능)
+    """
+    
+    def __init__(
+        self,
+        vectorstore: Chroma,
+        top_k: int = SEARCH_TOP_K
+    ):
+        self.vectorstore = vectorstore
+        self.top_k = top_k
+        
+    def search(self, query: str) -> List[Document]:
+        """
+        벡터 검색 수행
+        Returns: 상위 k개 문서 (full_context 포함)
+        """
+        # 1. Vector 검색
+        results = self.vectorstore.similarity_search(query, k=self.top_k)
+        
+        # 2. full_context를 본문으로 사용하도록 변환
+        processed_results = []
+        for doc in results:
+            full_context = doc.metadata.get("full_context", doc.page_content)
+            result_doc = Document(
+                page_content=full_context,
+                metadata=doc.metadata
+            )
+            processed_results.append(result_doc)
+            
+        return processed_results
+
+
 def create_hybrid_retriever(
     vectorstore: Chroma,
     documents: List[Document]

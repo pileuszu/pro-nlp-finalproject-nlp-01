@@ -23,6 +23,7 @@ wheels/
 
 # Virtual Environment
 venv/
+llm-pipeline/portfolios/venv/
 ENV/
 
 # Database
@@ -46,3 +47,4 @@ llm-pipeline/notebooks/extracted_notion_data_v2/
 llm-pipeline/notebooks/ocr_results/
 llm-pipeline/notebooks/results/
 llm-pipeline/notebooks/tessdata
+llm-pipeline/portfolios/data/
