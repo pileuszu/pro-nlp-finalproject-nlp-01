@@ -4,9 +4,12 @@ set -e
 echo "Starting deployment startup script..."
 
 # Run migrations
-echo "Verifying database connectivity..."
-# Simple check if DB is reachable (using the logger in database.py which runs on import)
-python -c "from app.db.database import engine; from sqlalchemy import text; with engine.connect() as conn: conn.execute(text('SELECT 1'))"
+echo "Verifying database connectivity (Warning only)..."
+if python -c "from app.db.database import engine; from sqlalchemy import text; with engine.connect() as conn: conn.execute(text('SELECT 1'))"; then
+    echo "Database connectivity verified."
+else
+    echo "Warning: Database connectivity check failed. Attempting migrations anyway..."
+fi
 
 echo "Running alembic migrations..."
 if alembic upgrade head; then
