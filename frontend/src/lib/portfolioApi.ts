@@ -45,11 +45,11 @@ export const portfolioApi: PortfolioApi = {
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "File upload failed");
         }
 
-        return res.json();
+        return res.json() as Promise<Portfolio>;
     },
 
     /**
@@ -66,11 +66,11 @@ export const portfolioApi: PortfolioApi = {
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "Notion import failed");
         }
 
-        return res.json();
+        return res.json() as Promise<Portfolio>;
     },
 
     /**
@@ -87,11 +87,11 @@ export const portfolioApi: PortfolioApi = {
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "GitHub import failed");
         }
 
-        return res.json();
+        return res.json() as Promise<Portfolio>;
     },
 
     /**
@@ -104,11 +104,11 @@ export const portfolioApi: PortfolioApi = {
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "Analysis failed");
         }
 
-        return res.json();
+        return res.json() as Promise<AnalysisResult>;
     },
 
     /**
@@ -121,11 +121,11 @@ export const portfolioApi: PortfolioApi = {
         });
 
         if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "Creation failed");
         }
 
-        return res.json();
+        return res.json() as Promise<Portfolio>;
     },
 
     /**
@@ -136,6 +136,6 @@ export const portfolioApi: PortfolioApi = {
         if (!res.ok) {
             throw new Error("Failed to fetch portfolios");
         }
-        return res.json();
+        return res.json() as Promise<{ items: Portfolio[] }>;
     }
 };
