@@ -92,6 +92,10 @@ class CoverLetterListResponse(BaseModel):
 class CoverLetterCreateRequest(CoverLetterBase):
     pass
 
+class CoverLetterUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+
 # AI Related Schemas
 class PortfolioAnalyzeRequest(BaseModel):
     source: str

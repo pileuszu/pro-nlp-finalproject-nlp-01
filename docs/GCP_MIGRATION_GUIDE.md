@@ -61,3 +61,4 @@ GitHub 저장소의 **Settings > Secrets and variables > Actions** 로 이동하
 ## 4. 참고 사항
 - **Cloud Run URL**: 첫 배포가 성공하면 Cloud Run 콘솔에서 생성된 URL을 확인할 수 있습니다.
 - **Frontend 연결**: Frontend의 `NEXT_PUBLIC_API_URL` 환경변수를 Cloud Run URL로 변경해주어야 합니다.
+- **403 Forbidden 에러 시**: Cloud Run 서비스의 **[보안]** 탭에서 **"공개 액세스 허용 (Allow unauthenticated invocations)"**을 선택해야 외부에서 접속 가능합니다.

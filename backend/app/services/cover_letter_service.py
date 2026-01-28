@@ -18,11 +18,12 @@ def create_cover_letter(db: Session, cl: schemas.CoverLetterCreate):
     db.refresh(db_cl)
     return db_cl
 
-def update_cover_letter(db: Session, cl_id: int, user_id: int, content: str):
+def update_cover_letter(db: Session, cl_id: int, user_id: int, data: dict):
     db_cl = get_cover_letter(db, cl_id, user_id)
     if not db_cl:
         return None
-    db_cl.content = content
+    for key, value in data.items():
+        setattr(db_cl, key, value)
     db.commit()
     db.refresh(db_cl)
     return db_cl
