@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
@@ -42,6 +43,9 @@ class PortfolioVectorStore:
         collection_name = f"user_{user_id}"
         persist_directory = self.persist_base_dir / collection_name
         
+        # Save refined structured data (including search queries) to JSON before chunking
+        self._save_to_json(combined_result, persist_directory, collection_name)
+
         all_docs = []
         
         for project in user_data.projects:
@@ -85,3 +89,18 @@ class PortfolioVectorStore:
             collection_name=collection_name,
             persist_directory=str(persist_directory)
         )
+
+    def _save_to_json(self, combined_result, directory: Path, collection_name: str) -> None:
+        """Saves the structured user data and job queries to a JSON file before chunking."""
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            output_file = directory / f"refined_{collection_name}.json"
+            
+            # Convert Pydantic model to dict
+            data_dict = combined_result.model_dump()
+            
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(data_dict, f, indent=2, ensure_ascii=False)
+            print(f"Refined structured data and queries saved to {output_file}")
+        except Exception as e:
+            print(f"Warning: Failed to save refined JSON: {e}")
