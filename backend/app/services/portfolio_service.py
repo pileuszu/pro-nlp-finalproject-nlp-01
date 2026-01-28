@@ -34,16 +34,58 @@ async def process_portfolio_task(portfolio_id: int, source: str, p_type: str):
 class PortfolioService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.file_extractor = FileExtractor()
-        self.notion_extractor = NotionExtractor()
-        self.github_extractor = GitHubExtractor()
-        self.llm_refiner = LLMRefiner()
-        self.vector_store = SupabaseVectorStore() 
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,
-            chunk_overlap=50,
-            separators=["\n\n", "\n", ".", " "]
-        )
+        self._file_extractor = None
+        self._notion_extractor = None
+        self._github_extractor = None
+        self._llm_refiner = None
+        self._vector_store = None
+        self._text_splitter = None
+
+    @property
+    def file_extractor(self):
+        if not self._file_extractor:
+            from app.core.portfolio.extractors.file_extractor import FileExtractor
+            self._file_extractor = FileExtractor()
+        return self._file_extractor
+
+    @property
+    def notion_extractor(self):
+        if not self._notion_extractor:
+            from app.core.portfolio.extractors.notion_extractor import NotionExtractor
+            self._notion_extractor = NotionExtractor()
+        return self._notion_extractor
+
+    @property
+    def github_extractor(self):
+        if not self._github_extractor:
+            from app.core.portfolio.extractors.github_extractor import GitHubExtractor
+            self._github_extractor = GitHubExtractor()
+        return self._github_extractor
+
+    @property
+    def llm_refiner(self):
+        if not self._llm_refiner:
+            from app.core.portfolio.processors.llm_refiner import LLMRefiner
+            self._llm_refiner = LLMRefiner()
+        return self._llm_refiner
+
+    @property
+    def vector_store(self):
+        if not self._vector_store:
+            from app.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
+            self._vector_store = SupabaseVectorStore()
+        return self._vector_store
+
+    @property
+    def text_splitter(self):
+        if not self._text_splitter:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+            self._text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=500,
+                chunk_overlap=50,
+                separators=["\n\n", "\n", ".", " "]
+            )
+        return self._text_splitter
 
 
     async def create_portfolio_from_file(self, user_id: int, title: str, file: UploadFile, background_tasks: BackgroundTasks):
