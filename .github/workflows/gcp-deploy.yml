@@ -54,3 +54,4 @@ jobs:
             SECRET_KEY=${{ secrets.SECRET_KEY }}
             ALGORITHM=HS256
             PYTHONPATH=/app
+          flags: '--min-instances=0 --max-instances=3 --memory=512Mi --cpu=1 --allow-unauthenticated'
