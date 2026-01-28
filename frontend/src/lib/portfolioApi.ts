@@ -1,11 +1,28 @@
 import { getApiUrl, fetchWithAuth } from "./apiUtils";
 import { Portfolio } from "../types";
 
+export interface AnalysisResult {
+    user_data: {
+        profile: {
+            summary: string;
+            job_title: string;
+        };
+        projects: Array<{
+            project_name: string;
+            period: string;
+            role: string;
+            description_for_embedding: string;
+            tech_stack: string[];
+        }>;
+    };
+    raw_text: string;
+}
+
 export interface PortfolioApi {
     uploadFile: (file: File) => Promise<Portfolio>;
     importNotion: (url: string, title?: string) => Promise<Portfolio>;
     importGithub: (url: string, title?: string) => Promise<Portfolio>;
-    analyzePortfolio: (source: string, type: string) => Promise<any>;
+    analyzePortfolio: (source: string, type: string) => Promise<AnalysisResult>;
     createPortfolio: (data: Partial<Portfolio>) => Promise<Portfolio>;
     fetchAll: () => Promise<{ items: Portfolio[] }>;
 }

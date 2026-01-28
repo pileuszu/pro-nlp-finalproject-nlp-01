@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,38 +7,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Github, Sparkles, ExternalLink, Plus, Loader2, Save, Briefcase, Calendar, Code, User, FileText } from "lucide-react";
+import { ArrowLeft, Github, Sparkles, Loader2, Save } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
 import { Portfolio } from "@/types";
 
 export default function NewPortfolioPage() {
     const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
     // Form States
     const [githubUrl, setGithubUrl] = useState("");
-    const [notionUrl, setNotionUrl] = useState("");
 
     // Preview State
     const [previewData, setPreviewData] = useState<Partial<Portfolio> | null>(null);
-
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            setIsAnalyzing(true);
-            try {
-                await portfolioApi.uploadFile(e.target.files[0]);
-                alert("파일이 업로드되었습니다. AI가 배경에서 분석을 시작했습니다.");
-                router.push('/my/portfolios');
-            } catch (err) {
-                console.error(err);
-                alert(`업로드 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
-            } finally {
-                setIsAnalyzing(false);
-            }
-        }
-    };
 
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
