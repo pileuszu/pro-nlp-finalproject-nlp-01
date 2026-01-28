@@ -3,6 +3,9 @@ from __future__ import annotations
 import os
 from typing import Optional, List, Literal
 from pydantic import BaseModel, Field
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -69,7 +72,16 @@ class LLMRefiner:
         else:
             from google import genai
             self.model = model
-            self.client = genai.Client(api_key=api_key)
+            self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1'})
+
+    def _list_available_models(self):
+        """Helper to log available models for debugging."""
+        try:
+            if not self.client: return
+            models = self.client.models.list()
+            logger.info("Available models: " + ", ".join([m.name for m in models]))
+        except Exception as e:
+            logger.error(f"Failed to list models: {e}")
 
     def extract_user_data_and_queries(self, text: str) -> Optional[CombinedResult]:
         if not self.client:
@@ -166,4 +178,5 @@ C: 프로젝트 요약(목적/기능 + 기여)
 
         except Exception as e:
             print(f"LLM Generation Failed: {e}")
+            self._list_available_models()
             raise e
