@@ -183,17 +183,28 @@ class PortfolioService:
             elif p_type == "notion":
                 text = self.notion_extractor.extract(source)
             else:
-                return {"error": "Unsupported preview type"}
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Unsupported preview type")
 
             if not text or "Error" in text[:20]:
-                return {"error": text or "Extraction failed"}
+                from fastapi import HTTPException
+                raise HTTPException(status_code=500, detail=text or "Extraction failed")
 
             # Call LLM Refiner
             result = self.llm_refiner.extract_user_data_and_queries(text)
-            return result
+            
+            # Combine with raw text for preview
+            return {
+                "user_data": result.user_data.model_dump(),
+                "job_queries": result.job_queries.model_dump(),
+                "raw_text": text
+            }
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
-            return {"error": str(e)}
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def _process_portfolio_logic(self, portfolio_id: int, source: str, p_type: str):
         try:

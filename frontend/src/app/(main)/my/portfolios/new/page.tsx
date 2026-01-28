@@ -32,21 +32,28 @@ export default function NewPortfolioPage() {
         setIsAnalyzing(true);
         try {
             const result = await portfolioApi.analyzePortfolio(url, "github");
+
+            if (!result || !result.user_data) {
+                throw new Error("분석 데이터가 올바르지 않습니다.");
+            }
+
             // Map LLM result to Portfolio structure
             const user_data = result.user_data;
-            const p0 = user_data.projects[0] || {};
+            const projects = user_data.projects || [];
+            const p0 = projects[0] || {};
+
             setPreviewData({
-                title: `${githubUrl.split('/').pop()} Analysis`,
+                title: `${githubUrl.split('/').pop() || 'GitHub'} Analysis`,
                 type: 'github',
                 source_url: githubUrl,
-                extracted_summary: user_data.profile.summary,
-                extracted_job_title: user_data.profile.job_title,
-                project_name: p0.project_name,
-                period: p0.period,
-                role: p0.role,
-                description: p0.description_for_embedding,
-                tech_stack: p0.tech_stack,
-                content: result.raw_text // If backend provides it
+                extracted_summary: user_data.profile?.summary || "",
+                extracted_job_title: user_data.profile?.job_title || "",
+                project_name: p0.project_name || "",
+                period: p0.period || "",
+                role: p0.role || "",
+                description: p0.description_for_embedding || "",
+                tech_stack: p0.tech_stack || [],
+                content: result.raw_text || ""
             });
         } catch (err) {
             console.error(err);
