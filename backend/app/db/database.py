@@ -40,12 +40,20 @@ logger.info(f"Initializing database engines... (Target: {url_tag})")
 engine = create_engine(DATABASE_URL, poolclass=NullPool)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Async Engine
-# Ensure we don't double-replace if it already has a driver specified
+# Async Engine setup
+# asyncpg (used by asyncpg driver) does not support 'sslmode' in the query string.
+# We must strip it for the async URL but keep it for the sync URL.
 if "postgresql+asyncpg://" not in DATABASE_URL:
     ASYNC_DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 else:
     ASYNC_DATABASE_URL = DATABASE_URL
+
+# Clean ASYNC_DATABASE_URL of 'sslmode'
+if "?" in ASYNC_DATABASE_URL:
+    base_url, query_str = ASYNC_DATABASE_URL.split("?", 1)
+    # Filter out sslmode
+    params = [p for p in query_str.split("&") if not p.startswith("sslmode=")]
+    ASYNC_DATABASE_URL = base_url + ("?" + "&".join(params) if params else "")
 
 try:
     async_tag = ASYNC_DATABASE_URL.split('@')[-1].split('?')[0]
@@ -55,6 +63,7 @@ logger.info(f"Async engine target: {async_tag}")
 
 # asyncpg handles SSL differently (via connect_args or 'ssl' param)
 async_connect_args = {"statement_cache_size": 0}
+# Supabase requires SSL for the pooler (6543) and usually for direct (5432) on cloud
 if "supabase.co" in ASYNC_DATABASE_URL or "supabase.com" in ASYNC_DATABASE_URL:
     async_connect_args["ssl"] = "require"
 
