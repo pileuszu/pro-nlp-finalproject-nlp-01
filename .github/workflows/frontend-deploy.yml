@@ -40,7 +40,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-version: latest
           working-directory: ./frontend
-          vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=https://pro-nlp-finalproject-nlp-01.onrender.com -b NEXT_PUBLIC_API_URL=https://pro-nlp-finalproject-nlp-01.onrender.com'
+          vercel-args: '--prod -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=https://pro-nlp-backend-511248599405.asia-northeast3.run.app -b NEXT_PUBLIC_API_URL=https://pro-nlp-backend-511248599405.asia-northeast3.run.app'
 
       - name: Display Deployment Summary
         run: |
