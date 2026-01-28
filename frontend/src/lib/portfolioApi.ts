@@ -97,7 +97,7 @@ export const portfolioApi: PortfolioApi = {
     /**
      * Analyze a portfolio source (preview only).
      */
-    analyzePortfolio: async (source: string, type: string): Promise<any> => {
+    analyzePortfolio: async (source: string, type: string): Promise<AnalysisResult> => {
         const res = await fetchWithAuth(getApiUrl("/portfolios/analyze"), {
             method: "POST",
             body: JSON.stringify({ source, type }),
