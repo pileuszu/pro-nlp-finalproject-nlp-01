@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Github, Sparkles, ExternalLink, Plus, Check, FileText } from "lucide-react";
+import { ArrowLeft, Upload, Github, Sparkles, ExternalLink, Plus } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
 
 export default function NewPortfolioPage() {
@@ -29,9 +29,10 @@ export default function NewPortfolioPage() {
                 await portfolioApi.uploadFile(e.target.files[0]);
                 alert("파일이 업로드되었습니다. AI가 배경에서 분석을 시작했습니다.");
                 router.push('/my/portfolios');
-            } catch (err: any) {
+            } catch (err) {
                 console.error(err);
-                alert(`업로드 실패: ${err.message}`);
+                const message = err instanceof Error ? err.message : "Unknown error";
+                alert(`업로드 실패: ${message}`);
             } finally {
                 setIsUploading(false);
             }
@@ -48,9 +49,10 @@ export default function NewPortfolioPage() {
             await portfolioApi.importGithub(url);
             alert("GitHub 포트폴리오 가져오기 성공! AI 분석이 시작되었습니다.");
             router.push('/my/portfolios');
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            alert(`GitHub 연동 실패: ${err.message}`);
+            const message = err instanceof Error ? err.message : "Unknown error";
+            alert(`GitHub 연동 실패: ${message}`);
         } finally {
             setIsUploading(false);
         }
@@ -66,9 +68,10 @@ export default function NewPortfolioPage() {
             await portfolioApi.importNotion(url);
             alert("Notion 페이지 가져오기 성공! AI 분석이 시작되었습니다.");
             router.push('/my/portfolios');
-        } catch (err: any) {
+        } catch (err) {
             console.error(err);
-            alert(`Notion 연동 실패: ${err.message}`);
+            const message = err instanceof Error ? err.message : "Unknown error";
+            alert(`Notion 연동 실패: ${message}`);
         } finally {
             setIsUploading(false);
         }
