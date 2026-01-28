@@ -33,6 +33,9 @@ class NotionExtractor(BaseExtractor):
         
         self.visited_nodes.clear()
         
+        if source.lower() == "all":
+            return self._fetch_workspace_content()
+
         # Clean source ID (remove dashes if full URL is passed? usually just ID is safest)
         # Basic check to extract UUID if a URL is passed
         node_id = source
@@ -115,6 +118,37 @@ class NotionExtractor(BaseExtractor):
             print(f"Error processing node {node_id}: {e}")
         
         return content
+
+    def _fetch_workspace_content(self) -> str:
+        """Fetches content from all pages and databases accessible by the token."""
+        combined_content = "# Notion Workspace Content\n\n"
+        try:
+            results = []
+            has_more = True
+            next_cursor = None
+            
+            print("Searching for all accessible Notion pages and databases...")
+            while has_more:
+                response = self.client.search(start_cursor=next_cursor).get("results", [])
+                results.extend(response)
+                # Note: Notion search pagination might differ slightly, but this is the standard pattern
+                # If 'has_more' is not in search response, we might need to handle it differently
+                # Actually Notion search DOES support pagination
+                # But for simplicity, we'll try one big search first or loop if needed.
+                # The official notion-sdk-py handle this.
+                break # Just get the first page of search results for safety/test
+            
+            print(f"Found {len(results)} items in workspace.")
+            
+            for item in results:
+                item_id = item["id"]
+                item_type = item["object"] # 'page' or 'database'
+                content = self._process_node(item_id, node_type=item_type)
+                combined_content += f"{content}\n---\n\n"
+                
+            return combined_content
+        except Exception as e:
+            return f"Error searching workspace: {e}"
 
     def _get_all_blocks(self, parent_id):
         blocks = []

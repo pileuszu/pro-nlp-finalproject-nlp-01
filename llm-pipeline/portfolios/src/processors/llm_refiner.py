@@ -27,7 +27,7 @@ class Project(BaseModel):
 
 class UserData(BaseModel):
     profile: Profile = Field(default_factory=Profile)
-    projects: List[Project] = Field(default_factory=list, description="항상 길이 1")
+    projects: List[Project] = Field(default_factory=list, description="텍스트에서 추출된 모든 프로젝트 리스트")
     skills: List[str] = Field(default_factory=list, description="원문 근거 있는 핵심 역량 키워드만")
 
 
@@ -59,9 +59,9 @@ class LLMRefiner:
         model: str = "gemini-2.5-flash",
         api_key_env: str = "GEMINI_API_KEY",
     ) -> None:
-        api_key = os.environ.get(api_key_env)
+        api_key = os.environ.get(api_key_env) or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            raise RuntimeError(f"환경변수 {api_key_env}가 설정되어 있지 않습니다.")
+            raise RuntimeError(f"환경변수 {api_key_env} 또는 GOOGLE_API_KEY가 설정되어 있지 않습니다.")
 
         self.model = model
         self.client = genai.Client(api_key=api_key)
@@ -82,9 +82,7 @@ class LLMRefiner:
 ========================
 (1) user1_data 생성 규칙
 ========================
-절대 규칙:
-- 이 포트폴리오에는 프로젝트가 1개만 있다고 가정한다.
-  -> projects 배열에는 반드시 1개만 넣어라(2개 이상 금지).
+- 텍스트에 등장하는 모든 프로젝트를 각각 구조화하여 projects 배열에 담아라.
 - 텍스트에 근거한 내용만 작성(추측/과장/확장 금지)
 - 원문에 없는 profile 값(user_id/name/job_title/summary)은 null
 - period/role/description_for_embedding이 없으면 null
@@ -158,10 +156,6 @@ C: 프로젝트 요약(목적/기능 + 기여)
             result = resp.parsed
         else:
             result = CombinedResult.model_validate_json(resp.text)
-
-        # 안전장치: projects 1개만 유지
-        if len(result.user_data.projects) > 1:
-            result.user_data.projects = result.user_data.projects[:1]
 
         # 안전장치: 쿼리 A/B/C 각각 1개씩만(여분 있으면 앞에서 3개만)
         if len(result.job_queries.queries) > 3:

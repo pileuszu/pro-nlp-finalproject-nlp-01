@@ -10,3 +10,6 @@ pillow
 requests
 httpx
 notion-client
+pdfplumber
+langchain-text-splitters
+sentence-transformers
