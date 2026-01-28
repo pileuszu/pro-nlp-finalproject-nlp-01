@@ -41,7 +41,8 @@ def main():
     print("--- Step 2: Refining text with LLM ---")
     try:
         refiner = LLMRefiner()
-        refined_text = refiner.refine_text(raw_text)
+        combined_result = refiner.extract_user_data_and_queries(raw_text)
+        refined_text = combined_result.model_dump_json(indent=2, ensure_ascii=False)
         print(f"Refined Text (first 200 chars):\n{refined_text[:200]}...\n")
     except Exception as e:
         print(f"Refinement Failed: {e}")
