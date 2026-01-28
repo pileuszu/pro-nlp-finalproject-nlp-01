@@ -23,6 +23,7 @@ export interface PortfolioApi {
     importNotion: (url: string, title?: string) => Promise<Portfolio>;
     importGithub: (url: string, title?: string) => Promise<Portfolio>;
     analyzePortfolio: (source: string, type: string) => Promise<AnalysisResult>;
+    analyzePortfolioFile: (file: File) => Promise<AnalysisResult>;
     createPortfolio: (data: Partial<Portfolio>) => Promise<Portfolio>;
     fetchAll: () => Promise<{ items: Portfolio[] }>;
 }
@@ -106,6 +107,23 @@ export const portfolioApi: PortfolioApi = {
         if (!res.ok) {
             const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "Analysis failed");
+        }
+
+        return res.json() as Promise<AnalysisResult>;
+    },
+
+    analyzePortfolioFile: async (file: File): Promise<AnalysisResult> => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetchWithAuth(getApiUrl("/portfolios/analyze/file"), {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+            throw new Error(errorData.detail || "File analysis failed");
         }
 
         return res.json() as Promise<AnalysisResult>;

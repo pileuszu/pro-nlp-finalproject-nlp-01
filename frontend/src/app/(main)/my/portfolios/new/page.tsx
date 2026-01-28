@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Github, Sparkles, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Github, Sparkles, Loader2, Save, Upload } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
 import { Portfolio } from "@/types";
 
@@ -23,6 +23,7 @@ export default function NewPortfolioPage() {
 
     // Preview State
     const [previewData, setPreviewData] = useState<Partial<Portfolio> | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
@@ -58,6 +59,41 @@ export default function NewPortfolioPage() {
         } catch (err) {
             console.error(err);
             alert(`분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const handleFileAnalyze = async (file: File) => {
+        if (!file) return;
+        setIsAnalyzing(true);
+        try {
+            const result = await portfolioApi.analyzePortfolioFile(file);
+
+            if (!result || !result.user_data) {
+                throw new Error("분석 데이터가 올바르지 않습니다.");
+            }
+
+            const user_data = result.user_data;
+            const projects = user_data.projects || [];
+            const p0 = projects[0] || {};
+
+            setPreviewData({
+                title: file.name,
+                type: 'file',
+                source_url: file.name,
+                extracted_summary: user_data.profile?.summary || "",
+                extracted_job_title: user_data.profile?.job_title || "",
+                project_name: p0.project_name || "",
+                period: p0.period || "",
+                role: p0.role || "",
+                description: p0.description_for_embedding || "",
+                tech_stack: p0.tech_stack || [],
+                content: result.raw_text || ""
+            });
+        } catch (err) {
+            console.error(err);
+            alert(`파일 분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
         } finally {
             setIsAnalyzing(false);
         }
@@ -251,11 +287,33 @@ export default function NewPortfolioPage() {
                         </Card>
                     </TabsContent>
                     <TabsContent value="file">
-                        <Card className="border-slate-200 shadow-sm border-2 overflow-hidden bg-white">
-                            <CardContent className="p-16 text-center">
-                                <p className="text-slate-500">파일 업로드는 준비 중입니다. 위 탭에서 GitHub을 먼저 이용해 보세요!</p>
-                            </CardContent>
-                        </Card>
+                        <div
+                            className="border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center hover:border-blue-400 transition-all cursor-pointer bg-white group"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept=".pdf,.txt,.md"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleFileAnalyze(file);
+                                }}
+                            />
+                            <div className="flex flex-col items-center">
+                                <div className="h-20 w-20 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                                    <Upload className="h-10 w-10 text-slate-400 group-hover:text-blue-500" />
+                                </div>
+                                <h3 className="mt-6 text-xl font-bold text-slate-900">파일 업로드 (PDF, TXT, MD)</h3>
+                                <p className="mt-2 text-slate-500 font-medium">포트폴리오 파일을 선택하거나 이 영역으로 드래그하세요.</p>
+                                <div className="mt-8 flex gap-2">
+                                    <Badge variant="outline" className="text-slate-400 border-slate-200">PDF</Badge>
+                                    <Badge variant="outline" className="text-slate-400 border-slate-200">TXT</Badge>
+                                    <Badge variant="outline" className="text-slate-400 border-slate-200">Markdown</Badge>
+                                </div>
+                            </div>
+                        </div>
                     </TabsContent>
                 </div>
             </Tabs>

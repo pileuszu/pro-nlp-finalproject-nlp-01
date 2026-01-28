@@ -114,3 +114,13 @@ async def analyze_portfolio(
     """Real AI analysis of a portfolio source for preview."""
     service = PortfolioService(db)
     return await service.analyze_portfolio_source(req.source, req.type)
+
+@router.post("/analyze/file")
+async def analyze_portfolio_file(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Real AI analysis of an uploaded file for preview."""
+    service = PortfolioService(db)
+    return await service.analyze_portfolio_file(file)

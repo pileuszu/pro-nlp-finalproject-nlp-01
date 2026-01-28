@@ -147,9 +147,6 @@ class PortfolioService:
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """Save a portfolio that has been reviewed and verified by the user."""
-        logger.info(f"Saving verified portfolio for user {user_id}: {req.title}")
-        logger.debug(f"Request data: {req.model_dump()}")
-        
         portfolio = Portfolio(
             **req.model_dump(),
             user_id=user_id,
@@ -212,6 +209,43 @@ class PortfolioService:
             logger.error(f"Analysis failed: {e}")
             from fastapi import HTTPException
             raise HTTPException(status_code=500, detail=str(e))
+
+    async def analyze_portfolio_file(self, file: UploadFile):
+        """Extract and Refine an uploaded file without saving to DB (for preview)."""
+        logger.info(f"Analyzing uploaded file for preview: {file.filename}")
+        
+        # Save temp file
+        temp_id = uuid.uuid4()
+        temp_path = UPLOAD_DIR / f"temp_{temp_id}_{file.filename}"
+        
+        try:
+            with temp_path.open("wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+            
+            text = self.file_extractor.extract(str(temp_path))
+            
+            if not text or text.startswith("[Error]") or "Error" in text[:20]:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=500, detail=text or "Extraction failed")
+
+            # Call LLM Refiner
+            result = self.llm_refiner.extract_user_data_and_queries(text)
+            
+            # Combine with raw text for preview
+            return {
+                "user_data": result.user_data.model_dump(),
+                "job_queries": result.job_queries.model_dump(),
+                "raw_text": text
+            }
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"File analysis failed: {e}")
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            if temp_path.exists():
+                temp_path.unlink()
 
     async def _process_portfolio_logic(self, portfolio_id: int, source: str, p_type: str):
         try:
