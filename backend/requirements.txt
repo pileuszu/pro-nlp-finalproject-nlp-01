@@ -16,7 +16,7 @@ asyncpg
 langchain
 langchain-community
 langchain-google-genai
-langchain-huggingface
+
 langchain-postgres
 psycopg[binary]
 pypdf

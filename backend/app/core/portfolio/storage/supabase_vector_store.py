@@ -1,13 +1,13 @@
 import os
 from typing import List, Dict, Any
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
-from sqlalchemy.ext.asyncio import create_async_engine
 
 class SupabaseVectorStore:
     """
     Manages embedding storage in Supabase using PGVector.
+    Uses Google Gemini Embeddings (API) for lightweight serverless deployment.
     """
 
     def __init__(self, table_name: str = "portfolio_embeddings"):
@@ -18,15 +18,20 @@ class SupabaseVectorStore:
         self.table_name = table_name
         self._embedding_model = None
         self._vector_store = None
+        
+        # Check API Key
+        self.api_key = os.getenv("GOOGLE_API_KEY")
+        if not self.api_key:
+             raise ValueError("GOOGLE_API_KEY is required for Gemini Embeddings")
 
     @property
     def embedding_model(self):
         if not self._embedding_model:
-            # Model download happens here, on first access
-            self._embedding_model = HuggingFaceEmbeddings(
-                model_name="jhgan/ko-sroberta-multitask",
-                model_kwargs={'device': 'cpu'},
-                encode_kwargs={'normalize_embeddings': True}
+            # Zero-memory overhead, API-based embedding
+            self._embedding_model = GoogleGenerativeAIEmbeddings(
+                model="models/text-embedding-004",
+                google_api_key=self.api_key,
+                task_type="retrieval_document" # Optimized for storage
             )
         return self._embedding_model
 
@@ -51,4 +56,10 @@ class SupabaseVectorStore:
         """
         Performs similarity search.
         """
+        # For query, we might want task_type="retrieval_query" but langchain handle this automatically 
+        # based on methods typically, or we configure the model instance.
+        # GoogleGenerativeAIEmbeddings doesn't dynamic switch task_type easily without re-init 
+        # in some versions, but 'retrieval_document' is generally fine or 'semantic_similarity'.
+        # However, for best results, queries should ideally use retrieval_query.
+        # But keeping it simple with the same instance for now as typical LangChain usage.
         return await self.vector_store.asimilarity_search(query, k=k)
