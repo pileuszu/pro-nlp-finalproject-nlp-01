@@ -30,6 +30,7 @@ const PORTFOLIOS = [
         url: 'https://velog.io/@test',
         createdAt: '2025-12-01',
         description: '매주 학습한 내용을 기록한 기술 블로그입니다.',
+        processingStatus: 'COMPLETED',
         content: `[주요 포스팅 요약]
 - React 렌더링 최적화 전략 (useMemo, useCallback 활용)
 - Next.js App Router 전환기: Pages vs App 구조 분석
@@ -42,6 +43,7 @@ const PORTFOLIOS = [
         type: 'file',
         createdAt: '2026-01-10',
         description: '학부 졸업 프로젝트 최종 보고서입니다.',
+        processingStatus: 'COMPLETED',
         content: `[멀티 모달 AI 감정 분석 플랫폼]
 - 역할: 팀장 및 백엔드 인프라 설계
 - 기술: Python, FastAPI, Docker, PyTorch
@@ -55,6 +57,7 @@ const PORTFOLIOS = [
         url: 'https://github.com/facebook/react',
         createdAt: '2026-01-05',
         description: 'React 리포지토리에 PR을 보낸 내역입니다.',
+        processingStatus: 'COMPLETED',
         content: `[React 공식 레포지토리 기여]
 - PR 제목: Fix memory leak in useEffect cleanup (merged)
 - 내용: 특정 Edge case에서 cleanup 함수가 누락되어 메모리 릭이 발생하는 버그 수정
