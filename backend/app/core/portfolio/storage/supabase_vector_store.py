@@ -1,13 +1,13 @@
 import os
 from typing import List, Dict, Any
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
 
 class SupabaseVectorStore:
     """
     Manages embedding storage in Supabase using PGVector.
-    Uses Google Gemini Embeddings (API) for lightweight serverless deployment.
+    Uses Hugging Face Inference API (Free) for lightweight serverless deployment.
     """
 
     def __init__(self, table_name: str = "portfolio_embeddings"):
@@ -19,19 +19,20 @@ class SupabaseVectorStore:
         self._embedding_model = None
         self._vector_store = None
         
-        # Check API Key
-        self.api_key = os.getenv("GOOGLE_API_KEY")
-        if not self.api_key:
-             raise ValueError("GOOGLE_API_KEY is required for Gemini Embeddings")
+        # Hugging Face Token (required for Inference API)
+        self.hf_token = os.getenv("HF_TOKEN")
+        if not self.hf_token:
+             # Fallback: Inference API can sometimes work without token for low volume,
+             # but we highly recommend it.
+             print("Warning: HF_TOKEN not set. Inference API may be rate limited.")
 
     @property
     def embedding_model(self):
         if not self._embedding_model:
-            # Zero-memory overhead, API-based embedding
-            self._embedding_model = GoogleGenerativeAIEmbeddings(
-                model="models/text-embedding-004",
-                google_api_key=self.api_key,
-                task_type="retrieval_document" # Optimized for storage
+            # API-based embedding: Zero local memory/CPU overhead
+            self._embedding_model = HuggingFaceInferenceAPIEmbeddings(
+                api_key=self.hf_token,
+                model_name="jhgan/ko-sroberta-multitask"
             )
         return self._embedding_model
 
@@ -56,10 +57,4 @@ class SupabaseVectorStore:
         """
         Performs similarity search.
         """
-        # For query, we might want task_type="retrieval_query" but langchain handle this automatically 
-        # based on methods typically, or we configure the model instance.
-        # GoogleGenerativeAIEmbeddings doesn't dynamic switch task_type easily without re-init 
-        # in some versions, but 'retrieval_document' is generally fine or 'semantic_similarity'.
-        # However, for best results, queries should ideally use retrieval_query.
-        # But keeping it simple with the same instance for now as typical LangChain usage.
         return await self.vector_store.asimilarity_search(query, k=k)

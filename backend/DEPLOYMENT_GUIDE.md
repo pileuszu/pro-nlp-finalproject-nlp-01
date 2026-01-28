@@ -43,7 +43,8 @@ gcloud run deploy pro-nlp-backend \
   --set-env-vars "ALGORITHM=HS256" \
   --set-env-vars "KAKAO_REST_API_KEY=your_kakao_api_key" \
   --set-env-vars "KAKAO_CLIENT_SECRET=your_kakao_secret" \
-  --set-env-vars "KAKAO_REDIRECT_URI=https://your-frontend-domain.com/auth/kakao/callback"
+  --set-env-vars "KAKAO_REDIRECT_URI=https://your-frontend-domain.com/auth/kakao/callback" \
+  --set-env-vars "HF_TOKEN=your_huggingface_api_token"
 ```
 
 *   `--allow-unauthenticated`: 외부 접속 허용 (테스트용). 보안이 중요하다면 제거하고 별도 인증 구성.
