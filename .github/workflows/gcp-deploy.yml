@@ -43,6 +43,24 @@ jobs:
           docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.image }}:${{ github.sha }}" .
           docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.image }}:${{ github.sha }}"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install DB Migration Tools
+        run: |
+          pip install alembic sqlalchemy psycopg2-binary python-dotenv
+
+      - name: Run Database Migrations (Pre-check)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          cd backend
+          # This will fail in GitHub Actions log if DB is unreachable or migration fails
+          echo "Running migrations against: $(echo $DATABASE_URL | sed 's/.*@//' | sed 's/?.*/ /')"
+          alembic upgrade head
+
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
