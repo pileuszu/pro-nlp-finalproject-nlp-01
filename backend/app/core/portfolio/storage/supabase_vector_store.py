@@ -11,9 +11,19 @@ class SupabaseVectorStore:
     """
 
     def __init__(self, table_name: str = "portfolio_embeddings"):
-        self.connection_string = os.getenv("SUPABASE_URL")
-        if not self.connection_string:
-            raise ValueError("SUPABASE_URL environment variable is not set")
+        raw_url = os.getenv("DATABASE_URL")
+        if not raw_url:
+            raise ValueError("DATABASE_URL environment variable is not set")
+        
+        # Handle legacy 'postgres://' prefix
+        if raw_url.startswith("postgres://"):
+            raw_url = raw_url.replace("postgres://", "postgresql://", 1)
+            
+        # Standardize for PGVector async usage
+        if "postgresql+asyncpg://" not in raw_url:
+            self.connection_string = raw_url.replace("postgresql://", "postgresql+asyncpg://")
+        else:
+            self.connection_string = raw_url
         
         self.table_name = table_name
         self._embedding_model = None
