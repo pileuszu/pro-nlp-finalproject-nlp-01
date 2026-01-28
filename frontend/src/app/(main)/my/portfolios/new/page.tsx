@@ -54,6 +54,11 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
+                job_queries: (result.job_queries?.queries || []).map(q => ({
+                    type: q.type,
+                    query_text: q.query,
+                    evidence: q.evidence
+                })),
                 content: result.raw_text || ""
             });
         } catch (err) {
@@ -89,6 +94,11 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
+                job_queries: (result.job_queries?.queries || []).map(q => ({
+                    type: q.type,
+                    query_text: q.query,
+                    evidence: q.evidence
+                })),
                 content: result.raw_text || ""
             });
         } catch (err) {
@@ -213,6 +223,28 @@ export default function NewPortfolioPage() {
                                     onChange={e => setPreviewData({ ...previewData, tech_stack: e.target.value.split(",").map(s => s.trim()) })}
                                 />
                             </div>
+
+                            {/* Job Queries Section */}
+                            {previewData.job_queries && previewData.job_queries.length > 0 && (
+                                <div className="space-y-4 pt-4 border-t border-slate-100">
+                                    <Label className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                                        <Sparkles className="h-4 w-4 text-blue-500" /> 맞춤형 검색 쿼리 (AI 생성)
+                                    </Label>
+                                    <div className="grid gap-3">
+                                        {previewData.job_queries.map((q, idx) => (
+                                            <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Type {q.type}</Badge>
+                                                    <span className="text-xs font-bold text-slate-400">
+                                                        {q.type === 'A' ? '기술 스택 중심' : q.type === 'B' ? '문제 해결 중심' : '프로젝트 요약'}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm font-medium text-slate-700 leading-relaxed">{q.query_text}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-6 flex justify-end gap-3">
                             <Button variant="outline" onClick={() => setPreviewData(null)} disabled={isSaving}>취소</Button>

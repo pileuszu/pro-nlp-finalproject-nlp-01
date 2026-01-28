@@ -147,11 +147,25 @@ class PortfolioService:
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """Save a portfolio that has been reviewed and verified by the user."""
+        data = req.model_dump(exclude={"job_queries"})
+        job_queries_data = req.job_queries or []
+
         portfolio = Portfolio(
-            **req.model_dump(),
+            **data,
             user_id=user_id,
             processing_status=ProcessingStatus.COMPLETED
         )
+        
+        # Add job queries
+        for jq_data in job_queries_data:
+            portfolio.job_queries.append(
+                PortfolioJobQuery(
+                    type=jq_data.type,
+                    query_text=jq_data.query_text,
+                    evidence=jq_data.evidence
+                )
+            )
+
         self.db.add(portfolio)
         await self.db.commit()
         

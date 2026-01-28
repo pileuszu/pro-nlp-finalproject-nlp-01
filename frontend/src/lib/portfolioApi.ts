@@ -15,6 +15,13 @@ export interface AnalysisResult {
             tech_stack: string[];
         }>;
     };
+    job_queries: {
+        queries: Array<{
+            type: 'A' | 'B' | 'C';
+            query: string;
+            evidence: string[];
+        }>;
+    };
     raw_text: string;
 }
 

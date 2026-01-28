@@ -57,11 +57,13 @@ class PortfolioBase(BaseModel):
 class PortfolioCreate(PortfolioBase):
     user_id: int
 
-class PortfolioJobQuery(BaseModel):
+class PortfolioJobQueryCreate(BaseModel):
+    type: str
+    query_text: str
+    evidence: Optional[List[str]] = []
+
+class PortfolioJobQuery(PortfolioJobQueryCreate):
     id: int
-    type: Optional[str]
-    query_text: Optional[str]
-    evidence: Optional[List[str]]
     model_config = ConfigDict(from_attributes=True)
 
 class Portfolio(PortfolioBase):
@@ -90,7 +92,7 @@ class PortfolioListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class PortfolioCreateRequest(PortfolioBase):
-    pass
+    job_queries: Optional[List[PortfolioJobQueryCreate]] = []
 
 class PortfolioUpdateRequest(BaseModel):
     title: Optional[str] = None

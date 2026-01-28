@@ -8,6 +8,12 @@ export interface Recruit {
     content?: string;
 }
 
+export interface PortfolioJobQuery {
+    type: 'A' | 'B' | 'C';
+    query_text: string;
+    evidence: string[];
+}
+
 export interface Portfolio {
     id: number;
     title: string;
@@ -33,6 +39,7 @@ export interface Portfolio {
     techStack?: string[];
     tech_stack?: string[];
     source_url?: string;
+    job_queries?: PortfolioJobQuery[];
 }
 
 export interface CoverLetter {
