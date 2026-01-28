@@ -19,7 +19,9 @@ langchain-google-genai
 google-genai
 
 langchain-postgres
-# psycopg[binary] removed to favor psycopg2-binary for sync stability
+langchain-text-splitters
+langchain-core
+psycopg[binary]
 pypdf
 pdfplumber
 pillow
