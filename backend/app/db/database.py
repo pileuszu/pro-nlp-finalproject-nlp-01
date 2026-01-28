@@ -47,7 +47,11 @@ if "postgresql+asyncpg://" not in DATABASE_URL:
 else:
     ASYNC_DATABASE_URL = DATABASE_URL
 
-logger.info(f"Async engine target: {ASYNC_DATABASE_URL.split('@')[-1].split('?')[0]}")
+try:
+    async_tag = ASYNC_DATABASE_URL.split('@')[-1].split('?')[0]
+except Exception:
+    async_tag = "unknown"
+logger.info(f"Async engine target: {async_tag}")
 
 # asyncpg handles SSL differently (via connect_args or 'ssl' param)
 async_connect_args = {"statement_cache_size": 0}

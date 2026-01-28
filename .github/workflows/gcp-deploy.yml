@@ -77,5 +77,4 @@ jobs:
             KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
             KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}
             NCP_CLOVASTUDIO_API_KEY=${{ secrets.NCP_CLOVASTUDIO_API_KEY }}
-            NCP_CLOVASTUDIO_BASE_URL=${{ secrets.NCP_CLOVASTUDIO_BASE_URL }}
           flags: '--min-instances=0 --max-instances=3 --memory=512Mi --cpu=1 --allow-unauthenticated'
