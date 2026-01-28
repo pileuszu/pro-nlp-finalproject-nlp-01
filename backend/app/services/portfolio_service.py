@@ -147,6 +147,9 @@ class PortfolioService:
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """Save a portfolio that has been reviewed and verified by the user."""
+        logger.info(f"Saving verified portfolio for user {user_id}: {req.title}")
+        logger.debug(f"Request data: {req.model_dump()}")
+        
         portfolio = Portfolio(
             **req.model_dump(),
             user_id=user_id,

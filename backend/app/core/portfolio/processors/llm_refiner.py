@@ -95,9 +95,8 @@ class LLMRefiner:
 (1) user1_data 생성 규칙
 ========================
 - 텍스트에 등장하는 모든 프로젝트를 각각 구조화하여 projects 배열에 담아라.
-- 텍스트에 근거한 내용만 작성(추측/과장/확장 금지)
-- 원문에 없는 profile 값(user_id/name/job_title/summary)은 null
-- period/role/description_for_embedding이 없으면 null
+- 텍스트에 근거한 내용만 작성하되, profile(job_title, summary)이 명시되어 있지 않다면 전체 프로젝트와 기술 스택을 바탕으로 가장 적절한 직무명과 강점을 요약하여 '생성'해라.
+- 원문에 없는 user_id/name은 null
 - role은 1문장으로 짧게 (괄호로 길게 나열 금지)
 - tech_stack은 원문에 등장한 기술명만 배열로
 - skills는 원문 근거 있는 핵심 역량 키워드 0~8개(없으면 빈 배열)
