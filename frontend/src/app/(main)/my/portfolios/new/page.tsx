@@ -112,6 +112,7 @@ export default function NewPortfolioPage() {
     const handleFinalSave = async () => {
         if (!previewData) return;
         setIsSaving(true);
+        console.log("Saving Portfolio with Data:", previewData);
         try {
             await portfolioApi.createPortfolio(previewData);
             alert("포트폴리오가 성공적으로 저장되었습니다.");

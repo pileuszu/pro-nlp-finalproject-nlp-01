@@ -147,27 +147,40 @@ class PortfolioService:
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """Save a portfolio that has been reviewed and verified by the user."""
-        data = req.model_dump(exclude={"job_queries"})
+        logger.info(f"Saving verified portfolio for user {user_id}: {req.title}")
+        
         job_queries_data = req.job_queries or []
+        logger.info(f"Received {len(job_queries_data)} job queries from request.")
+        
+        data = req.model_dump(exclude={"job_queries"})
+        
+        # Explicitly create job query models
+        db_queries = []
+        for i, jq in enumerate(job_queries_data):
+            logger.debug(f"JQ[{i}]: type={jq.type}, text={jq.query_text[:30]}...")
+            db_queries.append(
+                PortfolioJobQuery(
+                    type=jq.type,
+                    query_text=jq.query_text,
+                    evidence=jq.evidence if hasattr(jq, 'evidence') else []
+                )
+            )
 
         portfolio = Portfolio(
             **data,
             user_id=user_id,
-            processing_status=ProcessingStatus.COMPLETED
+            processing_status=ProcessingStatus.COMPLETED,
+            job_queries=db_queries
         )
         
-        # Add job queries
-        for jq_data in job_queries_data:
-            portfolio.job_queries.append(
-                PortfolioJobQuery(
-                    type=jq_data.type,
-                    query_text=jq_data.query_text,
-                    evidence=jq_data.evidence
-                )
-            )
-
         self.db.add(portfolio)
-        await self.db.commit()
+        try:
+            await self.db.commit()
+            logger.info(f"Successfully committed portfolio {portfolio.id} with {len(portfolio.job_queries)} queries")
+        except Exception as e:
+            logger.error(f"Failed to commit portfolio: {e}")
+            await self.db.rollback()
+            raise
         
         # Re-fetch with selectinload to avoid detaching issues during JSON serialization
         stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
@@ -329,15 +342,16 @@ class PortfolioService:
                     new_portfolios.append(new_p)
                 
                 for q in combined_result.job_queries.queries:
-                    db_q = PortfolioJobQuery(
-                        portfolio_id=portfolio.id,
-                        type=q.type,
-                        query_text=q.query,
-                        evidence=q.evidence
+                    portfolio.job_queries.append(
+                        PortfolioJobQuery(
+                            type=q.type,
+                            query_text=q.query,
+                            evidence=q.evidence
+                        )
                     )
-                    self.db.add(db_q)
                 
                 await self.db.commit()
+                logger.info(f"Successfully processed portfolio {portfolio.id} with {len(portfolio.job_queries)} queries")
 
                 # 4. Vector Embedding
                 all_docs = []
