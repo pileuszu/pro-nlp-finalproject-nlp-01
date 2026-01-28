@@ -37,22 +37,24 @@ gcloud run deploy pro-nlp-backend \
   --platform managed \
   --allow-unauthenticated \
   --set-env-vars "DATABASE_URL=postgresql://user:pass@host:port/db" \
-  --set-env-vars "SUPABASE_URL=postgresql+asyncpg://user:pass@host:port/db" \
   --set-env-vars "GOOGLE_API_KEY=your_gemini_api_key" \
   --set-env-vars "SECRET_KEY=your_secret_key" \
   --set-env-vars "ALGORITHM=HS256" \
   --set-env-vars "KAKAO_REST_API_KEY=your_kakao_api_key" \
   --set-env-vars "KAKAO_CLIENT_SECRET=your_kakao_secret" \
   --set-env-vars "KAKAO_REDIRECT_URI=https://your-frontend-domain.com/auth/kakao/callback" \
-  --set-env-vars "HF_TOKEN=your_huggingface_api_token"
+  --set-env-vars "NCP_CLOVASTUDIO_API_KEY=your_api_key" \
+  --set-env-vars "NCP_CLOVASTUDIO_BASE_URL=https://clovastudio.stream.ntruss.com"
 ```
 
 *   `--allow-unauthenticated`: 외부 접속 허용 (테스트용). 보안이 중요하다면 제거하고 별도 인증 구성.
 *   `--set-env-vars`: 필요한 환경변수를 모두 설정합니다.
-    *   `DATABASE_URL`: **동기(Sync)** DB 접속 주소 (SQLAlchemy용, `postgresql://`)
-    *   `SUPABASE_URL`: **비동기(Async)** DB 접속 주소 (Vector Store용, `postgresql+asyncpg://`)
-    *   `GOOGLE_API_KEY`: Gemini API 사용
+    *   `DATABASE_URL`: DB 접속 주소 (`postgresql://`). 내부적으로 비동기 변환을 처리합니다.
+    *   `GOOGLE_API_KEY`: Gemini API 사용 (채팅/분석용)
     *   `SECRET_KEY`, `ALGORITHM`: JWT 인증용
+    *   `NCP_CLOVASTUDIO_API_KEY`: NAVER Clova Studio API Key (임베딩용)
+    *   `NCP_CLOVASTUDIO_BASE_URL`: Clova Studio 게이트웨이 주소
+
 
 ## 4. 데이터베이스 마이그레이션
 

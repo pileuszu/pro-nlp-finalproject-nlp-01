@@ -1,13 +1,44 @@
-import os
-from typing import List, Dict, Any
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+import requests
+from langchain_core.embeddings import Embeddings
 from langchain_postgres import PGVector
 from langchain_core.documents import Document
+
+class NaverClovaEmbeddings(Embeddings):
+    """
+    Custom LangChain Embeddings implementation for Naver Clova Studio Embedding v2.
+    """
+    def __init__(self, api_key: str, base_url: str = None):
+        self.api_key = api_key
+        # Default to Clova Studio standard endpoint if not provided
+        self.base_url = base_url or "https://clovastudio.stream.ntruss.com"
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [self._embed(text) for text in texts]
+
+    def embed_query(self, text: str) -> List[float]:
+        return self._embed(text)
+
+    def _embed(self, text: str) -> List[float]:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}"
+        }
+        payload = {"text": text}
+        endpoint = f"{self.base_url.rstrip('/')}/v1/api-tools/embedding/v2"
+        
+        response = requests.post(endpoint, headers=headers, json=payload)
+        response.raise_for_status()
+        
+        res_json = response.json()
+        if res_json.get("status", {}).get("code") == "20000":
+             return res_json["result"]["embedding"]
+        else:
+             raise ValueError(f"Naver Clova API Error: {res_json}")
 
 class SupabaseVectorStore:
     """
     Manages embedding storage in Supabase using PGVector.
-    Uses Hugging Face Inference API (Free) for lightweight serverless deployment.
+    Uses Naver HyperCLOVA X (Clova Studio) for embeddings.
     """
 
     def __init__(self, table_name: str = "portfolio_embeddings"):
@@ -29,20 +60,20 @@ class SupabaseVectorStore:
         self._embedding_model = None
         self._vector_store = None
         
-        # Hugging Face Token (required for Inference API)
-        self.hf_token = os.getenv("HF_TOKEN")
-        if not self.hf_token:
-             # Fallback: Inference API can sometimes work without token for low volume,
-             # but we highly recommend it.
-             print("Warning: HF_TOKEN not set. Inference API may be rate limited.")
+        # NCP Clova Studio Credentials
+        self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
+        self.ncp_base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL")
+        
+        if not self.ncp_api_key:
+             print("Warning: NCP_CLOVASTUDIO_API_KEY not set. Embedding will fail.")
 
     @property
     def embedding_model(self):
         if not self._embedding_model:
             # API-based embedding: Zero local memory/CPU overhead
-            self._embedding_model = HuggingFaceInferenceAPIEmbeddings(
-                api_key=self.hf_token,
-                model_name="jhgan/ko-sroberta-multitask"
+            self._embedding_model = NaverClovaEmbeddings(
+                api_key=self.ncp_api_key,
+                base_url=self.ncp_base_url
             )
         return self._embedding_model
 
