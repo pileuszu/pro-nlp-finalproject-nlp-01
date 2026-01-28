@@ -107,6 +107,7 @@ class PortfolioService:
         github_url: str,
         background_tasks: BackgroundTasks
     ) -> Portfolio:
+        print(f"Creating portfolio for user {user_id}: {title} ({github_url})")
         portfolio = Portfolio(
             title=title,
             type="github",
@@ -115,8 +116,14 @@ class PortfolioService:
             processing_status=ProcessingStatus.PENDING
         )
         self.db.add(portfolio)
-        await self.db.commit()
-        await self.db.refresh(portfolio)
+        try:
+            await self.db.commit()
+            await self.db.refresh(portfolio)
+            print(f"Portfolio created successfully: ID {portfolio.id}")
+        except Exception as e:
+            print(f"Error during portfolio commit: {e}")
+            await self.db.rollback()
+            raise e
 
         background_tasks.add_task(process_portfolio_task, portfolio.id, github_url, "github")
         return portfolio
