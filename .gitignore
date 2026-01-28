@@ -22,6 +22,7 @@ wheels/
 *.egg
 
 # Virtual Environment
+.venv/
 venv/
 llm-pipeline/portfolios/venv/
 ENV/
@@ -48,3 +49,4 @@ llm-pipeline/notebooks/ocr_results/
 llm-pipeline/notebooks/results/
 llm-pipeline/notebooks/tessdata
 llm-pipeline/portfolios/data/
+llm-pipeline/recruit/data/
