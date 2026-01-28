@@ -42,7 +42,7 @@ async def get_portfolio(
 @router.patch("/{portfolio_id}", response_model=schemas.Portfolio)
 async def update_portfolio(
     portfolio_id: int,
-    portfolio: schemas.PortfolioCreateRequest,
+    portfolio: schemas.PortfolioUpdateRequest,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):

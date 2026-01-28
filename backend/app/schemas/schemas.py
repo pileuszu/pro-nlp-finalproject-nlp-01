@@ -63,6 +63,12 @@ class PortfolioListResponse(BaseModel):
 class PortfolioCreateRequest(PortfolioBase):
     pass
 
+class PortfolioUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    type: Optional[str] = None
+    source_url: Optional[str] = None
+    content: Optional[str] = None
+
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):
     title: Optional[str] = None
