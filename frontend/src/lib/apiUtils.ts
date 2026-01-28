@@ -26,9 +26,10 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
     };
 
-    // Default to JSON content type if not set and method is not GET/HEAD
+    // Default to JSON content type if not set, method is not GET/HEAD, and body is not FormData
     if (options.method && !["GET", "HEAD"].includes(options.method.toUpperCase())) {
-        if (!(headers as Record<string, string>)["Content-Type"]) {
+        const isFormData = options.body instanceof FormData;
+        if (!isFormData && !(headers as Record<string, string>)["Content-Type"]) {
             (headers as Record<string, string>)["Content-Type"] = "application/json";
         }
     }

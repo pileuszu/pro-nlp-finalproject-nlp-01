@@ -37,16 +37,13 @@ export const portfolioApi: PortfolioApi = {
      * Import portfolio from a Notion URL.
      */
     importNotion: async (url: string, title: string = "Notion Page"): Promise<Portfolio> => {
-        const formData = new FormData();
-        formData.append("url", url);
-        formData.append("title", title);
-
-        // Alternatively, if backend accepts JSON for notion import (check backend):
-        // Backend uses Form(...) for url and title. So FormData is correct.
-
         const res = await fetchWithAuth(getApiUrl("/portfolios/notion"), {
             method: "POST",
-            body: formData,
+            body: JSON.stringify({
+                title,
+                source_url: url,
+                type: "notion"
+            }),
         });
 
         if (!res.ok) {
@@ -61,13 +58,13 @@ export const portfolioApi: PortfolioApi = {
      * Import portfolio from a GitHub URL (Repo or Profile).
      */
     importGithub: async (url: string, title: string = "GitHub Portfolio"): Promise<Portfolio> => {
-        const formData = new FormData();
-        formData.append("url", url);
-        formData.append("title", title);
-
         const res = await fetchWithAuth(getApiUrl("/portfolios/github"), {
             method: "POST",
-            body: formData,
+            body: JSON.stringify({
+                title,
+                source_url: url,
+                type: "github"
+            }),
         });
 
         if (!res.ok) {

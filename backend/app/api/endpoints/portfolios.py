@@ -47,8 +47,7 @@ async def upload_portfolio(
 @router.post("/notion", response_model=schemas.Portfolio, status_code=201)
 async def import_notion_portfolio(
     background_tasks: BackgroundTasks,
-    title: str = Form(...),
-    url: str = Form(...),
+    payload: schemas.PortfolioCreateRequest,
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -56,13 +55,12 @@ async def import_notion_portfolio(
     Import portfolio from a Notion URL.
     """
     service = PortfolioService(db)
-    return await service.create_portfolio_from_notion(current_user.id, title, url, background_tasks)
+    return await service.create_portfolio_from_notion(current_user.id, payload.title, payload.source_url, background_tasks)
 
 @router.post("/github", response_model=schemas.Portfolio, status_code=201)
 async def import_github_portfolio(
     background_tasks: BackgroundTasks,
-    title: str = Form(...),
-    url: str = Form(...),
+    payload: schemas.PortfolioCreateRequest,
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -70,7 +68,7 @@ async def import_github_portfolio(
     Import portfolio from a GitHub Repository or User Profile URL/ID.
     """
     service = PortfolioService(db)
-    return await service.create_portfolio_from_github(current_user.id, title, url, background_tasks)
+    return await service.create_portfolio_from_github(current_user.id, payload.title, payload.source_url, background_tasks)
 
 @router.get("/{portfolio_id}", response_model=schemas.Portfolio)
 async def get_portfolio(
