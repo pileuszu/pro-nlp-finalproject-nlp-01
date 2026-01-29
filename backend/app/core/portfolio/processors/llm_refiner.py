@@ -18,6 +18,12 @@ class Profile(BaseModel):
     summary: Optional[str] = Field(None, description="원문에 있으면 추출, 없으면 null")
 
 
+class QueryItem(BaseModel):
+    type: Literal["A", "B", "C"] = Field(..., description="쿼리 유형")
+    query: str = Field(..., description="기업 공고 검색용 자연어 쿼리 1문장")
+    evidence: List[str] = Field(default_factory=list, description="근거 구절 1~3개")
+
+
 class Project(BaseModel):
     project_name: str = Field(..., description="프로젝트 이름")
     period: Optional[str] = Field(None, description="프로젝트 기간")
@@ -25,6 +31,10 @@ class Project(BaseModel):
     tech_stack: List[str] = Field(default_factory=list, description="원문에 등장한 기술명만")
     description_for_embedding: Optional[str] = Field(
         None, description="아래 섹션 템플릿을 따르는 멀티라인 문자열"
+    )
+    job_queries: List[QueryItem] = Field(
+        default_factory=list, 
+        description="이 프로젝트에 특화된 A/B/C 타입 채용 공고 검색 쿼리 3개"
     )
 
     @model_validator(mode='before')
@@ -51,26 +61,15 @@ class Project(BaseModel):
 class UserData(BaseModel):
     profile: Profile = Field(default_factory=Profile)
     projects: List[Project] = Field(
-        default_factory=list, description="텍스트에서 추출된 모든 프로젝트 리스트"
+        default_factory=list, description="텍스트에서 추출된 모든 프로젝트 리스트 (각 프로젝트는 자체 job_queries 포함)"
     )
     skills: List[str] = Field(
         default_factory=list, description="원문 근거 있는 핵심 역량 키워드만"
     )
 
 
-class QueryItem(BaseModel):
-    type: Literal["A", "B", "C"] = Field(..., description="쿼리 유형")
-    query: str = Field(..., description="기업 공고 검색용 자연어 쿼리 1문장")
-    evidence: List[str] = Field(default_factory=list, description="근거 구절 1~3개")
-
-
-class JobQueryResult(BaseModel):
-    queries: List[QueryItem] = Field(default_factory=list)
-
-
 class CombinedResult(BaseModel):
     user_data: UserData
-    job_queries: JobQueryResult
 
 
 class LLMRefiner:
@@ -140,16 +139,17 @@ class LLMRefiner:
 당신은 포트폴리오 분석 전문가입니다.
 사용자의 포트폴리오 텍스트를 분석하여 다음을 추출하세요:
 
-1. **사용자 정보**: 이름, 직무, 요약, 프로젝트, 기술 스택
-2. **공고 검색 쿼리 3개** (A, B, C 타입):
-   - A: 사용자의 핵심 기술과 경험을 기반으로 한 메인 포지션
-   - B: 사용자의 부가 기술이나 관심 분야를 기반으로 한 서브 포지션
-   - C: 사용자의 잠재력이나 성장 가능성을 고려한 도전적 포지션
+1. **사용자 정보**: 이름, 직무, 요약, 프로젝트 리스트, 기술 스택
+2. **각 프로젝트마다 채용 공고 검색 쿼리 3개** (A, B, C 타입):
+   - A: 해당 프로젝트의 핵심 기술과 경험을 기반으로 한 메인 포지션
+   - B: 해당 프로젝트의 부가 기술이나 도메인을 기반으로 한 서브 포지션
+   - C: 해당 프로젝트 경험을 바탕으로 한 도전적 포지션
 
 **중요 규칙:**
 - 모든 필드를 최대한 채우세요. 정보가 부족하면 문맥에서 추론하세요.
-- 각 쿼리는 실제 채용 공고 검색에 사용될 수 있도록 구체적으로 작성하세요.
-- evidence는 포트폴리오에서 해당 쿼리를 뒷받침하는 구체적인 근거를 제시하세요.
+- **각 프로젝트는 반드시 자체 job_queries 필드를 가져야 합니다** (A, B, C 타입 3개)
+- 각 쿼리는 **해당 프로젝트의 기술 스택과 역할에 특화**되어야 합니다
+- evidence는 **해당 프로젝트**에서 쿼리를 뒷받침하는 구체적인 근거를 제시하세요
 
 **description_for_embedding 작성 규칙:**
 프로젝트의 description_for_embedding은 반드시 아래 템플릿을 따라 작성하세요:
@@ -175,6 +175,12 @@ class LLMRefiner:
 - "해결" 항목은 기술적 구현 방법을 포함해야 합니다
 - "결과"는 원문에 명시된 경우에만 작성하세요
 - 정보가 부족하면 "미기재"로 표시하세요
+
+**job_queries 생성 예시:**
+프로젝트: "E-commerce 백엔드 API 개발" (Python, Django, Redis 사용)
+- A: "Python, Django, Redis 기반의 대규모 트래픽 처리 백엔드 개발자"
+- B: "E-commerce 플랫폼 결제 시스템 및 재고 관리 API 개발 경험자"
+- C: "MSA 아키텍처 전환 및 캐싱 전략 설계 경험이 있는 시니어 백엔드 개발자"
 """
 
         user_prompt = f"""
@@ -196,9 +202,10 @@ class LLMRefiner:
             # With Structured Outputs, response is guaranteed valid JSON
             result = CombinedResult.model_validate_json(response_text)
             
-            # Safety: Ensure only top 3 queries
-            if len(result.job_queries.queries) > 3:
-                result.job_queries.queries = result.job_queries.queries[:3]
+            # Safety: Ensure each project has at most 3 queries
+            for project in result.user_data.projects:
+                if len(project.job_queries) > 3:
+                    project.job_queries = project.job_queries[:3]
                 
             return result
 
@@ -214,9 +221,9 @@ class LLMRefiner:
                     projects=[
                         Project(
                             project_name="추출 실패", 
-                            description_for_embedding=f"AI 응답 오류: {str(e)}\n\n(URL: {self.base_url}/v3/chat-completions/{self.model})\n\n원문 내용:\n{text[:500]}..."
+                            description_for_embedding=f"AI 응답 오류: {str(e)}\n\n(URL: {self.base_url}/v3/chat-completions/{self.model})\n\n원문 내용:\n{text[:500]}...",
+                            job_queries=[]
                         )
                     ]
-                ),
-                job_queries=JobQueryResult(queries=[])
+                )
             )

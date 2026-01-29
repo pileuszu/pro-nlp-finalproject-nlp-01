@@ -157,7 +157,11 @@ class PortfolioService:
         return portfolio
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
-        """Save a portfolio that has been reviewed and verified by the user."""
+        """Save a portfolio that has been reviewed and verified by the user.
+        
+        NOTE: This now creates ONE Portfolio record per project in the AI extraction.
+        Each project gets its own A/B/C job queries.
+        """
         logger.info(f"Saving verified portfolio for user {user_id}: {req.title}")
         
         job_queries_data = req.job_queries or []
@@ -215,6 +219,92 @@ class PortfolioService:
             print(f"Error embedding manually saved portfolio: {e}")
 
         return portfolio
+    
+    async def save_verified_portfolios_from_ai(self, user_id: int, ai_result, original_title: str, p_type: str, source_url: str = None):
+        """Save multiple Portfolio records from AI extraction - one per project.
+        
+        Args:
+            user_id: User ID
+            ai_result: CombinedResult from LLM with user_data.projects list
+            original_title: Original portfolio title/filename
+            p_type: Portfolio type (file, github, notion, etc.)
+            source_url: Optional source URL
+            
+        Returns:
+            List of created Portfolio records
+        """
+        logger.info(f"Saving {len(ai_result.user_data.projects)} projects as separate portfolios for user {user_id}")
+        
+        created_portfolios = []
+        
+        for idx, project in enumerate(ai_result.user_data.projects):
+            # Create title combining original title and project name
+            portfolio_title = f"{original_title} - {project.project_name}"
+            
+            # Convert project's job_queries to PortfolioJobQuery models
+            db_queries = []
+            for jq in project.job_queries:
+                db_queries.append(
+                    PortfolioJobQuery(
+                        type=jq.type,
+                        query_text=jq.query,
+                        evidence=jq.evidence
+                    )
+                )
+            
+            # Create Portfolio record
+            portfolio = Portfolio(
+                title=portfolio_title,
+                type=p_type,
+                source_url=source_url,
+                content=None,  # Raw text not stored per-project
+                user_id=user_id,
+                processing_status=ProcessingStatus.COMPLETED,
+                extracted_summary=ai_result.user_data.profile.summary,
+                extracted_job_title=ai_result.user_data.profile.job_title,
+                project_name=project.project_name,
+                period=project.period,
+                role=project.role,
+                description=project.description_for_embedding,
+                tech_stack=project.tech_stack,
+                job_queries=db_queries
+            )
+            
+            self.db.add(portfolio)
+            created_portfolios.append(portfolio)
+        
+        # Commit all at once
+        try:
+            await self.db.commit()
+            logger.info(f"Successfully committed {len(created_portfolios)} portfolio records")
+        except Exception as e:
+            logger.error(f"Failed to commit portfolios: {e}")
+            await self.db.rollback()
+            raise
+        
+        # Re-fetch with relationships and add to vector store
+        portfolio_ids = [p.id for p in created_portfolios]
+        stmt = select(Portfolio).where(Portfolio.id.in_(portfolio_ids)).options(selectinload(Portfolio.job_queries))
+        result = await self.db.execute(stmt)
+        portfolios = result.scalars().all()
+        
+        # Add each to vector store
+        for portfolio in portfolios:
+            try:
+                desc = portfolio.description or ""
+                if desc:
+                    metadata = {
+                        "portfolio_id": portfolio.id,
+                        "type": "project",
+                        "project_name": portfolio.project_name,
+                        "tech_stack": portfolio.tech_stack,
+                        "chunk_index": 0
+                    }
+                    await self.vector_store.add_documents([Document(page_content=desc, metadata=metadata)])
+            except Exception as e:
+                logger.error(f"Error embedding portfolio {portfolio.id}: {e}")
+        
+        return portfolios
 
     async def analyze_portfolio_source(self, source: str, p_type: str):
         """Extract and Refine without saving to DB (for preview)."""
@@ -238,7 +328,6 @@ class PortfolioService:
             # Combine with raw text for preview
             return {
                 "user_data": result.user_data.model_dump(),
-                "job_queries": result.job_queries.model_dump(),
                 "raw_text": text
             }
         except HTTPException:
@@ -272,7 +361,6 @@ class PortfolioService:
             # Combine with raw text for preview
             return {
                 "user_data": result.user_data.model_dump(),
-                "job_queries": result.job_queries.model_dump(),
                 "raw_text": text
             }
         except HTTPException:
