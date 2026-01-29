@@ -1,0 +1,270 @@
+import os
+import time
+import json
+import base64
+import requests
+import logging
+from bs4 import BeautifulSoup
+from typing import List, Dict
+
+logger = logging.getLogger(__name__)
+
+class RecruitmentCrawler:
+    """
+    Crawls recruitment postings from inthiswork.com and processes them with NCP HCX-005.
+    """
+    
+    def __init__(self, target_pages: int = 1):
+        self.target_pages = target_pages
+        self.google_api_key = os.getenv("GOOGLE_API_KEY")
+        self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
+        self.ncp_base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
+        
+        if not self.google_api_key:
+            logger.warning("GOOGLE_API_KEY not found. OCR will not work.")
+        if not self.ncp_api_key:
+            logger.warning("NCP_CLOVASTUDIO_API_KEY not found. Parsing will not work.")
+    
+    def _get_headers(self):
+        return {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        }
+    
+    def _google_vision_ocr(self, image_url: str) -> str:
+        """Extract text from image using Google Vision API."""
+        if not self.google_api_key:
+            return ""
+        
+        try:
+            resp = requests.get(image_url, timeout=10)
+            if resp.status_code != 200:
+                return ""
+            
+            image_content = base64.b64encode(resp.content).decode("utf-8")
+            
+            url = f"https://vision.googleapis.com/v1/images:annotate?key={self.google_api_key}"
+            payload = {
+                "requests": [{
+                    "image": {"content": image_content},
+                    "features": [{"type": "TEXT_DETECTION"}]
+                }]
+            }
+            
+            vision_resp = requests.post(url, json=payload, timeout=20)
+            if vision_resp.status_code != 200:
+                logger.error(f"Vision API Error: {vision_resp.text}")
+                return ""
+            
+            result = vision_resp.json()
+            text_annotations = result.get("responses", [{}])[0].get("textAnnotations", [])
+            if text_annotations:
+                return text_annotations[0].get("description", "")
+            return ""
+        
+        except Exception as e:
+            logger.error(f"OCR Error ({image_url}): {e}")
+            return ""
+    
+    def _analyze_job_with_ncp(self, job_data: Dict) -> str:
+        """Analyze job posting with NCP HCX-005 and return structured JSON."""
+        if not self.ncp_api_key:
+            return "[]"
+        
+        existing_text = job_data.get('content_text', '')
+        img_urls = job_data.get('content_images', '').split(',') if job_data.get('content_images') else []
+        ocr_text_all = ""
+        
+        # OCR processing if text is too short
+        if "(이미지 자동 추출 텍스트)" not in existing_text and len(existing_text) < 200:
+            for url in img_urls:
+                url = url.strip()
+                if not url:
+                    continue
+                text = self._google_vision_ocr(url)
+                if text:
+                    ocr_text_all += f"\n[이미지 추출 텍스트]:\n{text}\n"
+        
+        full_text = f"""
+        회사명: {job_data.get('company', '')}
+        공고 제목: {job_data.get('title', '')}
+        원본 링크: {job_data.get('url', '')}
+        지원 링크: {job_data.get('apply_url', '')}
+        
+        [본문 텍스트]:
+        {existing_text}
+        
+        {ocr_text_all}
+        """
+        
+        system_prompt = """
+        당신은 채용 공고 데이터 파싱 전문가입니다. 입력된 채용 공고 텍스트를 분석하여 구조화된 JSON 리스트로 출력하세요.
+        
+        규칙:
+        1. 한 공고 내에 여러 직무(예: 백엔드, 프론트엔드)가 있다면 각각 독립된 객체로 분리하여 리스트로 만드세요.
+        2. 응답은 오직 JSON 리스트만 출력하세요. (Markdown ```json 등 제외)
+        3. 스키마:
+           - title (직무명 + 공고제목)
+           - company
+           - link (지원링크가 있으면 지원링크, 없으면 원본링크)
+           - deadline (YYYY-MM-DD 또는 '상시채용')
+           - location
+           - experience (경력 무관, 3년 이상 등)
+           - education
+           - employment_type (정규직 등)
+           - salary
+           - job_sector (개발, 디자인 등)
+           - key_responsibilities (주요 업무 - 줄바꿈 된 문자열)
+           - required_qualifications (자격 요건 - 줄바꿈 된 문자열)
+           - preferred_qualifications (우대 사항 - 줄바꿈 된 문자열)
+           - content (전체 원문 요약)
+        """
+        
+        url = f"{self.ncp_base_url}/v3/chat-completions/HCX-005"
+        headers = {
+            "Authorization": f"Bearer {self.ncp_api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
+        
+        payload = {
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": full_text}
+            ],
+            "maxTokens": 3000,
+            "temperature": 0.1,
+            "topP": 0.8,
+            "topK": 0
+        }
+        
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+            if resp.status_code == 200:
+                result = resp.json()
+                if result.get("status", {}).get("code") == "20000":
+                    content = result.get("result", {}).get("message", {}).get("content", "")
+                    return content
+            logger.error(f"NCP Error: {resp.text}")
+            return "[]"
+        except Exception as e:
+            logger.error(f"NCP Call Error: {e}")
+            return "[]"
+    
+    def get_job_list(self) -> List[Dict]:
+        """Crawl job list from inthiswork.com."""
+        logger.info("=== Starting job list collection ===")
+        all_jobs = []
+        session = requests.Session()
+        
+        for page in range(1, self.target_pages + 1):
+            url = "https://inthiswork.com/it" if page == 1 else f"https://inthiswork.com/it?paged1={page}"
+            logger.info(f"[Page {page}] {url}")
+            
+            try:
+                resp = session.get(url, headers=self._get_headers(), timeout=15)
+                if resp.status_code != 200:
+                    continue
+                
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                entries = soup.select('.dpt-entry') or soup.select('.dpt-entry-wrapper')
+                
+                logger.info(f"  → Found {len(entries)} postings")
+                for entry in entries:
+                    link_obj = entry.select_one('a.dpt-title-link') or entry.select_one('.dpt-title a')
+                    if not link_obj:
+                        continue
+                    
+                    full_url = link_obj.get('href')
+                    full_text = link_obj.get_text(strip=True)
+                    
+                    if '/archives/' not in full_url:
+                        continue
+                    
+                    parts = full_text.split('|', 1) if '|' in full_text else (full_text.split('｜', 1) if '｜' in full_text else ["-", full_text])
+                    company = parts[0].strip() if len(parts) > 1 else "-"
+                    title = parts[1].strip() if len(parts) > 1 else parts[0].strip()
+                    
+                    if company == "-" or "IN THIS WORK" in company.upper():
+                        continue
+                    
+                    if not any(j['url'] == full_url for j in all_jobs):
+                        all_jobs.append({'company': company, 'title': title, 'url': full_url})
+            
+            except Exception as e:
+                logger.error(f"  → Error: {e}")
+        
+        return all_jobs
+    
+    def get_job_detail(self, url: str) -> tuple:
+        """Fetch detailed job posting content."""
+        time.sleep(1)  # Politeness delay
+        try:
+            resp = requests.get(url, headers=self._get_headers(), timeout=15)
+            if resp.status_code != 200:
+                return "", "", ""
+            
+            soup = BeautifulSoup(resp.text, 'html.parser')
+            content_area = (
+                soup.select_one('.fusion-content-tb') or 
+                soup.select_one('.post-content') or 
+                soup.select_one('.entry-content') or
+                soup.find('body')
+            )
+            
+            # Find apply URL
+            apply_url = ""
+            for a in content_area.select('a'):
+                if "지원하러" in a.get_text() or "지원하기" in a.get_text():
+                    apply_url = a.get('href', '')
+                    break
+            
+            # Extract images
+            images = [img.get('src') for img in content_area.select('img') if img.get('src')]
+            images_str = ", ".join(images)
+            
+            text_content = content_area.get_text(separator='\n', strip=True)
+            return text_content[:5000], images_str, apply_url
+        
+        except Exception as e:
+            logger.error(f"  → Detail error: {e}")
+            return "", "", ""
+    
+    async def crawl_and_parse(self) -> List[Dict]:
+        """Main crawling and parsing logic."""
+        # 1. Crawl job list
+        job_list = self.get_job_list()
+        
+        full_data = []
+        logger.info(f"\n=== Collecting details for {len(job_list)} jobs ===")
+        
+        for idx, job in enumerate(job_list):
+            logger.info(f"[{idx+1}/{len(job_list)}] {job['company']} - {job['title']}")
+            text, imgs, apply_url = self.get_job_detail(job['url'])
+            job['content_text'] = text
+            job['content_images'] = imgs
+            job['apply_url'] = apply_url
+            full_data.append(job)
+        
+        # 2. Analyze with NCP (OCR + LLM)
+        logger.info("\n=== Analyzing data with NCP HCX ===")
+        final_json_results = []
+        
+        for idx, row in enumerate(full_data):
+            logger.info(f"[{idx+1}/{len(full_data)}] Analyzing...")
+            json_str = self._analyze_job_with_ncp(row)
+            
+            # Clean JSON
+            json_str = json_str.replace("```json", "").replace("```", "").strip()
+            
+            try:
+                parsed = json.loads(json_str)
+                if isinstance(parsed, list):
+                    final_json_results.extend(parsed)
+                else:
+                    final_json_results.append(parsed)
+            except Exception as e:
+                logger.error(f"JSON Parsing Failed: {e}")
+        
+        logger.info(f"\n[Complete] Parsed {len(final_json_results)} recruitment items")
+        return final_json_results

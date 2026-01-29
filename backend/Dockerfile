@@ -16,9 +16,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Backend Code
 COPY backend/ .
 
-# Copy LLM Pipeline (Recruit Scraper)
-COPY llm-pipeline/ /app/llm-pipeline/
-
 ENV PYTHONPATH=/app
 # PORT env var is injected by Cloud Run (default 8080)
 

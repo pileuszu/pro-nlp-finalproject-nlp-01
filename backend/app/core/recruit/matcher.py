@@ -12,7 +12,14 @@ class RecruitMatcher:
     """
     def __init__(self, model_id: str = "HCX-005"):
         self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
-        self.ncp_base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
+        base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "").strip()
+        
+        # Ensure URL has proper protocol
+        if not base_url or not base_url.startswith(("http://", "https://")):
+            base_url = "https://clovastudio.stream.ntruss.com"
+            logger.warning(f"NCP_CLOVASTUDIO_BASE_URL is missing or invalid. Using default: {base_url}")
+        
+        self.ncp_base_url = base_url
         self.model_id = model_id # Default to HCX-005
         
         if not self.ncp_api_key:

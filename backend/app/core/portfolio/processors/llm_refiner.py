@@ -81,7 +81,7 @@ class LLMRefiner:
 
     def __init__(
         self,
-        model: str = "HCX-005",
+        model: str = "HCX-007",  # Changed to HCX-007 for Structured Outputs
         api_key_env: str = "NCP_CLOVASTUDIO_API_KEY",
     ) -> None:
         self.api_key = os.environ.get(api_key_env)
@@ -92,8 +92,8 @@ class LLMRefiner:
         if not self.api_key:
             print(f"Warning: {api_key_env} is not set. NCP features will work.")
     
-    async def _call_ncp(self, messages: List[dict], max_tokens: int = 3000) -> str:
-        """Call NCP Chat Completions V3 asynchronously."""
+    async def _call_ncp(self, messages: List[dict], response_schema: dict = None, max_tokens: int = 3000) -> str:
+        """Call NCP Chat Completions V3 with Structured Outputs support."""
         if not self.api_key:
             raise RuntimeError("NCP API Key is missing.")
 
@@ -106,17 +106,25 @@ class LLMRefiner:
         
         payload = {
             "messages": messages,
-            "maxTokens": max_tokens,
-            "temperature": 0.5,
+            "maxCompletionTokens": max_tokens,  # Changed from maxTokens
+            "temperature": 0.1,
             "topP": 0.8,
-            "topK": 0
+            "topK": 0,
+            "thinking": {"effort": "none"}  # Required for Structured Outputs
         }
+        
+        # Add Structured Outputs if schema provided
+        if response_schema:
+            payload["responseFormat"] = {
+                "type": "json",
+                "schema": response_schema
+            }
         
         import httpx
         async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(url, headers=headers, json=payload)
-            resp.raise_for_status()
-            res_json = resp.json()
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            res_json = response.json()
             
             if res_json.get("status", {}).get("code") == "20000":
                 return res_json.get("result", {}).get("message", {}).get("content", "")
@@ -163,85 +171,45 @@ description_for_embedding 형식(반드시 그대로):
 - 없으면: - 미기재
 
 추가 규칙:
-- 원문에 없는 도메인/기술/수치(TPS, %, ms, PSNR 등) 생성 금지
+    async def extract_user_data_and_queries(self, text: str) -> CombinedResult:
+        """
+        Extract structured user data and job queries from portfolio text using NCP Structured Outputs.
+        """
+        system_prompt = """
+당신은 포트폴리오 분석 전문가입니다.
+사용자의 포트폴리오 텍스트를 분석하여 다음을 추출하세요:
 
-========================
-(2) 공고 검색 쿼리 생성 규칙
-========================
-- 아래에서 만든 user_data.projects[0] 내용을 근거로 쿼리를 만들어라.
-- 추측/과장 금지: user_data에 없는 기술/도메인/수치 절대 생성하지 마.
-- 쿼리 3개를 정확히 생성(A,B,C).
-- 각 query는 한 문장, 80~140자 내.
-- evidence에는 user_data(특히 projects[0])에서 근거가 된 구절을 1~3개 짧게 그대로 넣어.
+1. **사용자 정보**: 이름, 직무, 요약, 프로젝트, 기술 스택
+2. **공고 검색 쿼리 3개** (A, B, C 타입):
+   - A: 사용자의 핵심 기술과 경험을 기반으로 한 메인 포지션
+   - B: 사용자의 부가 기술이나 관심 분야를 기반으로 한 서브 포지션
+   - C: 사용자의 잠재력이나 성장 가능성을 고려한 도전적 포지션
 
-쿼리 유형:
-A: 기술 스택 + 핵심 역량
-- 예시 스타일: "Python, FastAPI, Redis, Kafka 기반의 대용량 트래픽 처리 및 비동기 시스템 아키텍처 설계 경험"
-B: 문제 해결 중심(어떤 문제를 어떻게 해결)
-- 예시 스타일: "10,000 TPS 이상의 고부하 상황에서 대기열 시스템 구현 및 응답 지연 문제를 해결한 백엔드 개발자"
-C: 프로젝트 요약(목적/기능 + 기여)
-- 예시 스타일: "이커머스 선착순 시스템 및 결제 모듈 리팩토링 경험, 유량 제어 및 DB 부하 최적화 역량"
+**중요 규칙:**
+- 모든 필드를 최대한 채우세요. 정보가 부족하면 문맥에서 추론하세요.
+- 프로젝트 설명은 구체적이고 상세하게 작성하세요 (최소 100자 이상).
+- 각 쿼리는 실제 채용 공고 검색에 사용될 수 있도록 구체적으로 작성하세요.
+- evidence는 포트폴리오에서 해당 쿼리를 뒷받침하는 구체적인 근거를 제시하세요.
+"""
 
-- A, B, C 쿼리는 서로 표현과 관점이 겹치지 않도록 작성하라.
-  (A는 기술 중심, B는 문제 중심, C는 프로젝트 맥락 중심)
-
-========================
-출력 형식
-========================
-반드시 아래 JSON 예시와 정확히 동일한 구조(키 이름, 데이터 타입)로 출력하라:
-{{
-  "user_data": {{
-    "profile": {{ "user_id": null, "name": "홍길동", "job_title": "백엔드 개발자", "summary": "..." }},
-    "projects": [
-      {{
-        "project_name": "프로젝트 A",
-        "period": "2023.01 - 2023.06",
-        "role": "백엔드 개발 및 인프라 구축",
-        "tech_stack": ["Python", "Django", "AWS"],
-        "description_for_embedding": "..."
-      }}
-    ],
-    "skills": ["Python", "AWS", "Docker"]
-  }},
-  "job_queries": {{
-    "queries": [
-      {{
-        "type": "A",
-        "query": "Python, Django, AWS 기반의 대규모 트래픽 처리 백엔드 개발자",
-        "evidence": ["Python 및 AWS 사용 경험", "대규모 트래픽 처리 프로젝트"]
-      }},
-      {{
-        "type": "B",
-        "query": "...",
-        "evidence": ["..."]
-      }},
-      {{
-        "type": "C",
-        "query": "...",
-        "evidence": ["..."]
-      }}
-    ]
-  }}
-}}
-
-[TEXT]
+        user_prompt = f"""
+[포트폴리오 텍스트]
 {text}
 """
-        # NCP handles large context well, but let's be safe.
-        # messages construction
-        messages = [
-            {"role": "system", "content": "너는 JSON 생성기야. 반드시 유효한 JSON만 출력해."},
-            {"role": "user", "content": system_prompt}
-        ]
 
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # Generate JSON Schema from Pydantic model
+        schema = CombinedResult.model_json_schema()
+        
         try:
-            response_text = await self._call_ncp(messages)
+            response_text = await self._call_ncp(messages, response_schema=schema)
             
-            # Clean up cleanup
-            cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
-            
-            # Validation
-            result = CombinedResult.model_validate_json(cleaned_text)
+            # With Structured Outputs, response is guaranteed valid JSON
+            result = CombinedResult.model_validate_json(response_text)
             
             # Safety: Ensure only top 3 queries
             if len(result.job_queries.queries) > 3:
@@ -254,7 +222,7 @@ C: 프로젝트 요약(목적/기능 + 기여)
             raw_response = locals().get('response_text', 'No response')
             logger.error(f"Raw Response: {raw_response}")
             
-            # Fallback if AI fails: Return minimal structure instead of crashing
+            # Fallback if AI fails
             return CombinedResult(
                 user_data=UserData(
                     profile=Profile(summary="AI 분석에 실패했습니다. (원문 참조)"),

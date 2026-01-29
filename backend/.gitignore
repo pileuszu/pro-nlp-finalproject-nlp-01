@@ -18,6 +18,22 @@ sdist/
 var/
 wheels/
 *.egg-info/
+# Backend specific
+*.csv
+*.log
+*.db
+temp_*.json
+dummy_*.json
+*_sample.*
+clear_*.py
+fix_*.py
+index_*.py
+precompute_*.py
+reset_*.py
+seed_*.py
+test_*.py
+.pytest_cache/
+uploads/
 .installed.cfg
 *.egg
 MANIFEST
