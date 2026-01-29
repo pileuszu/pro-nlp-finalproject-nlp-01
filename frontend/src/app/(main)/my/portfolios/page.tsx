@@ -27,12 +27,11 @@ function groupPortfolios(portfolios: Portfolio[]): PortfolioGroup[] {
         const titleParts = portfolio.title.split(' - ');
         const originalTitle = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : portfolio.title;
 
-        // Create group key based on source_url or original title + creation time window (1 second)
+        // Create group key based on original title + creation time window (within 5 seconds)
+        // This groups projects from the same upload together
         const createdTime = new Date(portfolio.createdAt).getTime();
-        const timeWindow = Math.floor(createdTime / 1000); // Group within same second
-        const sourceKey = portfolio.sourceUrl
-            ? `${portfolio.sourceUrl}_${timeWindow}`
-            : `${originalTitle}_${timeWindow}`;
+        const timeWindow = Math.floor(createdTime / 5000); // 5-second window
+        const sourceKey = `${originalTitle}_${timeWindow}`;
 
         if (!groups.has(sourceKey)) {
             groups.set(sourceKey, {
