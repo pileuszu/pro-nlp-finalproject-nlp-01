@@ -16,7 +16,7 @@ from rich.markdown import Markdown
 from rich import print as rprint
 
 from config.settings import CLOVA_API_KEY
-from src.gap_analysis import run_full_analysis, run_single_question_analysis
+from src.gap_analysis import run_full_analysis, run_single_question_analysis, run_full_outline_analysis
 from src.embeddings import create_all_vectorstores
 
 console = Console()
@@ -76,7 +76,40 @@ def display_resume(resume_item):
     console.print(f"\n[bold underline]{resume_result.title}[/bold underline]\n")
     console.print(resume_result.content)
 
-
+def display_outline(outline_item):
+    """생성된 자소서 가이드라인(Outline) 표시"""
+    question = outline_item.get("question", "자기소개서")
+    outline_result = outline_item.get("outline")
+    
+    console.print("\n")
+    console.print(Panel(f"[bold]🗺️ 문항 가이드라인: {question}[/bold]", style="magenta"))
+    
+    # 두괄식 결론
+    console.print(f"\n[bold underline]📌 핵심 전략(One-liner):[/bold underline]\n")
+    console.print(f"  \"{outline_result.one_liner}\"")
+    
+    # 핵심 메시지
+    if outline_result.key_messages:
+        console.print("\n[bold cyan]🔑 핵심 메시지:[/bold cyan] " + ", ".join(outline_result.key_messages))
+    
+    # 문단 계획
+    console.print("\n[bold]🏛️ 문단 구성 계획:[/bold]")
+    for i, section in enumerate(outline_result.paragraph_plans):
+        console.print(f"\n  [bold]{i+1}. {section.section_title}[/bold]")
+        console.print(f"    [dim]목표: {section.paragraph_goal}[/dim]")
+        for point in section.key_points:
+            console.print(f"    • {point}")
+        
+        if section.evidence:
+            console.print("    [italic]📍 활용 경험:[/italic]")
+            for ev in section.evidence:
+                console.print(f"      - {ev.project_name}: {ev.reason}")
+    
+    # 추가 질문
+    if outline_result.questions_for_user:
+        console.print("\n[bold yellow]❓ 작성을 위해 보완이 필요한 정보 (스스로 체크):[/bold yellow]")
+        for q in outline_result.questions_for_user:
+            console.print(f"  • {q}")
 def save_resume_to_file(result, output_dir: Path):
     """자소서를 파일로 저장 (문항별)"""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -147,6 +180,11 @@ def main():
         choices=[1, 2, 3],
         help="특정 문항만 생성 (1, 2, 또는 3)"
     )
+    parser.add_argument(
+        "--outline",
+        action="store_true",
+        help="자소서 본문 대신 가이드라인(Outline) 생성"
+    )
     
     args = parser.parse_args()
     
@@ -174,9 +212,14 @@ def main():
     try:
         # 분석 실행
         with console.status("[bold green]분석 진행 중..."):
-            if args.question:
+            if args.outline:
+                # 가이드라인(Outline) 생성 모드
+                result = run_full_outline_analysis(args.user)
+            elif args.question:
+                # 특정 문항 자소서 생성
                 result = run_single_question_analysis(args.user, args.question)
             else:
+                # 전체 자소서 생성
                 result = run_full_analysis(args.user)
         
         # 결과 표시
@@ -185,12 +228,19 @@ def main():
         
         display_gap_analysis(result["gap_analysis"])
         
-        # 각 문항별 자소서 표시
-        console.print("\n")
-        console.print(Panel("[bold]📝 생성된 자소서 목록[/bold]", style="green"))
-        
-        for item in result["resumes"]:
-            display_resume(item)
+        if args.outline:
+            # 가이드라인(Outline) 표시
+            console.print("\n")
+            console.print(Panel("[bold]🗺️ 생성된 자소서 가이드라인 목록[/bold]", style="magenta"))
+            for item in result["outlines"]:
+                display_outline(item)
+        else:
+            # 각 문항별 자소서 표시
+            console.print("\n")
+            console.print(Panel("[bold]📝 생성된 자소서 목록[/bold]", style="green"))
+            
+            for item in result["resumes"]:
+                display_resume(item)
         
         # 파일 저장
         if args.save:

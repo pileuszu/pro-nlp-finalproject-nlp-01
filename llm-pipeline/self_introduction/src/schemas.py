@@ -61,3 +61,30 @@ class JobAnalysisResult(BaseModel):
     company_culture: str = Field(
         description="기업의 인재상 및 문화 요약"
     )
+
+
+class EvidenceItem(BaseModel):
+    """경험 매핑 아이템"""
+    
+    project_name: str = Field(description="프로젝트 또는 경험 명칭")
+    reason: str = Field(description="이 프로젝트를 해당 문단/주제에 사용하는 이유 또는 연결 방식")
+
+
+class OutlineSection(BaseModel):
+    """자소서 문단별 가이드 정보"""
+    
+    section_title: str = Field(description="문단의 소제목 또는 주제")
+    paragraph_goal: str = Field(description="이 문단에서 보여주어야 할 핵심 목표")
+    key_points: List[str] = Field(description="문단에 포함되어야 할 상세 불릿(3~5개)")
+    evidence: List[EvidenceItem] = Field(description="이 문단의 근거로 사용할 프로젝트/경험")
+
+
+class ResumeOutlineResult(BaseModel):
+    """자소서 가이드라인(Outline) 최종 결과 스키마"""
+    
+    one_liner: str = Field(description="전체 내용을 관통하는 두괄식 한Sentence 결론")
+    key_messages: List[str] = Field(description="이 문항에서 강조할 핵심 메시지 핵심 키워드 3개")
+    paragraph_plans: List[OutlineSection] = Field(description="문단별 작성 구성 계획(2~3개)")
+    questions_for_user: List[str] = Field(
+        description="부족한 정보(구체적 수치, 역할, 기간, 기술적 검증 방법 등)를 채우기 위한 사용자 대상 질문 3~5개"
+    )
