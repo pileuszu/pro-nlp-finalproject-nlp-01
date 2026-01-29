@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-    ArrowLeft, Save, Sparkles, Loader2, Briefcase, BookOpen, X, Building,
+    ArrowLeft, Save, Sparkles, Loader2, X, Building,
     Plus, Trash2, FileText, Github, Brain, CheckCircle, Target,
-    MessageSquare, Wand2, Zap, LayoutList, Calendar, MapPin,
-    GraduationCap, Coins, Info, AlertCircle, ChevronRight, Search
+    MessageSquare, Wand2, Zap, LayoutList, MapPin,
+    GraduationCap, Coins, AlertCircle, Search
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -102,7 +102,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     const data = await res.json();
                     setTitle(data.title);
                     if (data.items?.length > 0) {
-                        setQuestions(data.items.map((item: any) => ({
+                        setQuestions(data.items.map((item: CoverLetterItem) => ({
                             id: item.id || Date.now() + Math.random(),
                             question: item.question,
                             answer: item.content,
@@ -272,7 +272,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 </Button>
                             )}
                             <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
-                            <Button variant="brand" onClick={handleSave} className="rounded-md h-10 px-6 font-bold shadow-lg shadow-blue-500/20">
+                            <Button variant="default" onClick={handleSave} className="rounded-md h-10 px-6 font-bold shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700">
                                 <Save className="mr-2 h-4 w-4" /> 저장하기
                             </Button>
                         </div>
@@ -365,7 +365,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                             placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
                                         />
                                         <div className="absolute bottom-8 right-8">
-                                            <Button variant="brand" onClick={() => setActiveAiQuestionId(q.id)} className="gap-2 shadow-2xl shadow-blue-500/20 px-8 h-14 rounded-2xl transition-all hover:scale-105 active:scale-95 group font-bold">
+                                            <Button variant="default" onClick={() => setActiveAiQuestionId(q.id)} className="gap-2 shadow-2xl shadow-blue-500/20 px-8 h-14 rounded-2xl transition-all hover:scale-105 active:scale-95 group font-bold bg-blue-600 hover:bg-blue-700">
                                                 <Brain className="h-5 w-5 group-hover:animate-bounce" /> AI 라이팅 스튜디오
                                             </Button>
                                         </div>
@@ -448,7 +448,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                                 <div className="space-y-4">
                                                     <h3 className="text-2xl font-black tracking-tight text-slate-900 leading-tight">{linkedRecruit.title}</h3>
                                                     <div className="flex flex-wrap gap-2">
-                                                        <Badge variant="brand" className="px-3 py-1 font-bold rounded-lg">{linkedRecruit.company}</Badge>
+                                                        <Badge variant="default" className="px-3 py-1 font-bold rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none">{linkedRecruit.company}</Badge>
                                                         {linkedRecruit.experience && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold">{linkedRecruit.experience}</Badge>}
                                                         {linkedRecruit.location && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold"><MapPin className="h-3 w-3 mr-1" />{linkedRecruit.location}</Badge>}
                                                         {linkedRecruit.salary && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold"><Coins className="h-3 w-3 mr-1" />{linkedRecruit.salary}</Badge>}
@@ -623,7 +623,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 </div>
 
                                 <div className="pt-4">
-                                    <Button variant="brand" size="lg" onClick={runAiGeneration} disabled={isGenerating} className="w-full h-20 rounded-[2rem] text-xl font-black shadow-2xl shadow-blue-500/20 transition-all hover:-translate-y-1.5 active:scale-[0.97]">
+                                    <Button variant="default" size="lg" onClick={runAiGeneration} disabled={isGenerating} className="w-full h-20 rounded-[2rem] text-xl font-black shadow-2xl shadow-blue-500/20 transition-all hover:-translate-y-1.5 active:scale-[0.97] bg-blue-600 hover:bg-blue-700">
                                         {isGenerating ? (
                                             <span className="flex items-center gap-4"><Loader2 className="h-6 w-6 animate-spin" /> 유저 데이터 분석 및 최적화 중...</span>
                                         ) : (
