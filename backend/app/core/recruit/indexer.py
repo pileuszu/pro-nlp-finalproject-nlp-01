@@ -75,7 +75,7 @@ class RecruitIndexer:
             result = await db.execute(stmt)
             db_recruit = result.scalar_one_or_none()
             
-            # Format deadline
+            # Format deadline and start_date
             deadline_val = item.get('deadline')
             if deadline_val and isinstance(deadline_val, str):
                  # Try common formats if needed, or just store as is if it matches date format
@@ -86,12 +86,22 @@ class RecruitIndexer:
                      deadline_date = None
             else:
                  deadline_date = None
+            
+            start_date_val = item.get('start_date')
+            if start_date_val and isinstance(start_date_val, str):
+                 try:
+                     start_date_obj = datetime.date.fromisoformat(start_date_val)
+                 except:
+                     start_date_obj = None
+            else:
+                 start_date_obj = None
 
             if not db_recruit:
                 db_recruit = Recruitment(
                     title=item.get('title'),
                     company=item.get('company'),
                     link=item.get('link'),
+                    start_date=start_date_obj,
                     deadline=deadline_date,
                     location=item.get('location'),
                     experience=item.get('experience'),

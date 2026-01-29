@@ -15,7 +15,8 @@ class RecruitmentItem(BaseModel):
     title: str = Field(..., description="직무명 + 공고제목")
     company: str = Field(..., description="회사명")
     link: str = Field(..., description="지원링크가 있으면 지원링크, 없으면 원본링크")
-    deadline: Optional[str] = Field(None, description="YYYY-MM-DD 또는 '상시채용'")
+    start_date: Optional[str] = Field(None, description="모집 시작일 YYYY-MM-DD")
+    deadline: Optional[str] = Field(None, description="마감일 YYYY-MM-DD 또는 '상시채용'")
     location: Optional[str] = Field(None, description="근무지")
     experience: Optional[str] = Field(None, description="경력 무관, 3년 이상 등")
     education: Optional[str] = Field(None, description="학력")
@@ -26,6 +27,8 @@ class RecruitmentItem(BaseModel):
     required_qualifications: Optional[str] = Field(None, description="자격 요건")
     preferred_qualifications: Optional[str] = Field(None, description="우대 사항")
     content: Optional[str] = Field(None, description="전체 원문 요약")
+    tags: Optional[List[str]] = Field(None, description="태그 리스트 (예: ['Python', 'Backend', 'AI'])")
+    category: Optional[str] = Field(None, description="카테고리 (예: '개발', '디자인')")
 
 class RecruitmentList(BaseModel):
     items: List[RecruitmentItem] = Field(default_factory=list, description="채용 공고 리스트")
