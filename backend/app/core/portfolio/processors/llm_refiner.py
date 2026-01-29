@@ -32,8 +32,12 @@ class Project(BaseModel):
     def check_aliases(cls, data: dict) -> dict:
         if isinstance(data, dict):
             # Handle 'title' -> 'project_name'
-            if 'project_name' not in data and 'title' in data:
-                data['project_name'] = data['title']
+            if 'project_name' not in data:
+                if 'title' in data:
+                     data['project_name'] = data['title']
+                else:
+                     # Fallback if neither exists
+                     data['project_name'] = "미기재 프로젝트"
         return data
 
     @field_validator('description_for_embedding', mode='before')

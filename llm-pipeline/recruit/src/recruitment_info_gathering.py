@@ -88,7 +88,7 @@ def google_vision_ocr(image_url: str) -> str:
 # -----------------------------------------------------
 def analyze_job_with_ncp(df_row):
     """
-    NCP HCX-DASH-002를 사용하여 채용 공고 텍스트를 JSON으로 변환
+    NCP HCX-005를 사용하여 채용 공고 텍스트를 JSON으로 변환
     """
     if not NCP_API_KEY: return "[]"
 

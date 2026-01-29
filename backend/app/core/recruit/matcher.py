@@ -10,10 +10,10 @@ class RecruitMatcher:
     Handles AI-powered matching between user portfolios and recruitment postings.
     Generates optimized search queries and re-ranks results with reasoning using NCP HyperCLOVA X.
     """
-    def __init__(self, model_id: str = "HCX-DASH-002"):
+    def __init__(self, model_id: str = "HCX-005"):
         self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
         self.ncp_base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
-        self.model_id = model_id # Default to HCX-DASH-002
+        self.model_id = model_id # Default to HCX-005
         
         if not self.ncp_api_key:
             logger.warning("NCP_CLOVASTUDIO_API_KEY is not set. AI features will be disabled.")
