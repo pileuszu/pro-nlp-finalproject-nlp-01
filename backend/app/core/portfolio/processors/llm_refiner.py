@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Optional, List, Literal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, field_validator
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,6 +26,22 @@ class Project(BaseModel):
     description_for_embedding: Optional[str] = Field(
         None, description="아래 섹션 템플릿을 따르는 멀티라인 문자열"
     )
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_aliases(cls, data: dict) -> dict:
+        if isinstance(data, dict):
+            # Handle 'title' -> 'project_name'
+            if 'project_name' not in data and 'title' in data:
+                data['project_name'] = data['title']
+        return data
+
+    @field_validator('description_for_embedding', mode='before')
+    @classmethod
+    def validate_description(cls, v):
+        if isinstance(v, list):
+            return "\n".join(str(item) for item in v)
+        return v
 
 
 class UserData(BaseModel):
@@ -123,7 +139,9 @@ class LLMRefiner:
     - evidence: 근거 구절 리스트
 
 [Project 구조 생성 규칙]
-- description_for_embedding 필드는 반드시 멀티라인 문자열로, 아래 형식을 지켜야 함:
+- description_for_embedding 필드는 반드시 멀티라인 문자열(String)이어야 함. (리스트 X)
+- project_name 키를 정확히 사용할 것. (title X)
+- 아래 형식을 지켜야 함:
   [문제-해결 매핑]
   1) 문제: ...
      - 해결: ...
