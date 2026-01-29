@@ -30,7 +30,7 @@ export interface PortfolioJobQuery {
 
 export interface Portfolio {
     id: number;
-    title: string;
+    project_name: string;
     type: 'link' | 'file' | 'github' | 'notion';
     url?: string;
     fileName?: string;
@@ -41,16 +41,9 @@ export interface Portfolio {
     processingStatus?: 'PENDING' | 'COMPLETED' | 'FAILED';
 
     // Flattened Project Data
-    extractedSummary?: string;
-    extracted_summary?: string;
-    extractedJobTitle?: string;
-    extracted_job_title?: string;
-    projectName?: string;
-    project_name?: string;
     period?: string;
     role?: string;
     description?: string;
-    techStack?: string[];
     tech_stack?: string[];
     source_url?: string;
     job_queries?: PortfolioJobQuery[];
@@ -71,4 +64,7 @@ export interface User {
     id: number;
     email: string;
     name: string;
+    profileImage?: string;
+    profile_summary?: string;
+    desired_job_title?: string;
 }

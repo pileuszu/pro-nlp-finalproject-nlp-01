@@ -86,11 +86,8 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         </span>
                     </div>
                     <CardTitle className="text-3xl font-bold text-slate-900 leading-tight">
-                        {portfolio.projectName || portfolio.title}
+                        {portfolio.project_name}
                     </CardTitle>
-                    {portfolio.projectName && portfolio.title !== portfolio.projectName && (
-                        <p className="text-slate-500 mt-2 font-medium">Original Source: {portfolio.title}</p>
-                    )}
                 </CardHeader>
 
                 <CardContent className="p-8 space-y-8 min-h-[300px]">
@@ -113,7 +110,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                             <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
                                 <Briefcase className="h-4 w-4" /> Job Title
                             </div>
-                            <p className="font-semibold text-slate-800">{portfolio.extractedJobTitle || "직무 정보 없음"}</p>
+                            <p className="font-semibold text-slate-800">분석 완료</p>
                         </div>
                     </div>
 
@@ -122,7 +119,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                             <FileText className="h-4 w-4" /> 프로젝트 설명
                         </h3>
                         <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap">
-                            {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
+                            {portfolio.description || "설명이 없습니다."}
                         </p>
                     </div>
 
@@ -131,9 +128,9 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                             <Code className="h-4 w-4" /> 기술 스택
                         </h3>
-                        {((portfolio.techStack && portfolio.techStack.length > 0) || (portfolio.tech_stack && portfolio.tech_stack.length > 0)) ? (
+                        {portfolio.tech_stack && portfolio.tech_stack.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
-                                {(portfolio.techStack || portfolio.tech_stack)!.map((tech, i) => (
+                                {portfolio.tech_stack.map((tech, i) => (
                                     <Badge key={i} variant="secondary" className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm">
                                         {tech}
                                     </Badge>

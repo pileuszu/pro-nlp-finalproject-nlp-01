@@ -70,9 +70,9 @@ describe('PortfoliosPage', () => {
         if (firstGroupButton) {
             fireEvent.click(firstGroupButton);
 
-            // After expanding, AI READY badge should be visible (changed from "AI READY" to "AI 분석 완료")
+            // After expanding, AI READY badge should be visible
             await waitFor(() => {
-                const badges = screen.getAllByText(/AI 분석 완료/i);
+                const badges = screen.getAllByText(/AI READY/i);
                 expect(badges.length).toBeGreaterThan(0);
             });
         }

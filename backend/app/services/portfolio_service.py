@@ -229,7 +229,7 @@ class PortfolioService:
         NOTE: This now creates ONE Portfolio record per project in the AI extraction.
         Each project gets its own A/B/C job queries.
         """
-        logger.info(f"Saving verified portfolio for user {user_id}: {req.title}")
+        logger.info(f"Saving verified portfolio for user {user_id}: {req.project_name}")
         
         job_queries_data = req.job_queries or []
         logger.info(f"Received {len(job_queries_data)} job queries from request.")
