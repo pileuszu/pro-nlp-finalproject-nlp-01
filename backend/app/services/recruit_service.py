@@ -149,17 +149,21 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
     rec_result = await db.execute(rec_stmt)
     rows = rec_result.all()
 
-    # Deduplicate by recruitment_id for global view
-    seen_ids = set()
-    unique_rows = []
-    for r_obj, recruitment in rows:
-        if recruitment.id not in seen_ids:
-            unique_rows.append((r_obj, recruitment))
-            seen_ids.add(recruitment.id)
-            
-    rows = unique_rows
+    # Deduplicate by recruitment_id BUT aggregate reasons
+    recruitment_map = {}
     
-    if not rows and portfolio_id:
+    for r_obj, recruitment in rows:
+        if recruitment.id not in recruitment_map:
+            recruitment_map[recruitment.id] = {
+                "recruitment": recruitment,
+                "reasons": []
+            }
+        
+        # Add reason if valid and unique
+        if r_obj.reason and r_obj.reason not in recruitment_map[recruitment.id]["reasons"]:
+            recruitment_map[recruitment.id]["reasons"].append(r_obj.reason)
+            
+    if not recruitment_map and portfolio_id:
         # Fallback only for specific portfolio request
         logger.info(f"No pre-computed recommendations for portfolio {portfolio.id}. Triggering initial computation.")
         recommendations = await precompute_recommendations_for_portfolio(db, portfolio.id)
@@ -167,7 +171,23 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
 
     # 3. Format response
     final_results = []
-    for rec_obj, recruitment in rows:
+    # Sort by the original rank order (which presumably is reflected by the order of insertion if we iterate or sort)
+    # Actually, we lost the explicit global order if we just iterate the map. 
+    # But since 'rows' was ordered by rank_order, the insertion order in map mimics rank.
+    
+    for rid, data in recruitment_map.items():
+        recruitment = data["recruitment"]
+        reasons = data["reasons"]
+        
+        # Combine reasons intelligently
+        # Return full text so frontend can decide how to display (truncate + tooltip)
+        if len(reasons) > 1:
+            combined_reason = "• " + "\n• ".join(reasons)
+        elif reasons:
+            combined_reason = reasons[0]
+        else:
+            combined_reason = ""
+
         item = {
             "id": recruitment.id,
             "title": recruitment.title,
@@ -177,7 +197,7 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
             "tags": recruitment.tags,
             "deadline": recruitment.deadline.isoformat() if recruitment.deadline else None,
             "startDate": recruitment.start_date.isoformat() if recruitment.start_date else None,
-            "reason": rec_obj.reason
+            "reason": combined_reason
         }
         final_results.append(item)
     

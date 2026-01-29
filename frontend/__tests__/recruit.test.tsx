@@ -32,6 +32,14 @@ jest.mock('@/stores/useAuthStore', () => ({
     }),
 }));
 
+// Mock Tooltip component to avoid Radix UI dependency issues in tests
+jest.mock('@/components/ui/tooltip', () => ({
+    Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    TooltipContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 // Mock scrollTo
 window.scrollTo = jest.fn();
 
