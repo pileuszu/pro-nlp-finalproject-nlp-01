@@ -10,8 +10,10 @@ RUN apt-get update && apt-get install -y \
 
 # Build from Root Context
 COPY backend/requirements.txt .
+COPY llm-pipeline/recruit/requirements.txt ./recruit-requirements.txt
 
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r recruit-requirements.txt
 
 # Copy Backend Code
 COPY backend/ .
