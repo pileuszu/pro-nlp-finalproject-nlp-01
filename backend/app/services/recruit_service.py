@@ -10,7 +10,8 @@ from app.schemas import schemas
 
 logger = logging.getLogger(__name__)
 
-async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None, sort_by: str = 'latest'):
+async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None, tech_stack: str = None, sort_by: str = 'latest'):
+    from sqlalchemy import or_, cast, String
     stmt = select(models.Recruitment)
     if category and category != 'all':
         stmt = stmt.where(models.Recruitment.category == category)
@@ -21,6 +22,17 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
         )
     if location:
         stmt = stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
+    if tech_stack:
+        skills = [s.strip() for s in tech_stack.split(',') if s.strip()]
+        if skills:
+            # Filter for tags containing ANY of the skills
+            # Cast JSON to string and check if it contains "Skill" (quoted to avoid partial matches on simple text)
+            # Note: This assumes tags are stored as a JSON list of strings ["Python", "Java"]
+            conditions = [
+                cast(models.Recruitment.tags, String).ilike(f'%"{skill}"%') 
+                for skill in skills
+            ]
+            stmt = stmt.where(or_(*conditions))
     
     # Sorting
     if sort_by == 'popular':
@@ -44,6 +56,14 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
         )
     if location:
         count_stmt = count_stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
+    if tech_stack:
+        skills = [s.strip() for s in tech_stack.split(',') if s.strip()]
+        if skills:
+            conditions = [
+                cast(models.Recruitment.tags, String).ilike(f'%"{skill}"%') 
+                for skill in skills
+            ]
+            count_stmt = count_stmt.where(or_(*conditions))
     
     total_result = await db.execute(count_stmt)
     total = total_result.scalar() or 0

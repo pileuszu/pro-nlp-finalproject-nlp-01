@@ -17,13 +17,14 @@ async def list_recruits(
     category: Optional[str] = None, 
     keyword: Optional[str] = None,
     location: Optional[str] = None,
+    techStack: Optional[str] = None,
     sort: str = Query("latest", regex="^(latest|popular)$"),
     db: AsyncSession = Depends(get_async_db),
     current_user: Optional[models.User] = Depends(deps.get_current_user_optional)
 ):
     skip = (page - 1) * limit
     items, total = await recruit_service.get_recruitments(
-        db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, sort_by=sort
+        db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, tech_stack=techStack, sort_by=sort
     )
     
     # Pre-compute recommendations in background if user is logged in
