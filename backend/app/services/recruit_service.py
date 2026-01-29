@@ -12,9 +12,21 @@ logger = logging.getLogger(__name__)
 
 async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None, tech_stack: str = None, sort_by: str = 'latest'):
     from sqlalchemy import or_, cast, String
+    
+    CATEGORY_MAP = {
+        'frontend': '프론트엔드',
+        'backend': '서버/백엔드',
+        'fullstack': '웹 풀스택',
+        'ai': 'AI/ML/NLP',
+        'data': '데이터',
+        'mobile': '모바일',
+        'devops': 'DevOps'
+    }
+
     stmt = select(models.Recruitment)
     if category and category != 'all':
-        stmt = stmt.where(models.Recruitment.category == category)
+        mapped_category = CATEGORY_MAP.get(category, category)
+        stmt = stmt.where(models.Recruitment.category == mapped_category)
     if keyword:
         stmt = stmt.where(
             models.Recruitment.title.ilike(f"%{keyword}%") | 
