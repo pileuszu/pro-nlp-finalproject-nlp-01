@@ -141,7 +141,7 @@ def analyze_job_with_ncp(df_row):
        - content (전체 원문 요약)
     """
 
-    url = f"{NCP_BASE_URL}/v3/chat-completions/HCX-007"
+    url = f"{NCP_BASE_URL}/v3/chat-completions/HCX-005"
     headers = {
         "Authorization": f"Bearer {NCP_API_KEY}",
         "Content-Type": "application/json",
