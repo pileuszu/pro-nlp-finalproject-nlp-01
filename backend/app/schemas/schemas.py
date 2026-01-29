@@ -34,6 +34,7 @@ class RecruitmentBase(BaseModel):
     preferred_qualifications: Optional[str] = None
     tags: Optional[List[str]] = None
     reason: Optional[str] = None
+    view_count: Optional[int] = 0
 
 class RecruitmentCreate(RecruitmentBase):
     pass

@@ -12,11 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Github, Sparkles, Loader2, Save, Upload } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
 import { Portfolio } from "@/types";
+import { useToast } from "@/components/ui/toast-context";
 
 export default function NewPortfolioPage() {
     const router = useRouter();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
 
     // Form States
     const [githubUrl, setGithubUrl] = useState("");
@@ -27,7 +29,7 @@ export default function NewPortfolioPage() {
 
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
-            alert("GitHub URL을 입력해주세요.");
+            toast("GitHub URL을 입력해주세요.", "warning");
             return;
         }
         setIsAnalyzing(true);
@@ -60,7 +62,7 @@ export default function NewPortfolioPage() {
             });
         } catch (err) {
             console.error(err);
-            alert(`분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
+            toast(`분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
         } finally {
             setIsAnalyzing(false);
         }
@@ -97,7 +99,7 @@ export default function NewPortfolioPage() {
             });
         } catch (err) {
             console.error(err);
-            alert(`파일 분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
+            toast(`파일 분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
         } finally {
             setIsAnalyzing(false);
         }
@@ -109,11 +111,11 @@ export default function NewPortfolioPage() {
         console.log("Saving Portfolio with Data:", previewData);
         try {
             await portfolioApi.createPortfolio(previewData);
-            alert("포트폴리오가 성공적으로 저장되었습니다.");
+            toast("포트폴리오가 성공적으로 저장되었습니다.", "success");
             router.push('/my/portfolios');
         } catch (err) {
             console.error(err);
-            alert(`저장 실패: ${err instanceof Error ? err.message : "Unknown error"}`);
+            toast(`저장 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
         } finally {
             setIsSaving(false);
         }

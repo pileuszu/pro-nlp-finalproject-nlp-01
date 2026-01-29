@@ -17,12 +17,13 @@ async def list_recruits(
     category: Optional[str] = None, 
     keyword: Optional[str] = None,
     location: Optional[str] = None,
+    sort: str = Query("latest", regex="^(latest|popular)$"),
     db: AsyncSession = Depends(get_async_db),
     current_user: Optional[models.User] = Depends(deps.get_current_user_optional)
 ):
     skip = (page - 1) * limit
     items, total = await recruit_service.get_recruitments(
-        db, skip=skip, limit=limit, category=category, keyword=keyword, location=location
+        db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, sort_by=sort
     )
     
     # Pre-compute recommendations in background if user is logged in
@@ -51,10 +52,18 @@ async def get_recommendations(
     return await recruit_service.get_ai_recommendations(db, current_user.id, portfolio_id)
 
 @router.get("/{recruit_id}", response_model=schemas.Recruitment)
-async def get_recruit(recruit_id: int, db: AsyncSession = Depends(get_async_db)):
+async def get_recruit(
+    recruit_id: int, 
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_async_db)
+):
     db_recruit = await recruit_service.get_recruitment(db, recruit_id)
     if not db_recruit:
         raise HTTPException(status_code=404, detail="Recruitment not found")
+    
+    # Increment view count in background
+    background_tasks.add_task(recruit_service.inc_view_count, db, recruit_id)
+    
     return db_recruit
 
 @router.post("", response_model=schemas.Recruitment, status_code=201)

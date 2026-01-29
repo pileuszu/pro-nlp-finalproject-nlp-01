@@ -9,12 +9,15 @@ import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit, Spar
 import Link from "next/link";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 import { Portfolio } from "@/types";
+import { useToast } from "@/components/ui/toast-context";
 
 export default function PortfolioDetailClient({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
     const { id } = use(params);
     const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const { toast } = useToast();
 
     useEffect(() => {
         fetchWithAuth(getApiUrl(`/portfolios/${id}`))
@@ -29,8 +32,9 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
             .catch(err => {
                 console.error(err);
                 setLoading(false);
+                toast("포트폴리오를 불러오는데 실패했습니다.", "error");
             });
-    }, [id]);
+    }, [id, toast]);
 
     const handleDelete = async () => {
         if (confirm("정말로 삭제하시겠습니까?")) {
@@ -39,14 +43,14 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                     method: 'DELETE',
                 });
                 if (res.ok) {
-                    alert("삭제되었습니다.");
+                    toast("포트폴리오가 삭제되었습니다.", "success");
                     router.push('/my/portfolios');
                 } else {
-                    alert("삭제에 실패했습니다.");
+                    toast("삭제에 실패했습니다.", "error");
                 }
             } catch (e) {
                 console.error(e);
-                alert("삭제 중 오류가 발생했습니다.");
+                toast("삭제 중 오류가 발생했습니다.", "error");
             }
         }
     };

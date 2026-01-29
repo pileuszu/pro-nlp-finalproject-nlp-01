@@ -123,22 +123,60 @@ class RecruitIndexer:
             
             await db.flush() # Get the ID for metadata
             
-            # 2. Vector Store Preprocessing
+            # 2. Generate Embedding for 1:1 Storage
             doc = self.preprocess_recruitment(item)
-            doc.metadata['id'] = db_recruit.id
-            doc.metadata['unique_id'] = f"{db_recruit.company}_{db_recruit.title}"
-            documents.append(doc)
+            try:
+                embedding = await self.vector_store.get_embedding(doc.page_content)
+                db_recruit.embedding = embedding
+            except Exception as e:
+                logger.error(f"Failed to generate embedding for recruitment {db_recruit.id}: {e}")
             
         await db.commit()
+        return len(data_list)
 
-        if documents:
-            logger.info(f"Adding {len(documents)} recruitment documents to vector store.")
-            await self.vector_store.add_documents(documents)
-            return len(documents)
-        return 0
-
-    async def search(self, query: str, k: int = 5):
+    async def search(self, db: AsyncSession, query: str, k: int = 5):
         """
-        Search for relevant recruitments.
+        Search for relevant recruitments directly from the Recruitment table using pgvector.
         """
-        return await self.vector_store.similarity_search(query, k=k)
+        query_emb = await self.vector_store.get_embedding(query)
+        from sqlalchemy import text
+        
+        # SQL for cosine similarity search on the recruitments table
+        # We cast query_emb to string for PG compatibility
+        stmt = text("""
+            SELECT id, title, company, category, location, tags, start_date, deadline, 
+                   key_responsibilities, required_qualifications, preferred_qualifications,
+                   embedding <=> :emb as distance
+            FROM recruitments
+            WHERE embedding IS NOT NULL
+            ORDER BY distance
+            LIMIT :k
+        """)
+        
+        result = await db.execute(stmt, {"emb": str(query_emb), "k": k})
+        rows = result.all()
+        
+        # Convert to Document-like objects or dicts
+        matches = []
+        for row in rows:
+            # Reconstruct metadata for compatibility with matcher
+            metadata = {
+                "id": row.id,
+                "title": row.title,
+                "company": row.company,
+                "category": row.category,
+                "location": row.location,
+                "tags": row.tags,
+                "start_date": row.start_date.isoformat() if row.start_date else None,
+                "deadline": row.deadline.isoformat() if row.deadline else None,
+                "key_responsibilities": row.key_responsibilities,
+                "required_qualifications": row.required_qualifications,
+                "preferred_qualifications": row.preferred_qualifications,
+                "unique_id": f"{row.company}_{row.title}"
+            }
+            doc = Document(
+                page_content=f"{row.key_responsibilities}\n{row.required_qualifications}", 
+                metadata=metadata
+            )
+            matches.append(doc)
+        return matches

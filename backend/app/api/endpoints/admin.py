@@ -68,43 +68,31 @@ async def clear_database(
     try:
         from sqlalchemy import text
         
-        # Order matters due to foreign keys - delete children first
-        # 1. Delete recommendations (references both portfolios and recruitments)
-        await db.execute(text("DELETE FROM recommendations"))
+        # 1. Get all tables in the public schema except alembic_version
+        get_tables_query = text("""
+            SELECT tablename 
+            FROM pg_tables 
+            WHERE schemaname = 'public' 
+              AND tablename <> 'alembic_version'
+        """)
+        result = await db.execute(get_tables_query)
+        tables = [row[0] for row in result.all()]
         
-        # 2. Delete cover_letters (references users and recruitments)
-        await db.execute(text("DELETE FROM cover_letters"))
+        if not tables:
+            return {"message": "No tables found to clear.", "cleared_tables": []}
+            
+        # 2. Dynamic truncate with CASCADE
+        # Quoting table names to handle any special characters
+        table_list_str = ", ".join([f'public."{t}"' for t in tables])
+        truncate_query = text(f"TRUNCATE TABLE {table_list_str} CASCADE")
         
-        # 3. Delete portfolio_job_queries (references portfolios)
-        await db.execute(text("DELETE FROM portfolio_job_queries"))
-        
-        # 4. Delete portfolios (references users)
-        await db.execute(text("DELETE FROM portfolios"))
-        
-        # 5. Delete recruitments (no dependencies)
-        await db.execute(text("DELETE FROM recruitments"))
-        
-        # 6. Delete users (parent of portfolios and cover_letters)
-        await db.execute(text("DELETE FROM users"))
-        
-        # 7. Clear vector embeddings (portfolio and recruitment)
-        await db.execute(text("DELETE FROM langchain_pg_embedding"))
-        await db.execute(text("DELETE FROM langchain_pg_collection"))
-        
+        await db.execute(truncate_query)
         await db.commit()
         
         return {
-            "message": "All database tables cleared successfully.",
-            "cleared_tables": [
-                "recommendations",
-                "cover_letters", 
-                "portfolio_job_queries",
-                "portfolios",
-                "recruitments",
-                "users",
-                "langchain_pg_embedding",
-                "langchain_pg_collection"
-            ]
+            "message": "All public database tables (except alembic_version) cleared successfully.",
+            "cleared_count": len(tables),
+            "cleared_tables": tables
         }
     except Exception as e:
         await db.rollback()

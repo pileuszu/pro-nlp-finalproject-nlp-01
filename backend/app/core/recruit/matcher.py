@@ -10,7 +10,7 @@ class RecruitMatcher:
     Handles AI-powered matching between user portfolios and recruitment postings.
     Generates optimized search queries and re-ranks results with reasoning using NCP HyperCLOVA X.
     """
-    def __init__(self, model_id: str = "HCX-005"):
+    def __init__(self, model_id: str = "HCX-007"):
         self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
         base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "").strip()
         
@@ -32,6 +32,7 @@ class RecruitMatcher:
         url = f"{self.ncp_base_url}/v3/chat-completions/{self.model_id}"
         headers = {
             "Authorization": f"Bearer {self.ncp_api_key}",
+            "X-NCP-CLOVASTUDIO-API-KEY": self.ncp_api_key,
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
@@ -44,6 +45,14 @@ class RecruitMatcher:
             "topK": 0
         }
         
+        # Add Structured Outputs if requested (for HCX-007)
+        if "response_schema" in kwargs:
+            payload["responseFormat"] = {
+                "type": "json",
+                "schema": kwargs["response_schema"]
+            }
+            payload["thinking"] = {"effort": "none"}
+
         import httpx
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -200,15 +209,8 @@ class RecruitMatcher:
         당신은 전문 채용 컨설턴트입니다. 
         사용자의 포트폴리오와 공고 후보군을 비교하여, 가장 적합한 TOP 3 공고를 선정하고 추천 사유를 작성하세요.
         
-        응답은 반드시 아래 JSON 형식으로만 작성하세요. 
-        {
-            "recommendations": [
-                {"index": 0, "reason": "사용자의 React 경험이 공고의 우대사항과 일치함..."},
-                {"index": 2, "reason": "..."}
-            ]
-        }
-        - index: 위 공고 리스트의 번호 (0부터 시작)
-        - reason: 구체적인 매칭 사유 (한국어)
+        응답은 반드시 'recommendations' 키를 가진 JSON 객체여야 합니다. 
+        각 추천 아이템은 'index'와 'reason' 필드를 가져야 합니다.
         """
 
         user_prompt = f"""
@@ -219,16 +221,36 @@ class RecruitMatcher:
         {"".join(candidate_summaries)}
         """
 
+        # Define schema for HCX-007 Structured Outputs
+        schema = {
+            "type": "object",
+            "properties": {
+                "recommendations": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "index": {"type": "integer"},
+                            "reason": {"type": "string"}
+                        },
+                        "required": ["index", "reason"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": ["recommendations"],
+            "additionalProperties": False
+        }
+
         messages = [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ]
 
-        response_text = await self._call_ncp_chat_completion(messages, max_tokens=4096)
+        response_text = await self._call_ncp_chat_completion(messages, max_tokens=4096, response_schema=schema)
 
         try:
-            cleaned_text = response_text.replace("```json", "").replace("```", "").strip()
-            res_json = json.loads(cleaned_text)
+            res_json = json.loads(response_text)
             recs = res_json.get("recommendations", [])
             
             final_results = []

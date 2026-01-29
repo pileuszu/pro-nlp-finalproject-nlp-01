@@ -10,7 +10,7 @@ from app.schemas import schemas
 
 logger = logging.getLogger(__name__)
 
-async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None):
+async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None, sort_by: str = 'latest'):
     stmt = select(models.Recruitment)
     if category and category != 'all':
         stmt = stmt.where(models.Recruitment.category == category)
@@ -22,17 +22,41 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     if location:
         stmt = stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
     
-    # Get total count
-    count_stmt = select(func.count()).select_from(stmt.subquery())
-    total_result = await db.execute(count_stmt)
-    total = total_result.scalar() or 0
-    
+    # Sorting
+    if sort_by == 'popular':
+        stmt = stmt.order_by(models.Recruitment.view_count.desc(), models.Recruitment.created_at.desc())
+    else:
+        stmt = stmt.order_by(models.Recruitment.created_at.desc())
+
     # Get items
     stmt = stmt.offset(skip).limit(limit)
     result = await db.execute(stmt)
     items = result.scalars().all()
     
+    # Simple count query for efficiency
+    count_stmt = select(func.count(models.Recruitment.id))
+    if category and category != 'all':
+        count_stmt = count_stmt.where(models.Recruitment.category == category)
+    if keyword:
+        count_stmt = count_stmt.where(
+            models.Recruitment.title.ilike(f"%{keyword}%") | 
+            models.Recruitment.company.ilike(f"%{keyword}%")
+        )
+    if location:
+        count_stmt = count_stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
+    
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+    
     return items, total
+
+async def inc_view_count(db: AsyncSession, recruit_id: int):
+    """Increment the view count of a recruitment posting."""
+    stmt = sa.update(models.Recruitment).where(models.Recruitment.id == recruit_id).values(
+        view_count=models.Recruitment.view_count + 1
+    )
+    await db.execute(stmt)
+    await db.commit()
 
 async def get_recruitment(db: AsyncSession, recruit_id: int):
     stmt = select(models.Recruitment).where(models.Recruitment.id == recruit_id)
@@ -109,12 +133,19 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
             "tags": recruitment.tags,
             "deadline": recruitment.deadline.isoformat() if recruitment.deadline else None,
             "startDate": recruitment.start_date.isoformat() if recruitment.start_date else None,
-            "reason": rec_obj.reason,
-            "content": recruitment.content
+            "reason": rec_obj.reason
         }
         final_results.append(item)
     
-    return {"items": final_results}
+    return {
+        "items": final_results,
+        "meta": {
+            "total": len(final_results),
+            "page": 1,
+            "limit": 10,
+            "totalPages": 1
+        }
+    }
 
 async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_id: int):
     """
@@ -130,33 +161,53 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
     if not portfolio: return []
 
     portfolio_data = {
-        "title": portfolio.title,
-        "extracted_job_title": portfolio.extracted_job_title,
-        "extracted_summary": portfolio.extracted_summary,
         "project_name": portfolio.project_name,
         "description": portfolio.description,
-        "tech_stack": portfolio.tech_stack
+        "tech_stack": portfolio.tech_stack,
+        "role": portfolio.role,
+        "period": portfolio.period
     }
+    
+    # Add User context if available
+    from app.models.models import User
+    user_stmt = select(User).where(User.id == portfolio.user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalar_one_or_none()
+    if user:
+        portfolio_data["user_summary"] = user.profile_summary
+        portfolio_data["desired_job_title"] = user.desired_job_title
 
     matcher = RecruitMatcher()
     indexer = RecruitIndexer()
 
-    # 1. Search and Rerank
-    queries = await matcher.generate_search_queries(portfolio_data)
+    # 1. Fetch Job Queries and Search
+    from app.models.models import PortfolioJobQuery
+    query_stmt = select(PortfolioJobQuery).where(PortfolioJobQuery.portfolio_id == portfolio.id)
+    query_result = await db.execute(query_stmt)
+    db_queries = query_result.scalars().all()
+
     all_candidates = []
     seen_ids = set()
     
-    for q_key in ['query_a', 'query_b', 'query_c']:
-        query_text = queries.get(q_key)
-        if not query_text: continue
-        initial_results = await indexer.search(query_text, k=10)
-        refined_results = await matcher.rerank_with_ncp(query_text, initial_results, top_n=5)
+    for db_q in db_queries:
+        if not db_q.query_text: continue
+        # Pass the pre-calculated embedding if available, otherwise search will generate it
+        # Actually our indexer.search now expects query text and generates its own embedding
+        # but we can optimize it if we want. For now, let's use the new search wrapper.
+        initial_results = await indexer.search(db, db_q.query_text, k=10)
+        refined_results = await matcher.rerank_with_ncp(db_q.query_text, initial_results, top_n=5)
         
         for doc in refined_results:
-            uid = doc.metadata.get('unique_id') or doc.metadata.get('id')
+            uid = doc.metadata.get('id')
             if uid and uid not in seen_ids:
                 all_candidates.append(doc)
                 seen_ids.add(uid)
+
+    if not all_candidates:
+        # Fallback if no specific queries: use user context or project name
+        fallback_query = (user.desired_job_title if user else None) or portfolio.project_name or "개발자"
+        initial_results = await indexer.search(db, fallback_query, k=10)
+        all_candidates = initial_results
 
     if not all_candidates:
         return []

@@ -5,6 +5,7 @@ import { Noto_Sans_KR as FontSans } from "next/font/google";
 import { cn } from "@/lib/utils";
 import "./globals.css";
 import { MSWComponent } from "@/components/MSWComponent";
+import { ToastProvider } from "@/components/ui/toast-context";
 
 const fontSans = FontSans({
     subsets: ["latin"],
@@ -29,7 +30,9 @@ export default function RootLayout({
                 fontSans.variable
             )}>
                 <MSWComponent>
-                    {children}
+                    <ToastProvider>
+                        {children}
+                    </ToastProvider>
                 </MSWComponent>
                 <Analytics />
                 <SpeedInsights />

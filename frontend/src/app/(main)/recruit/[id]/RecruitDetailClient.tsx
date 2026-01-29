@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Recruit } from "@/types";
 import { useRouter } from "next/navigation";
-import { Calendar, Building, Briefcase, PenTool, Info, AlignLeft } from "lucide-react";
+import { Calendar, Building, Briefcase, PenTool, Info, AlignLeft, Flame } from "lucide-react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -210,10 +210,22 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     <span className="font-semibold text-right text-slate-700">{recruit.education}</span>
                                 </div>
                             )}
+                            {recruit.employment_type && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">고용 형태</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.employment_type}</span>
+                                </div>
+                            )}
                             {recruit.salary && (
                                 <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
                                     <span className="text-slate-500">급여</span>
                                     <span className="font-semibold text-right text-slate-700">{recruit.salary}</span>
+                                </div>
+                            )}
+                            {recruit.category && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">분야</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.category}</span>
                                 </div>
                             )}
                             {recruit.location && (
@@ -222,6 +234,13 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     <span className="font-semibold text-right text-slate-700">{recruit.location}</span>
                                 </div>
                             )}
+
+                            <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                <span className="text-slate-500 flex items-center gap-2">
+                                    <Flame className="h-4 w-4 text-orange-500" /> 총 조회수
+                                </span>
+                                <span className="font-bold text-right text-orange-600">{(recruit.view_count || 0).toLocaleString()}회</span>
+                            </div>
 
                             {recruit.link && (
                                 <div className="pt-2">

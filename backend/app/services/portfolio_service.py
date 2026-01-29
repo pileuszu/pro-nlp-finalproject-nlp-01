@@ -548,36 +548,24 @@ class PortfolioService:
                     new_portfolios.append(new_p)
                 
                 for q in combined_result.job_queries.queries:
+                    # Pre-embed the job query for faster matching
+                    q_emb = None
+                    try:
+                        q_emb = await self.vector_store.get_embedding(q.query)
+                    except Exception as e:
+                        logger.error(f"Failed to pre-embed job query: {e}")
+
                     portfolio.job_queries.append(
                         PortfolioJobQuery(
                             type=q.type,
                             query_text=q.query,
-                            evidence=q.evidence
+                            evidence=q.evidence,
+                            embedding=q_emb
                         )
                     )
                 
                 await self.db.commit()
-                logger.info(f"Successfully processed portfolio {portfolio.id} with {len(portfolio.job_queries)} queries")
-
-                # 4. Vector Embedding
-                all_docs = []
-                from langchain_core.documents import Document
-                for p_record in new_portfolios:
-                    desc = p_record.description or ""
-                    if not desc: continue
-                    chunks = self.text_splitter.split_text(desc)
-                    for i, chunk in enumerate(chunks):
-                        metadata = {
-                            "portfolio_id": p_record.id,
-                            "type": "project",
-                            "project_name": p_record.project_name,
-                            "tech_stack": p_record.tech_stack,
-                            "chunk_index": i
-                        }
-                        all_docs.append(Document(page_content=chunk, metadata=metadata))
-            
-                if all_docs:
-                     await self.vector_store.add_documents(all_docs)
+                logger.info(f"Successfully processed portfolio {portfolio.id} with {len(portfolio.job_queries)} queries (pre-embedded)")
                 
                 # 5. Pre-compute Recommendations
                 from app.services.recruit_service import precompute_recommendations_for_portfolio

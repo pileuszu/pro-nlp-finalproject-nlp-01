@@ -72,6 +72,16 @@ export default function LoginPage() {
                             <p className="text-[10px] text-center text-slate-400/80 leading-relaxed px-6 font-medium">
                                 로그인 시 Pro-NLP의 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">이용약관</span> 및 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">개인정보처리방침</span>에 동의하게 됩니다.
                             </p>
+
+                            <div className="pt-2">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full h-12 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                    onClick={() => router.push("/")}
+                                >
+                                    홈으로 돌아가기
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
 
