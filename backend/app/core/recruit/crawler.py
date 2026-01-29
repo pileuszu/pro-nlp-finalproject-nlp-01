@@ -5,9 +5,31 @@ import base64
 import requests
 import logging
 from bs4 import BeautifulSoup
-from typing import List, Dict
+from typing import List, Dict, Optional
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+# Pydantic schema for recruitment data
+class RecruitmentItem(BaseModel):
+    title: str = Field(..., description="직무명 + 공고제목")
+    company: str = Field(..., description="회사명")
+    link: str = Field(..., description="지원링크가 있으면 지원링크, 없으면 원본링크")
+    deadline: Optional[str] = Field(None, description="YYYY-MM-DD 또는 '상시채용'")
+    location: Optional[str] = Field(None, description="근무지")
+    experience: Optional[str] = Field(None, description="경력 무관, 3년 이상 등")
+    education: Optional[str] = Field(None, description="학력")
+    employment_type: Optional[str] = Field(None, description="정규직 등")
+    salary: Optional[str] = Field(None, description="급여")
+    job_sector: Optional[str] = Field(None, description="개발, 디자인 등")
+    key_responsibilities: Optional[str] = Field(None, description="주요 업무")
+    required_qualifications: Optional[str] = Field(None, description="자격 요건")
+    preferred_qualifications: Optional[str] = Field(None, description="우대 사항")
+    content: Optional[str] = Field(None, description="전체 원문 요약")
+
+class RecruitmentList(BaseModel):
+    items: List[RecruitmentItem] = Field(default_factory=list, description="채용 공고 리스트")
+
 
 class RecruitmentCrawler:
     """
@@ -66,10 +88,10 @@ class RecruitmentCrawler:
             logger.error(f"OCR Error ({image_url}): {e}")
             return ""
     
-    def _analyze_job_with_ncp(self, job_data: Dict) -> str:
-        """Analyze job posting with NCP HCX-005 and return structured JSON."""
+    def _analyze_job_with_ncp(self, job_data: Dict) -> List[Dict]:
+        """Analyze job posting with NCP HCX-007 Structured Outputs and return structured data."""
         if not self.ncp_api_key:
-            return "[]"
+            return []
         
         existing_text = job_data.get('content_text', '')
         img_urls = job_data.get('content_images', '').split(',') if job_data.get('content_images') else []
@@ -98,44 +120,38 @@ class RecruitmentCrawler:
         """
         
         system_prompt = """
-        당신은 채용 공고 데이터 파싱 전문가입니다. 입력된 채용 공고 텍스트를 분석하여 구조화된 JSON 리스트로 출력하세요.
-        
-        규칙:
-        1. 한 공고 내에 여러 직무(예: 백엔드, 프론트엔드)가 있다면 각각 독립된 객체로 분리하여 리스트로 만드세요.
-        2. 응답은 오직 JSON 리스트만 출력하세요. (Markdown ```json 등 제외)
-        3. 스키마:
-           - title (직무명 + 공고제목)
-           - company
-           - link (지원링크가 있으면 지원링크, 없으면 원본링크)
-           - deadline (YYYY-MM-DD 또는 '상시채용')
-           - location
-           - experience (경력 무관, 3년 이상 등)
-           - education
-           - employment_type (정규직 등)
-           - salary
-           - job_sector (개발, 디자인 등)
-           - key_responsibilities (주요 업무 - 줄바꿈 된 문자열)
-           - required_qualifications (자격 요건 - 줄바꿈 된 문자열)
-           - preferred_qualifications (우대 사항 - 줄바꿈 된 문자열)
-           - content (전체 원문 요약)
+당신은 채용 공고 데이터 파싱 전문가입니다. 입력된 채용 공고 텍스트를 분석하여 구조화된 데이터로 출력하세요.
+
+규칙:
+1. 한 공고 내에 여러 직무(예: 백엔드, 프론트엔드)가 있다면 각각 독립된 객체로 분리하여 items 배열에 담으세요.
+2. 모든 필드를 최대한 채우세요. 정보가 없으면 null로 설정하세요.
+3. key_responsibilities, required_qualifications, preferred_qualifications는 줄바꿈으로 구분된 문자열로 작성하세요.
         """
         
-        url = f"{self.ncp_base_url}/v3/chat-completions/HCX-005"
+        url = f"{self.ncp_base_url}/v3/chat-completions/HCX-007"
         headers = {
             "Authorization": f"Bearer {self.ncp_api_key}",
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
         
+        # Generate JSON Schema from Pydantic model
+        schema = RecruitmentList.model_json_schema()
+        
         payload = {
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": full_text}
             ],
-            "maxTokens": 3000,
+            "maxCompletionTokens": 3000,
             "temperature": 0.1,
             "topP": 0.8,
-            "topK": 0
+            "topK": 0,
+            "thinking": {"effort": "none"},
+            "responseFormat": {
+                "type": "json",
+                "schema": schema
+            }
         }
         
         try:
@@ -144,12 +160,15 @@ class RecruitmentCrawler:
                 result = resp.json()
                 if result.get("status", {}).get("code") == "20000":
                     content = result.get("result", {}).get("message", {}).get("content", "")
-                    return content
+                    # Parse with Pydantic for validation
+                    recruitment_list = RecruitmentList.model_validate_json(content)
+                    # Convert to dict list
+                    return [item.model_dump() for item in recruitment_list.items]
             logger.error(f"NCP Error: {resp.text}")
-            return "[]"
+            return []
         except Exception as e:
             logger.error(f"NCP Call Error: {e}")
-            return "[]"
+            return []
     
     def get_job_list(self) -> List[Dict]:
         """Crawl job list from inthiswork.com."""
@@ -246,25 +265,14 @@ class RecruitmentCrawler:
             job['apply_url'] = apply_url
             full_data.append(job)
         
-        # 2. Analyze with NCP (OCR + LLM)
-        logger.info("\n=== Analyzing data with NCP HCX ===")
+        # 2. Analyze with NCP (OCR + LLM with Structured Outputs)
+        logger.info("\n=== Analyzing data with NCP HCX-007 ===")
         final_json_results = []
         
         for idx, row in enumerate(full_data):
             logger.info(f"[{idx+1}/{len(full_data)}] Analyzing...")
-            json_str = self._analyze_job_with_ncp(row)
-            
-            # Clean JSON
-            json_str = json_str.replace("```json", "").replace("```", "").strip()
-            
-            try:
-                parsed = json.loads(json_str)
-                if isinstance(parsed, list):
-                    final_json_results.extend(parsed)
-                else:
-                    final_json_results.append(parsed)
-            except Exception as e:
-                logger.error(f"JSON Parsing Failed: {e}")
+            items = self._analyze_job_with_ncp(row)
+            final_json_results.extend(items)
         
         logger.info(f"\n[Complete] Parsed {len(final_json_results)} recruitment items")
         return final_json_results
