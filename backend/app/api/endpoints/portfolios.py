@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from app.db.database import get_db, get_async_db
 from app.schemas import schemas
-from app.services import portfolio_service
+from app.services import portfolio_service, recruit_service
 from app.services.portfolio_service import PortfolioService
 from app.api import deps
 from app.models import models
