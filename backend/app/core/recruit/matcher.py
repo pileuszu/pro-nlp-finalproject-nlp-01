@@ -39,7 +39,7 @@ class RecruitMatcher:
         
         payload = {
             "messages": messages,
-            "maxTokens": max_tokens,
+            "maxCompletionTokens": max_tokens,
             "temperature": 0.5,
             "topP": 0.8,
             "topK": 0
