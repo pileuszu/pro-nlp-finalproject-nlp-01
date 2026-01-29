@@ -187,7 +187,7 @@ export const handlers = [
         if (category && category !== 'all') {
             filtered = filtered.filter(r => {
                 const title = r.title.toLowerCase()
-                const tags = r.tags.map(t => t.toLowerCase())
+                const tags = r.tags?.map(t => t.toLowerCase()) || []
                 if (category === 'frontend') return title.includes('frontend') || tags.includes('react')
                 if (category === 'backend') return title.includes('backend') || tags.includes('spring')
                 if (category === 'ai') return title.includes('ai') || title.includes('nlp')
@@ -199,7 +199,7 @@ export const handlers = [
         if (techStack) {
             const techs = techStack.split(',').map(t => t.toLowerCase())
             filtered = filtered.filter(r =>
-                techs.every(t => r.tags.some(tag => tag.toLowerCase().includes(t)))
+                techs.every(t => r.tags?.some(tag => tag.toLowerCase().includes(t)) ?? false)
             )
         }
 
@@ -446,7 +446,7 @@ export const handlers = [
 
         return HttpResponse.json({
             ...recruit,
-            content: `${recruit.company}에서 역량 있는 인재를 모십니다.\n\n[기업 소개]\n${recruit.company}는 글로벌 시장을 선도하는 기업입니다. 우리는 기술을 통해 더 나은 세상을 만듭니다.\n\n[주요 업무]\n- ${recruit.tags.join(', ')} 기반 대규모 트래픽 처리 시스템 설계 및 구축\n- 사용자 중심의 서비스 개발 및 성능 최적화\n- 데이터 기반의 의사결정 및 제품 개선\n\n[자격 요건]\n- 해당 직무 관련 경험 3년 이상\n- 능동적인 커뮤니케이션 스킬 보유자\n- 새로운 기술 학습에 대한 열정\n\n[우대 사항]\n- 오픈소스 기여 경험\n- 클라우드 환경(AWS, GCP) 구축 경험`
+            content: `${recruit.company}에서 역량 있는 인재를 모십니다.\n\n[기업 소개]\n${recruit.company}는 글로벌 시장을 선도하는 기업입니다. 우리는 기술을 통해 더 나은 세상을 만듭니다.\n\n[주요 업무]\n- ${(recruit.tags || []).join(', ')} 기반 대규모 트래픽 처리 시스템 설계 및 구축\n- 사용자 중심의 서비스 개발 및 성능 최적화\n- 데이터 기반의 의사결정 및 제품 개선\n\n[자격 요건]\n- 해당 직무 관련 경험 3년 이상\n- 능동적인 커뮤니케이션 스킬 보유자\n- 새로운 기술 학습에 대한 열정\n\n[우대 사항]\n- 오픈소스 기여 경험\n- 클라우드 환경(AWS, GCP) 구축 경험`
         })
     }),
 ]

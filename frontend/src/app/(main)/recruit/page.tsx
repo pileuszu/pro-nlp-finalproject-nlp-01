@@ -112,7 +112,7 @@ export default function RecruitPage() {
                             transition={{ duration: 0.3 }}
                             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
                         >
-                            {items.map((recruit, index) => (
+                            {items?.map((recruit, index) => (
                                 <motion.div
                                     key={recruit.id}
                                     initial={{ opacity: 0, y: 20 }}
@@ -142,17 +142,17 @@ export default function RecruitPage() {
                                                     </div>
                                                 )}
                                                 <div className="flex flex-wrap gap-2">
-                                                    {recruit.tags.map((tag) => (
+                                                    {recruit.tags?.map((tag) => (
                                                         <Badge key={tag} variant="secondary" className="font-bold bg-slate-100/80 text-slate-600 border-none px-2.5 py-0.5 text-[11px]">
                                                             {tag}
                                                         </Badge>
-                                                    ))}
+                                                    )) || null}
                                                 </div>
                                             </CardContent>
                                             <CardFooter className="border-t border-slate-50 pt-5 pb-5 px-6 text-[11px] font-black text-slate-400 flex justify-between items-center bg-slate-50/30 group-hover:bg-blue-50/30 transition-colors duration-300 rounded-b-xl uppercase tracking-wider">
                                                 <div className="flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5 opacity-40 text-blue-500" />
-                                                    <span>마감일: {recruit.deadline}</span>
+                                                    <span>마감일: {recruit.deadline || "채용 시 마감"}</span>
                                                 </div>
                                                 <div className="flex items-center gap-1 text-blue-600 font-black group-hover:translate-x-1.5 transition-all duration-500 ease-in-out">
                                                     APPLY <ArrowRight className="h-3.5 w-3.5" />
@@ -172,7 +172,7 @@ export default function RecruitPage() {
                             transition={{ duration: 0.3 }}
                             className="space-y-4 p-0"
                         >
-                            {items.map((recruit, index) => (
+                            {items?.map((recruit, index) => (
                                 <motion.div
                                     key={recruit.id}
                                     initial={{ opacity: 0, x: -20 }}
@@ -194,7 +194,7 @@ export default function RecruitPage() {
                                                         <span className="text-sm font-bold text-slate-500">{recruit.company}</span>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
-                                                        {recruit.tags.map((tag) => (
+                                                        {recruit.tags?.map((tag) => (
                                                             <span key={tag} className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-500 transition-colors duration-300">
                                                                 #{tag}
                                                             </span>
@@ -205,7 +205,7 @@ export default function RecruitPage() {
                                             <div className="flex items-center justify-between md:justify-end gap-8 mt-4 md:mt-0 shrink-0 border-t md:border-t-0 pt-4 md:pt-0">
                                                 <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5 opacity-40" />
-                                                    마감: {recruit.deadline}
+                                                    마감: {recruit.deadline || "미지정"}
                                                 </div>
                                                 <Button size="sm" variant="outline" className="rounded-lg h-9 font-black text-[11px] border-slate-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-500 ease-in-out uppercase tracking-widest flex items-center justify-center gap-2">
                                                     View Detail

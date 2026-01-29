@@ -106,6 +106,9 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
             "company": recruitment.company,
             "category": recruitment.category,
             "location": recruitment.location,
+            "tags": recruitment.tags,
+            "deadline": recruitment.deadline.isoformat() if recruitment.deadline else None,
+            "startDate": recruitment.start_date.isoformat() if recruitment.start_date else None,
             "reason": rec_obj.reason,
             "content": recruitment.content
         }

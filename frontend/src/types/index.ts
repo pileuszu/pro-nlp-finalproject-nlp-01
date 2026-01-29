@@ -2,9 +2,9 @@ export interface Recruit {
     id: number;
     title: string;
     company: string;
-    startDate: string;
-    deadline: string;
-    tags: string[];
+    startDate?: string;
+    deadline?: string;
+    tags?: string[];
     content?: string;
     reason?: string;
 

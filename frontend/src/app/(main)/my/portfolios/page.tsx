@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Portfolio } from "@/types";
-import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List, ChevronDown } from "lucide-react";
+import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";

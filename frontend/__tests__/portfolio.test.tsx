@@ -1,7 +1,7 @@
 "use client";
 
 import "@testing-library/jest-dom";
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import PortfoliosPage from '@/app/(main)/my/portfolios/page';
 import React from 'react';
 

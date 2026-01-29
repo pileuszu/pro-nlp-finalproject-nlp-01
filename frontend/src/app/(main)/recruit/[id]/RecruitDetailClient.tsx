@@ -70,11 +70,11 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                         <Building className="h-3.5 w-3.5" />
                         {recruit.company}
                     </Badge>
-                    {recruit.tags.map(tag => (
+                    {recruit.tags?.map(tag => (
                         <Badge key={tag} variant="secondary" className="px-3 py-1 text-sm font-medium bg-slate-100 text-slate-600">
                             {tag}
                         </Badge>
-                    ))}
+                    )) || null}
                 </div>
                 <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
                     {recruit.title}
@@ -155,7 +155,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                 작성 중인 자소가 있습니다
                             </h4>
                             <ul className="space-y-2">
-                                {existingDocs.map((doc) => (
+                                {existingDocs?.map((doc) => (
                                     <li key={doc.id}>
                                         <Link href={`/my/cover-letters/${doc.id}`} className="block bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-200 transition-all group shadow-sm hover:shadow-md">
                                             <div className="font-medium text-sm text-slate-900 group-hover:text-blue-600 truncate transition-colors">{doc.title}</div>
@@ -188,12 +188,12 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     <Calendar className="h-4 w-4" /> 채용 기간
                                 </span>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-slate-400 font-medium">{recruit.startDate}</span>
+                                    <span className="text-xs text-slate-400 font-medium">{recruit.startDate || "정보 없음"}</span>
                                     <span className="text-xs text-slate-300">~</span>
                                     <span className={cn(
                                         "font-bold text-right",
-                                        new Date(recruit.deadline) < new Date() ? "text-slate-400 line-through" : "text-red-500"
-                                    )}>{recruit.deadline}</span>
+                                        recruit.deadline && new Date(recruit.deadline) < new Date() ? "text-slate-400 line-through" : "text-red-500"
+                                    )}>{recruit.deadline || "채용 시 마감"}</span>
                                 </div>
                             </div>
 
