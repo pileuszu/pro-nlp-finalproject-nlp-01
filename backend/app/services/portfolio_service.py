@@ -240,11 +240,20 @@ class PortfolioService:
         db_queries = []
         for i, jq in enumerate(job_queries_data):
             logger.debug(f"JQ[{i}]: type={jq.type}, text={jq.query_text[:30]}...")
+            
+            q_emb = None
+            if jq.query_text:
+                try:
+                    q_emb = await self.vector_store.get_embedding(jq.query_text)
+                except Exception as e:
+                    logger.error(f"Failed to generate embedding for job query '{jq.query_text}': {e}")
+
             db_queries.append(
                 PortfolioJobQuery(
                     type=jq.type,
                     query_text=jq.query_text,
-                    evidence=jq.evidence if hasattr(jq, 'evidence') else []
+                    evidence=jq.evidence if hasattr(jq, 'evidence') else [],
+                    embedding=q_emb
                 )
             )
 

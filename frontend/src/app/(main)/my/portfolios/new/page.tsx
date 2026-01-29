@@ -53,7 +53,7 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
-                job_queries: (result.job_queries?.queries || []).map(q => ({
+                job_queries: ((p0 as any).job_queries || []).map((q: any) => ({
                     type: q.type,
                     query_text: q.query,
                     evidence: q.evidence
@@ -90,7 +90,7 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
-                job_queries: (result.job_queries?.queries || []).map(q => ({
+                job_queries: ((p0 as any).job_queries || []).map((q: any) => ({
                     type: q.type,
                     query_text: q.query,
                     evidence: q.evidence
