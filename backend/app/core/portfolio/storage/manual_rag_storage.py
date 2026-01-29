@@ -45,14 +45,14 @@ class ManualRAG:
         query_emb = self.get_embedding(query)
         with self.engine.connect() as conn:
             res = conn.execute(
-                text(\"\"\"
+                text("""
                     SELECT document, cmetadata 
                     FROM langchain_pg_embedding e
                     JOIN langchain_pg_collection c ON e.collection_id = c.uuid
                     WHERE c.name = :name
                     ORDER BY embedding <=> :emb
                     LIMIT :k
-                \"\"\"),
+                """),
                 {"name": self.collection_name, "emb": str(query_emb), "k": k}
             )
             return [{"content": row[0], "metadata": row[1]} for row in res]
