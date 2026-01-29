@@ -65,7 +65,8 @@ class LLMRefiner:
         api_key_env: str = "NCP_CLOVASTUDIO_API_KEY",
     ) -> None:
         self.api_key = os.environ.get(api_key_env)
-        self.base_url = os.environ.get("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
+        env_url = os.environ.get("NCP_CLOVASTUDIO_BASE_URL")
+        self.base_url = env_url if env_url else "https://clovastudio.stream.ntruss.com"
         self.model = model
         
         if not self.api_key:
@@ -187,7 +188,7 @@ class LLMRefiner:
                     projects=[
                         Project(
                             project_name="추출 실패", 
-                            description_for_embedding=f"AI 응답 오류: {str(e)}\n\n원문 내용:\n{text[:500]}..."
+                            description_for_embedding=f"AI 응답 오류: {str(e)}\n\n(URL: {self.base_url}/v3/chat-completions/{self.model})\n\n원문 내용:\n{text[:500]}..."
                         )
                     ]
                 ),
