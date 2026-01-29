@@ -59,6 +59,12 @@ export interface CoverLetterItem {
     suggested_improvements?: string[];
 }
 
+export interface GapAnalysisResult {
+    matching_points: string[];
+    missing_elements: string[];
+    overall_fit: string;
+}
+
 export interface CoverLetter {
     id: number;
     title: string;
@@ -71,7 +77,7 @@ export interface CoverLetter {
 
     // AI Analysis
     status?: 'PENDING' | 'COMPLETED' | 'FAILED';
-    gap_analysis?: any;
+    gap_analysis?: GapAnalysisResult;
     items?: CoverLetterItem[];
 }
 

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
+import { CoverLetterItem } from "@/types";
 
 // --- Types ---
 interface QuestionItem {
@@ -150,7 +151,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             const data = await res.json();
 
             // Backend returns CoverLetter object with items. Find the relevant item or fallback.
-            const generatedItem = data.items ? data.items.find((i: any) => i.question === activeQuestionContent) : null;
+            const generatedItem = data.items ? data.items.find((i: CoverLetterItem) => i.question === activeQuestionContent) : null;
 
             if (generatedItem) {
                 setQuestions(questions.map(q => q.id === activeAiQuestionId ? {
