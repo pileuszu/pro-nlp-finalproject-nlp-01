@@ -105,8 +105,13 @@ async def clear_database(
         # Order matters due to foreign keys (delete recommendations first)
         await db.execute(text("DELETE FROM recommendations"))
         await db.execute(text("DELETE FROM recruitments"))
+        
+        # Clear vector embeddings (portfolio and recruitment)
+        await db.execute(text("DELETE FROM langchain_pg_embedding"))
+        await db.execute(text("DELETE FROM langchain_pg_collection"))
+        
         await db.commit()
-        return {"message": "Recruitments and Recommendations cleared successfully."}
+        return {"message": "Recruitments, Recommendations, and Vector Embeddings cleared successfully."}
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Failed to clear DB: {str(e)}")
