@@ -22,7 +22,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl } from "@/lib/apiUtils";
 
 export default function RecruitPage() {
-    const { isAuthenticated } = useAuthStore();
+    const { isAuthenticated, token } = useAuthStore();
     const [recruits, setRecruits] = useState<Recruit[]>([]);
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -75,7 +75,17 @@ export default function RecruitPage() {
             }
 
             const endpoint = activeTab === 'recommend' ? '/recruits/recommend' : '/recruits';
-            const res = await fetch(getApiUrl(`${endpoint}?${params.toString()}`));
+
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json',
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const res = await fetch(getApiUrl(`${endpoint}?${params.toString()}`), {
+                headers
+            });
             const data = await res.json();
 
             setRecruits(data.items || []);
@@ -85,7 +95,7 @@ export default function RecruitPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery]);
+    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery, token]);
 
     useEffect(() => {
         fetchRecruits();
