@@ -22,9 +22,8 @@ logger = logging.getLogger(__name__)
 
 # --- Configuration ---
 # Use environment variables directly if settings not fully configured
-NCP_CLOVASTUDIO_API_KEY = os.getenv("NCP_CLOVASTUDIO_API_KEY")
-NCP_APIGW_API_KEY = os.getenv("NCP_APIGW_API_KEY") 
-NCP_CLOVASTUDIO_APP_ID = os.getenv("NCP_CLOVASTUDIO_APP_ID")
+NCP_API_KEY = os.getenv("NCP_CLOVASTUDIO_API_KEY") or os.getenv("CLOVASTUDIO_API_KEY")
+
 
 class PGHybridRetriever:
     """
@@ -131,9 +130,13 @@ class AICoverLetterService:
     @property
     def llm(self):
         if self._llm is None:
-            # Check for required environment variables or alert if missing
+            if not NCP_API_KEY:
+                logger.error("NCP_CLOVASTUDIO_API_KEY is not set. AI features will not work.")
+                raise ValueError("NCP API Key is missing")
+            
             self._llm = ChatClovaX(
                 model="HCX-007",
+                api_key=NCP_API_KEY,
                 temperature=0.5,
                 max_tokens=2048,
             )
