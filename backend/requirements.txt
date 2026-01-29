@@ -28,3 +28,4 @@ pdfplumber
 pillow
 pandas
 beautifulsoup4
+requests
