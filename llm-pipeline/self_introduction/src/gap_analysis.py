@@ -15,12 +15,13 @@ from config.settings import (
     CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
     LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS
 )
-from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult
+from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
     RESUME_GENERATION_PROMPT,
     SIMPLE_RESUME_PROMPT,
-    QUESTION_BASED_RESUME_PROMPT
+    QUESTION_BASED_RESUME_PROMPT,
+    QUESTION_BASED_OUTLINE_PROMPT
 )
 from src.retrieval import HybridRetriever
 from src.data_loader import load_company_data, load_user_data
@@ -335,8 +336,8 @@ def run_single_question_analysis(user_id: str, question_id: int) -> Dict[str, An
     
     return {
         "user_id": user_id,
-        "user_name": user_data.get("profile", {}).get("name", "Unknown"),
-        "company_name": company_data.get("company_info", {}).get("company_name", "Unknown"),
+        "user_name": user_name,
+        "company_name": company_name,
         "relevant_experiences": relevant_experiences,
         "gap_analysis": gap_result,
         "resumes": [{
@@ -345,6 +346,114 @@ def run_single_question_analysis(user_id: str, question_id: int) -> Dict[str, An
             "max_length": target_question.get("max_length"),
             "resume": resume
         }]
+    }
+
+
+def generate_outline(
+    user_experiences: List[Document],
+    gap_result: GapAnalysisResult,
+    company_data: Dict[str, Any],
+    question: Dict[str, Any]
+) -> ResumeOutlineResult:
+    """
+    자소서 가이드라인(Outline) 생성
+    """
+    llm = get_llm()
+    parser = PydanticOutputParser(pydantic_object=ResumeOutlineResult)
+    
+    company_info = company_data.get("company_info", {})
+    job_position = company_data.get("job_position", {})
+    
+    # 경험 텍스트 결합
+    experiences_text = "\n\n---\n\n".join([
+        f"[프로젝트: {doc.metadata.get('project_name', 'N/A')}]\n"
+        f"역할: {doc.metadata.get('role', 'N/A')}\n"
+        f"기술스택: {doc.metadata.get('tech_stack', 'N/A')}\n"
+        f"내용:\n{doc.page_content}"
+        for doc in user_experiences
+    ])
+    
+    input_vars = {
+        "company_name": company_info.get("company_name", ""),
+        "core_values": ", ".join(company_info.get("core_values", [])),
+        "job_title": job_position.get("title", ""),
+        "user_experiences": experiences_text,
+        "question": question.get("question", ""),
+        "hint": question.get("hint", ""),
+        "matching_points": ", ".join(gap_result.matching_points) if gap_result.matching_points else "해당 없음",
+        "missing_elements": ", ".join(gap_result.missing_elements) if gap_result.missing_elements else "해당 없음"
+    }
+    
+    prompt = PromptTemplate(
+        template=QUESTION_BASED_OUTLINE_PROMPT,
+        input_variables=list(input_vars.keys()),
+        partial_variables={"format_instructions": parser.get_format_instructions()}
+    )
+    
+    chain = prompt | llm | parser
+    result = chain.invoke(input_vars)
+    
+    return result
+
+
+def run_full_outline_analysis(user_id: str) -> Dict[str, Any]:
+    """
+    자소서 가이드라인(Outline) 전체 분석 파이프라인
+    """
+    from src.embeddings import load_user_vectorstore
+    from src.data_loader import get_all_user_documents
+    
+    # 1. 데이터 로드
+    company_data = load_company_data()
+    user_data = load_user_data(user_id)
+    user_documents = get_all_user_documents(user_id)
+    
+    # 2. 벡터스토어 로드
+    vectorstore = load_user_vectorstore(user_id)
+    retriever = HybridRetriever(vectorstore, user_documents)
+    
+    # 3. 채용 요건으로 검색
+    job_requirements = company_data.get("job_requirements", {})
+    query = job_requirements.get("summary", "")
+    relevant_experiences = retriever.search(query)
+    
+    # 4. Gap 분석
+    job_req_text = (
+        f"{job_requirements.get('summary', '')}\n\n"
+        f"상세 업무:\n" + 
+        "\n".join(f"- {r}" for r in job_requirements.get("detailed_responsibilities", []))
+    )
+    gap_result = analyze_gap(relevant_experiences, job_req_text)
+    
+    # 5. 각 문항별 Outline 생성
+    resume_questions = company_data.get("resume_questions", [])
+    outlines = []
+    
+    if resume_questions:
+        for question in resume_questions:
+            outline = generate_outline(relevant_experiences, gap_result, company_data, question)
+            outlines.append({
+                "question_id": question.get("id"),
+                "question": question.get("question"),
+                "outline": outline
+            })
+    else:
+        # 문항이 없으면 기본 문항으로 Outline 생성
+        default_question = {"id": 0, "question": "자기소개 및 지원동기", "hint": ""}
+        outline = generate_outline(relevant_experiences, gap_result, company_data, default_question)
+        outlines.append({
+            "question_id": 0,
+            "question": default_question["question"],
+            "outline": outline
+        })
+        
+    return {
+        "user_id": user_id,
+        "user_name": user_data.get("profile", {}).get("name", "Unknown"),
+        "company_name": company_data.get("company_info", {}).get("company_name", "Unknown"),
+        "relevant_experiences": relevant_experiences,
+        "gap_analysis": gap_result,
+        "outlines": outlines
     }
 
 
