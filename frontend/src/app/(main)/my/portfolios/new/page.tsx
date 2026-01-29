@@ -43,7 +43,11 @@ export default function NewPortfolioPage() {
             // Map LLM result to Portfolio structure
             const user_data = result.user_data;
             const projects = user_data.projects || [];
-            const p0 = projects[0] || {};
+
+            if (projects.length === 0) {
+                throw new Error("프로젝트 정보가 없습니다.");
+            }
+            const p0 = projects[0];
 
             setPreviewData({
                 type: 'github',
@@ -53,7 +57,7 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
-                job_queries: ((p0 as any).job_queries || []).map((q: any) => ({
+                job_queries: (p0.job_queries || []).map(q => ({
                     type: q.type,
                     query_text: q.query,
                     evidence: q.evidence
@@ -80,7 +84,11 @@ export default function NewPortfolioPage() {
 
             const user_data = result.user_data;
             const projects = user_data.projects || [];
-            const p0 = projects[0] || {};
+
+            if (projects.length === 0) {
+                throw new Error("프로젝트 정보가 없습니다.");
+            }
+            const p0 = projects[0];
 
             setPreviewData({
                 type: 'file',
@@ -90,7 +98,7 @@ export default function NewPortfolioPage() {
                 role: p0.role || "",
                 description: p0.description_for_embedding || "",
                 tech_stack: p0.tech_stack || [],
-                job_queries: ((p0 as any).job_queries || []).map((q: any) => ({
+                job_queries: (p0.job_queries || []).map(q => ({
                     type: q.type,
                     query_text: q.query,
                     evidence: q.evidence

@@ -50,7 +50,7 @@ jobs:
 
       - name: Install DB Migration Tools
         run: |
-          pip install alembic sqlalchemy psycopg2-binary python-dotenv asyncpg
+          pip install alembic sqlalchemy psycopg2-binary python-dotenv asyncpg pgvector
 
       - name: Run Database Migrations (Pre-check)
         env:
