@@ -153,7 +153,10 @@ class RecruitIndexer:
         
         # pgvector expects string representation of vector like '[0.1, 0.2, ...]'
         import json
-        embedding_str = str(embedding)
+        # Ensure it's a list first (handle numpy arrays)
+        if hasattr(embedding, 'tolist'):
+            embedding = embedding.tolist()
+        embedding_str = json.dumps(embedding)
         
         result = await db.execute(stmt, {"emb": embedding_str, "k": k})
         rows = result.all()
