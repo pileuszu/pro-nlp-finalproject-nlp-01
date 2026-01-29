@@ -6,7 +6,8 @@ RAG & LangChain 기반 AI 자소서 컨설턴트 시스템
 
 - 사용자 경험과 기업 채용 요건 매칭
 - Gap 분석 (부족한 역량 식별)
-- 맞춤형 자소서 생성 (문항별)
+- 자소서 아웃라인(설계도) 생성 [NEW]
+- 맞춤형 자소서 본문 생성 (문항별)
 - PydanticOutputParser로 구조화된 결과 출력
 
 ## 설치
@@ -54,6 +55,14 @@ python main.py --user user1 --question 2
 
 # 3번 문항 (문제해결 경험) 생성
 python main.py --user user1 --question 3
+
+### 자소서 아웃라인(설계도) 생성
+
+글을 직접 쓰기 전, 논리적 구조와 경험 배치를 먼저 확인하고 싶을 때 사용합니다. 구체적인 가이드는 [OUTLINE_GUIDE.md](./OUTLINE_GUIDE.md)를 참고하세요.
+
+```bash
+# 전체 문항에 대한 아웃라인 생성
+python main.py --user user1 --outline
 ```
 
 ### 결과 파일 저장
@@ -69,6 +78,7 @@ python main.py --user user1 --save
 |------|------|
 | `--user` | 분석할 사용자 선택 (`user1` 또는 `user2`) |
 | `--question` | 특정 문항만 생성 (`1`, `2`, `3`) |
+| `--outline` | 자소서 본문 대신 가이드라인(Outline) 생성 |
 | `--init` | 벡터스토어 초기화 (최초 1회 필수) |
 | `--save` | 결과를 파일로 저장 (`output/` 폴더) |
 
