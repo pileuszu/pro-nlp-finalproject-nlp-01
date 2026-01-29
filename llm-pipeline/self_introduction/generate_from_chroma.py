@@ -9,28 +9,25 @@ sys.path.insert(0, str(project_root))
 from rich.console import Console
 from rich.panel import Panel
 from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
 
-from config.settings import CHROMA_PERSIST_DIR, EMBEDDING_MODEL
+from config.settings import CHROMA_PERSIST_DIR
 from src.gap_analysis import analyze_gap, generate_resume
 from src.data_loader import load_company_data
 from src.retrieval import ChromaRetriever
+from src.embeddings import get_embeddings  # CLOVAEmbeddings 사용
 
 console = Console()
 
 def get_chroma_vectorstore(user_id: str):
-    """portfolios 모듈에서 생성한 ChromaDB 로드"""
+    """portfolios 모듈에서 생성한 ChromaDB 로드 (CLOVA 임베딩 사용)"""
     collection_name = f"user_{user_id}"
     persist_directory = Path(CHROMA_PERSIST_DIR) / collection_name
     
     if not persist_directory.exists():
         raise FileNotFoundError(f"벡터스토어를 찾을 수 없습니다: {persist_directory}")
-        
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
+    
+    # CLOVAEmbeddings 사용 (HuggingFace 대신)
+    embeddings = get_embeddings()
     
     return Chroma(
         collection_name=collection_name,

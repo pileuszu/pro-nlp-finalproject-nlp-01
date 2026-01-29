@@ -1,6 +1,6 @@
 """
 벡터 스토어 관리 모듈
-- HuggingFace Embeddings (오픈소스, 로컬 실행)
+- CLOVA Studio OpenAI 호환 임베딩 (bge-m3)
 - ChromaDB 컬렉션 생성 및 관리
 - 문서 임베딩 및 영속 저장
 """
@@ -8,24 +8,55 @@ from typing import List, Optional
 from pathlib import Path
 
 from langchain_core.documents import Document
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_core.embeddings import Embeddings
 from langchain_chroma import Chroma
+from openai import OpenAI
 
 from config.settings import (
     EMBEDDING_MODEL,
     CHROMA_PERSIST_DIR,
-    EMBEDDINGS_DIR
+    EMBEDDINGS_DIR,
+    CLOVA_API_KEY,
+    CLOVA_BASE_URL
 )
 from src.data_loader import get_all_user_documents, get_company_documents
 
 
-def get_embeddings() -> HuggingFaceEmbeddings:
-    """HuggingFace 임베딩 모델 초기화 (한국어 특화)"""
-    return HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL,
-        model_kwargs={'device': 'cpu'},
-        encode_kwargs={'normalize_embeddings': True}
-    )
+class CLOVAEmbeddings(Embeddings):
+    """CLOVA Studio 임베딩 클래스 (OpenAI 호환 API)"""
+    
+    def __init__(self, model: str = "bge-m3"):
+        self.model = model
+        self.client = OpenAI(
+            api_key=CLOVA_API_KEY,
+            base_url=CLOVA_BASE_URL
+        )
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """문서 리스트 임베딩"""
+        embeddings = []
+        for text in texts:
+            response = self.client.embeddings.create(
+                model=self.model,
+                input=text,
+                encoding_format="float"  # CLOVA 필수 파라미터
+            )
+            embeddings.append(response.data[0].embedding)
+        return embeddings
+    
+    def embed_query(self, text: str) -> List[float]:
+        """쿼리 텍스트 임베딩"""
+        response = self.client.embeddings.create(
+            model=self.model,
+            input=text,
+            encoding_format="float"  # CLOVA 필수 파라미터
+        )
+        return response.data[0].embedding
+
+
+def get_embeddings() -> CLOVAEmbeddings:
+    """CLOVA Studio 임베딩 모델 초기화"""
+    return CLOVAEmbeddings(model=EMBEDDING_MODEL)
 
 
 def get_or_create_vectorstore(
@@ -109,11 +140,19 @@ def load_company_vectorstore() -> Chroma:
 def create_all_vectorstores():
     """모든 벡터스토어 생성 (초기화용)"""
     from rich import print as rprint
+    from config.settings import DATA_DIR
     
     rprint("[bold yellow]Creating vectorstores...[/bold yellow]")
     
+    # data 폴더에서 사용자 목록 동적 감지
+    user_files = list(Path(DATA_DIR).glob("*_data.json"))
+    user_ids = [f.stem.replace("_data", "") for f in user_files if f.stem != "company_data"]
+    
+    if not user_ids:
+        rprint("[yellow]⚠️ 사용자 데이터 파일이 없습니다.[/yellow]")
+    
     # 사용자 벡터스토어 생성
-    for user_id in ["user1", "user2"]:
+    for user_id in user_ids:
         rprint(f"  Creating {user_id} vectorstore...")
         create_user_vectorstore(user_id)
         rprint(f"  [green]✓ {user_id} vectorstore created[/green]")

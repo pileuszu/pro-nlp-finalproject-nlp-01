@@ -15,7 +15,7 @@ from rich.table import Table
 from rich.markdown import Markdown
 from rich import print as rprint
 
-from config.settings import GOOGLE_API_KEY
+from config.settings import CLOVA_API_KEY
 from src.gap_analysis import run_full_analysis, run_single_question_analysis
 from src.embeddings import create_all_vectorstores
 
@@ -24,9 +24,9 @@ console = Console()
 
 def check_api_key():
     """API 키 확인"""
-    if not GOOGLE_API_KEY or GOOGLE_API_KEY == "your_api_key_here":
+    if not CLOVA_API_KEY or CLOVA_API_KEY == "your_api_key_here":
         console.print(
-            "[bold red]Error:[/bold red] GOOGLE_API_KEY가 설정되지 않았습니다.\n"
+            "[bold red]Error:[/bold red] CLOVA_API_KEY가 설정되지 않았습니다.\n"
             ".env 파일을 생성하고 API 키를 설정하세요.",
             style="red"
         )
@@ -75,18 +75,6 @@ def display_resume(resume_item):
     
     console.print(f"\n[bold underline]{resume_result.title}[/bold underline]\n")
     console.print(resume_result.content)
-    
-    # 핵심 포인트
-    if resume_result.key_points:
-        console.print("\n[bold cyan]🎯 핵심 포인트:[/bold cyan]")
-        for point in resume_result.key_points:
-            console.print(f"  • {point}")
-    
-    # 개선 제안
-    if resume_result.suggested_improvements:
-        console.print("\n[bold magenta]💡 개선 제안:[/bold magenta]")
-        for suggestion in resume_result.suggested_improvements:
-            console.print(f"  • {suggestion}")
 
 
 def save_resume_to_file(result, output_dir: Path):
@@ -113,9 +101,6 @@ def save_resume_to_file(result, output_dir: Path):
 
 {resume.content}
 
-**핵심 포인트**
-{chr(10).join(f'- {p}' for p in resume.key_points)}
-
 ---
 
 """
@@ -129,13 +114,22 @@ def save_resume_to_file(result, output_dir: Path):
 
 
 def main():
+    # 사용자 목록 동적 감지
+    from config.settings import DATA_DIR
+    user_files = list(Path(DATA_DIR).glob("*_data.json"))
+    user_ids = [f.stem.replace("_data", "") for f in user_files if f.stem != "company_data"]
+    
+    if not user_ids:
+        console.print("[bold red]Error:[/bold red] data 폴더에 사용자 데이터가 없습니다.", style="red")
+        sys.exit(1)
+    
     parser = argparse.ArgumentParser(description="AI 자소서 컨설턴트")
     parser.add_argument(
         "--user",
         type=str,
-        choices=["user1", "user2"],
+        choices=user_ids,
         required=True,
-        help="분석할 사용자 (user1 또는 user2)"
+        help=f"분석할 사용자 ({', '.join(user_ids)})"
     )
     parser.add_argument(
         "--init",

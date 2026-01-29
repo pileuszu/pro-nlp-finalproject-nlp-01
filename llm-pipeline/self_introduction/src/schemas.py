@@ -32,22 +32,14 @@ class GapAnalysisResult(BaseModel):
 
 
 class ResumeGenerationResult(BaseModel):
-    """자소서 생성 결과 스키마"""
+    """자소서 생성 결과 스키마 - 제출용 자연스러운 형식"""
     
     title: str = Field(
         description="자소서 항목 제목 (예: '지원동기', '성장과정' 등)"
     )
     
     content: str = Field(
-        description="생성된 자소서 본문 (한글, 600~800자)"
-    )
-    
-    key_points: List[str] = Field(
-        description="자소서에서 강조된 핵심 포인트 리스트"
-    )
-    
-    suggested_improvements: List[str] = Field(
-        description="자소서를 더 개선할 수 있는 제안 사항"
+        description="생성된 자소서 본문. 실제 제출 가능한 자연스러운 문장으로 작성. 레이블(Situation, Task 등) 없이 매끄럽게 연결된 글. 600~800자."
     )
 
 

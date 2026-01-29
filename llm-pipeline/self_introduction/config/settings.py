@@ -1,5 +1,6 @@
 """
 환경 변수 및 설정 관리 모듈
+- HyperCLOVA OpenAI 호환 API 사용
 """
 import os
 from pathlib import Path
@@ -11,8 +12,11 @@ load_dotenv()
 # 프로젝트 루트 경로
 PROJECT_ROOT = Path(__file__).parent.parent
 
-# API 키
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+# API 키 (CLOVA Studio)
+CLOVA_API_KEY = os.getenv("CLOVA_API_KEY")
+
+# CLOVA Studio OpenAI 호환 API 설정
+CLOVA_BASE_URL = "https://clovastudio.stream.ntruss.com/v1/openai"
 
 # 데이터 경로
 DATA_DIR = PROJECT_ROOT / "data"
@@ -21,11 +25,11 @@ EMBEDDINGS_DIR = PROJECT_ROOT / "embeddings"
 # ChromaDB 설정
 CHROMA_PERSIST_DIR = str(EMBEDDINGS_DIR / "chroma_db")
 
-# 임베딩 설정 (HuggingFace - 로컬 실행, API 제한 없음)
-EMBEDDING_MODEL = "jhgan/ko-sroberta-multitask"
+# 임베딩 설정 (CLOVA bge-m3)
+EMBEDDING_MODEL = "bge-m3"
 
-# LLM 설정
-LLM_MODEL = "gemini-3-flash-preview"
+# LLM 설정 (HyperCLOVA X)
+LLM_MODEL = "HCX-005"
 LLM_TEMPERATURE = 0.7
 
 # 검색 설정

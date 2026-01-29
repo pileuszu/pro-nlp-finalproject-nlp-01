@@ -2,15 +2,16 @@
 Gap Analysis 모듈
 - LangChain 기반 분석 체인
 - PydanticOutputParser로 구조화된 출력
+- HyperCLOVA OpenAI 호환 API 사용
 """
 from typing import List, Dict, Any
 
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.documents import Document
 
-from config.settings import GOOGLE_API_KEY, LLM_MODEL, LLM_TEMPERATURE
+from config.settings import CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE
 from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
@@ -22,13 +23,39 @@ from src.retrieval import HybridRetriever
 from src.data_loader import load_company_data, load_user_data
 
 
-def get_llm() -> ChatGoogleGenerativeAI:
-    """LLM 인스턴스 생성"""
-    return ChatGoogleGenerativeAI(
+def get_llm() -> ChatOpenAI:
+    """LLM 인스턴스 생성 (HyperCLOVA OpenAI 호환 API)"""
+    return ChatOpenAI(
         model=LLM_MODEL,
-        google_api_key=GOOGLE_API_KEY,
+        api_key=CLOVA_API_KEY,
+        base_url=CLOVA_BASE_URL,
         temperature=LLM_TEMPERATURE
     )
+
+
+def parse_json_response(response_text: str, pydantic_class):
+    """LLM 응답에서 JSON을 추출하여 Pydantic 객체로 변환"""
+    import json
+    import re
+    
+    text = response_text
+    
+    # 1. JSON 블록 추출 시도 (```json ... ``` 또는 ``` ... ```)
+    json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
+    if json_match:
+        text = json_match.group(1)
+    else:
+        # 2. 중괄호로 시작하고 끝나는 부분 추출
+        json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', text, re.DOTALL)
+        if json_match:
+            text = json_match.group(0)
+    
+    try:
+        data = json.loads(text)
+        return pydantic_class(**data)
+    except (json.JSONDecodeError, Exception) as e:
+        # 파싱 실패 시 기본값 반환
+        raise ValueError(f"JSON 파싱 실패: {str(e)}\n원본: {response_text[:500]}")
 
 
 def analyze_gap(
@@ -38,7 +65,7 @@ def analyze_gap(
     """
     Gap 분석 수행
     - 사용자 경험과 채용 요건 비교
-    - PydanticOutputParser로 구조화된 결과 반환
+    - HyperCLOVA 호환 JSON 파싱
     """
     llm = get_llm()
     parser = PydanticOutputParser(pydantic_object=GapAnalysisResult)
@@ -58,14 +85,18 @@ def analyze_gap(
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
     
-    chain = prompt | llm | parser
-    
-    result = chain.invoke({
+    # LLM 호출 후 수동 파싱
+    chain = prompt | llm
+    response = chain.invoke({
         "job_requirements": job_requirements,
         "user_experiences": experiences_text
     })
     
-    return result
+    # 응답에서 content 추출
+    response_text = response.content if hasattr(response, 'content') else str(response)
+    
+    return parse_json_response(response_text, GapAnalysisResult)
+
 
 
 def generate_resume(
@@ -136,10 +167,14 @@ def generate_resume(
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
     
-    chain = prompt | llm | parser
-    result = chain.invoke(input_vars)
+    # LLM 호출 후 수동 파싱
+    chain = prompt | llm
+    response = chain.invoke(input_vars)
     
-    return result
+    # 응답에서 content 추출
+    response_text = response.content if hasattr(response, 'content') else str(response)
+    
+    return parse_json_response(response_text, ResumeGenerationResult)
 
 
 def run_full_analysis(user_id: str) -> Dict[str, Any]:
