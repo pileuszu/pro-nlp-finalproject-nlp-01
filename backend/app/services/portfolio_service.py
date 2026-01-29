@@ -2,6 +2,7 @@ import os
 import shutil
 import uuid
 import logging
+from langchain_core.documents import Document
 from pathlib import Path
 from typing import Optional, List
 
@@ -199,7 +200,7 @@ class PortfolioService:
 
         # 2. Add to Vector Store for RAG
         try:
-            from langchain_core.documents import Document
+            # from langchain_core.documents import Document (Moved to top)
             desc = portfolio.description or ""
             if desc:
                 metadata = {

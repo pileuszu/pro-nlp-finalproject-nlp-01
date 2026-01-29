@@ -1,4 +1,5 @@
 import logging
+from langchain_core.documents import Document
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession

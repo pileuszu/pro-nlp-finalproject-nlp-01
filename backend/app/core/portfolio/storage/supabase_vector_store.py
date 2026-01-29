@@ -4,6 +4,7 @@ import json
 import requests
 from sqlalchemy import create_engine, text
 from typing import List, Dict
+from langchain_core.documents import Document
 
 class ManualRAG:
     def __init__(self, collection_name="portfolio_embeddings"):
@@ -79,7 +80,6 @@ class SupabaseVectorStore:
             
     async def similarity_search(self, query, k=4):
         import asyncio
-        from langchain_core.documents import Document
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(None, self.rag.similarity_search, query, k)
         return [Document(page_content=r["content"], metadata=r["metadata"]) for r in results]
