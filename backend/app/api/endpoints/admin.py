@@ -17,34 +17,49 @@ OUTPUT_JSON = BASE_DIR / "llm-pipeline" / "recruit" / "data" / "recruit_data" / 
 async def run_crawler_script(db_session_factory):
     """Background task to run the crawler script and index results."""
     import json
+    import logging
+    import asyncio
     from app.core.recruit.indexer import RecruitIndexer
+
+    logger = logging.getLogger("crawler")
+    logging.basicConfig(level=logging.INFO)
 
     try:
         # 1. Run Crawler
         if not SCRAPER_SCRIPT.exists():
-            print(f"Error: Scraper script not found at {SCRAPER_SCRIPT}")
+            logger.error(f"Error: Scraper script not found at {SCRAPER_SCRIPT}")
             return
 
-        print(f"Triggering crawler: {SCRAPER_SCRIPT}")
-        result = subprocess.run(
-            [sys.executable, str(SCRAPER_SCRIPT)],
-            capture_output=True,
-            text=True,
-            cwd=str(SCRAPER_SCRIPT.parent)
+        logger.info(f"Triggering crawler: {SCRAPER_SCRIPT}")
+        
+        # Use asyncio subprocess to avoid blocking the event loop
+        # Pass current environment variables to the subprocess
+        env = os.environ.copy()
+        
+        process = await asyncio.create_subprocess_exec(
+            sys.executable, str(SCRAPER_SCRIPT),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(SCRAPER_SCRIPT.parent),
+            env=env
         )
         
-        if result.returncode != 0:
-            print(f"Crawler Failed:\n{result.stderr}")
+        stdout, stderr = await process.communicate()
+        stdout_text = stdout.decode().strip()
+        stderr_text = stderr.decode().strip()
+        
+        if process.returncode != 0:
+            logger.error(f"Crawler Failed with code {process.returncode}:\nSTDERR: {stderr_text}\nSTDOUT: {stdout_text}")
             return
         else:
-            print(f"Crawler Success:\n{result.stdout}")
+            logger.info(f"Crawler Success:\n{stdout_text}")
 
         # 2. Index Data
         if not OUTPUT_JSON.exists():
-             print(f"Error: Output JSON not found at {OUTPUT_JSON}")
+             logger.error(f"Error: Output JSON not found at {OUTPUT_JSON}")
              return
 
-        print(f"Indexing data from {OUTPUT_JSON}...")
+        logger.info(f"Indexing data from {OUTPUT_JSON}...")
         with open(OUTPUT_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
         
@@ -52,10 +67,10 @@ async def run_crawler_script(db_session_factory):
         async with db_session_factory() as db:
             indexer = RecruitIndexer()
             count = await indexer.add_recruitments(db, data)
-            print(f"Successfully indexed {count} items.")
+            logger.info(f"Successfully indexed {count} items.")
 
     except Exception as e:
-        print(f"Crawler/Indexer Task Exception: {e}")
+        logger.error(f"Crawler/Indexer Task Exception: {e}", exc_info=True)
 
 @router.post("/crawl", status_code=202)
 def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
