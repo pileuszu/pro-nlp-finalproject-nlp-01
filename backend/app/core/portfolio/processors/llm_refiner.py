@@ -77,7 +77,7 @@ class LLMRefiner:
 
     def __init__(
         self,
-        model: str = "HCX-DASH-002",
+        model: str = "HCX-007",
         api_key_env: str = "NCP_CLOVASTUDIO_API_KEY",
     ) -> None:
         self.api_key = os.environ.get(api_key_env)
