@@ -6,6 +6,7 @@ from app.schemas import schemas
 from app.services import cover_letter_service
 from app.api import deps
 from app.models import models
+from app.services.ai_cover_letter_service import cover_letter_service as ai_service
 
 router = APIRouter()
 
@@ -67,8 +68,14 @@ async def delete_cover_letter(
         raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
     return {"success": True, "message": "Cover letter deleted"}
 
-@router.post("/generate", response_model=dict)
-async def generate_cover_letter(req: schemas.CoverLetterGenerateRequest):
-    """Mocks AI generation of a cover letter."""
-    result = cover_letter_service.mock_generate_cover_letter(req)
-    return {"result": result}
+@router.post("/generate", response_model=schemas.CoverLetter)
+async def generate_cover_letter(
+    req: schemas.CoverLetterGenerateRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Generates a cover letter using AI (HyperCLOVA X).
+    """
+    # Verify user ownership of portfolios if needed inside service or here
+    return await ai_service.generate_cover_letter(db, current_user.id, req)

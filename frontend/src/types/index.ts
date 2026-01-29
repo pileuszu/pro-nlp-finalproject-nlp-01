@@ -50,15 +50,29 @@ export interface Portfolio {
     job_queries?: PortfolioJobQuery[];
 }
 
+export interface CoverLetterItem {
+    id: number;
+    question: string;
+    content: string;
+    category?: string;
+    key_points?: string[];
+    suggested_improvements?: string[];
+}
+
 export interface CoverLetter {
     id: number;
     title: string;
-    content: string;
+    content?: string;
     recruitId?: number;
     recruitTitle?: string;
     recruitCompany?: string;
     recruitDeadline?: string;
     updatedAt: string;
+
+    // AI Analysis
+    status?: 'PENDING' | 'COMPLETED' | 'FAILED';
+    gap_analysis?: any;
+    items?: CoverLetterItem[];
 }
 
 export interface User {

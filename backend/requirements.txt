@@ -15,7 +15,7 @@ email-validator>=2.0.0
 asyncpg
 langchain
 langchain-community
-langchain-google-genai
+langchain-naver
 google-genai
 google-cloud-vision
 
@@ -30,3 +30,4 @@ pandas
 beautifulsoup4
 requests
 pgvector
+rank_bm25

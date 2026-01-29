@@ -113,6 +113,24 @@ class CoverLetterBase(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     recruitment_id: Optional[int] = Field(None, alias="recruitId")
+    status: Optional[str] = "PENDING"
+
+class CoverLetterItemBase(BaseModel):
+    question: str
+    content: Optional[str] = None
+    category: Optional[str] = None
+    key_points: Optional[List[str]] = None
+    suggested_improvements: Optional[List[str]] = None
+
+class CoverLetterItemCreate(CoverLetterItemBase):
+    pass
+
+class CoverLetterItem(CoverLetterItemBase):
+    id: int
+    cover_letter_id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class CoverLetterCreate(CoverLetterBase):
     user_id: int
@@ -122,6 +140,11 @@ class CoverLetter(CoverLetterBase):
     user_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    
+    gap_analysis: Optional[dict] = None
+    job_analysis: Optional[dict] = None
+    items: List[CoverLetterItem] = []
+    
     model_config = ConfigDict(from_attributes=True)
 
 class CoverLetterListResponse(BaseModel):

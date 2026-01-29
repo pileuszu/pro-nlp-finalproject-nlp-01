@@ -157,8 +157,8 @@ export default function RecruitPage() {
                                                                     </div>
                                                                 </div>
                                                             </TooltipTrigger>
-                                                            <TooltipContent side="bottom" className="max-w-[300px] p-4 bg-slate-900 border-slate-800 text-slate-100 whitespace-pre-wrap leading-relaxed shadow-xl text-xs font-medium">
-                                                                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50 text-blue-400 font-bold">
+                                                            <TooltipContent side="bottom" className="max-w-[360px] max-h-[300px] overflow-y-auto p-4 bg-slate-900 border-slate-800 text-slate-100 whitespace-pre-wrap leading-relaxed shadow-xl text-xs font-medium z-50">
+                                                                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50 text-blue-400 font-bold sticky top-0 bg-slate-900 z-10">
                                                                     <Sparkles className="h-3.5 w-3.5" /> 상세 추천 사유
                                                                 </div>
                                                                 {recruit.reason}

@@ -102,6 +102,31 @@ class CoverLetter(Base):
 
     owner = relationship("User", back_populates="cover_letters")
     recruitment = relationship("Recruitment", back_populates="cover_letters")
+    items = relationship("CoverLetterItem", back_populates="cover_letter", cascade="all, delete-orphan")
+    
+    # Analysis Results
+    status = Column(SqEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
+    gap_analysis = Column(JSON, nullable=True)
+    job_analysis = Column(JSON, nullable=True)
+
+class CoverLetterItem(Base):
+    __tablename__ = "cover_letter_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    cover_letter_id = Column(Integer, ForeignKey("cover_letters.id"), nullable=False)
+    
+    question = Column(Text, nullable=False)
+    content = Column(Text, nullable=True)
+    category = Column(String, nullable=True) # motivation, growth, capability, etc.
+    
+    # AI Analysis
+    key_points = Column(JSON, nullable=True) # List of strings
+    suggested_improvements = Column(JSON, nullable=True) # List of strings
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    cover_letter = relationship("CoverLetter", back_populates="items")
 
 class Recommendation(Base):
     __tablename__ = "recommendations"

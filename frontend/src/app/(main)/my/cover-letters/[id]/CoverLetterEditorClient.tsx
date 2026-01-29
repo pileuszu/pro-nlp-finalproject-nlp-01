@@ -18,6 +18,8 @@ interface QuestionItem {
     id: number;
     question: string;
     answer: string;
+    key_points?: string[];
+    suggested_improvements?: string[];
 }
 
 interface Portfolio {
@@ -146,7 +148,21 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             if (!res.ok) throw new Error("AI 생성에 실패했습니다.");
 
             const data = await res.json();
-            setQuestions(questions.map(q => q.id === activeAiQuestionId ? { ...q, answer: data.result } : q));
+
+            // Backend returns CoverLetter object with items. Find the relevant item or fallback.
+            const generatedItem = data.items ? data.items.find((i: any) => i.question === activeQuestionContent) : null;
+
+            if (generatedItem) {
+                setQuestions(questions.map(q => q.id === activeAiQuestionId ? {
+                    ...q,
+                    answer: generatedItem.content || "",
+                    key_points: generatedItem.key_points,
+                    suggested_improvements: generatedItem.suggested_improvements
+                } : q));
+            } else {
+                setQuestions(questions.map(q => q.id === activeAiQuestionId ? { ...q, answer: data.content || "" } : q));
+            }
+
             setActiveAiQuestionId(null);
         } catch (e) {
             console.error(e);
@@ -250,6 +266,42 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                             </Button>
                                         </div>
                                     </div>
+
+                                    {/* AI Insights Display */}
+                                    {(q.key_points?.length || q.suggested_improvements?.length) ? (
+                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                                            {q.key_points && q.key_points.length > 0 && (
+                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
+                                                    <h4 className="text-sm font-bold text-blue-700 flex items-center gap-2 mb-3">
+                                                        <CheckCircle className="h-4 w-4" /> 핵심 요약
+                                                    </h4>
+                                                    <ul className="space-y-2">
+                                                        {q.key_points.map((kp, i) => (
+                                                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
+                                                                <span className="bg-blue-200 h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" />
+                                                                <span className="leading-relaxed">{kp}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                            {q.suggested_improvements && q.suggested_improvements.length > 0 && (
+                                                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-5">
+                                                    <h4 className="text-sm font-bold text-amber-700 flex items-center gap-2 mb-3">
+                                                        <Sparkles className="h-4 w-4" /> 개선 제안
+                                                    </h4>
+                                                    <ul className="space-y-2">
+                                                        {q.suggested_improvements.map((si, i) => (
+                                                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
+                                                                <span className="bg-amber-200 h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" />
+                                                                <span className="leading-relaxed">{si}</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : null}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
