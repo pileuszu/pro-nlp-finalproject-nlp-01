@@ -11,9 +11,6 @@ sys.path.insert(0, str(project_root))
 
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
-from rich.markdown import Markdown
-from rich import print as rprint
 
 from config.settings import CLOVA_API_KEY
 from src.gap_analysis import run_full_analysis, run_single_question_analysis, run_full_outline_analysis

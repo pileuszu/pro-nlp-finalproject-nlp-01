@@ -15,7 +15,11 @@ from config.settings import (
     CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
     LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS
 )
+<<<<<<< Updated upstream
 from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult
+=======
+from src.schemas import GapAnalysisResult, ResumeGenerationResult
+>>>>>>> Stashed changes
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
     RESUME_GENERATION_PROMPT,
@@ -34,16 +38,23 @@ def get_llm() -> ChatOpenAI:
         api_key=CLOVA_API_KEY,
         base_url=CLOVA_BASE_URL,
         temperature=LLM_TEMPERATURE,
-        model_kwargs={
-            # 필요한 경우 다른 model_kwargs 추가
-        },
-        # LangChain 최신 버전에서는 extra_body를 명시적 인자로 지원
         extra_body={
             "topP": LLM_TOP_P,
             "repetitionPenalty": LLM_REPETITION_PENALTY,
             "maxTokens": LLM_MAX_TOKENS
         }
     )
+
+
+def format_experiences(documents: List[Document]) -> str:
+    """문서 리스트를 LLM 입력용 텍스트로 포맷팅"""
+    return "\n\n---\n\n".join([
+        f"[프로젝트: {doc.metadata.get('project_name', 'N/A')}]\n"
+        f"역할: {doc.metadata.get('role', 'N/A')}\n"
+        f"기술스택: {doc.metadata.get('tech_stack', 'N/A')}\n"
+        f"내용:\n{doc.page_content}"
+        for doc in documents
+    ])
 
 
 def parse_json_response(response_text: str, pydantic_class):
@@ -84,13 +95,7 @@ def analyze_gap(
     parser = PydanticOutputParser(pydantic_object=GapAnalysisResult)
     
     # 경험 텍스트 결합
-    experiences_text = "\n\n---\n\n".join([
-        f"[프로젝트: {doc.metadata.get('project_name', 'N/A')}]\n"
-        f"역할: {doc.metadata.get('role', 'N/A')}\n"
-        f"기술스택: {doc.metadata.get('tech_stack', 'N/A')}\n"
-        f"내용:\n{doc.page_content}"
-        for doc in user_experiences
-    ])
+    experiences_text = format_experiences(user_experiences)
     
     prompt = PromptTemplate(
         template=GAP_ANALYSIS_PROMPT,
@@ -133,13 +138,7 @@ def generate_resume(
     job_position = company_data.get("job_position", {})
     
     # 경험 텍스트 결합
-    experiences_text = "\n\n---\n\n".join([
-        f"[프로젝트: {doc.metadata.get('project_name', 'N/A')}]\n"
-        f"역할: {doc.metadata.get('role', 'N/A')}\n"
-        f"기술스택: {doc.metadata.get('tech_stack', 'N/A')}\n"
-        f"내용:\n{doc.page_content}"
-        for doc in user_experiences
-    ])
+    experiences_text = format_experiences(user_experiences)
     
     # 이전 사용 경험 정보 추가
     used_exp_text = ""
