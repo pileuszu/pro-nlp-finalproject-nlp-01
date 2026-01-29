@@ -196,11 +196,11 @@ class RecruitMatcher:
                 f"[공고 {i}]\n"
                 f"회사: {meta.get('company')}\n"
                 f"직무: {meta.get('title')}\n"
-                f"주요 업무: {meta.get('key_responsibilities', '')[:200]}...\n"
-                f"자격 요건: {meta.get('required_qualifications', '')[:200]}...\n"
-                f"우대 사항: {meta.get('preferred_qualifications', '')[:200]}...\n"
-                f"경험 수준: {meta.get('experience', '')}\n"
-                f"학력: {meta.get('education', '')}\n"
+                f"주요 업무: {(meta.get('key_responsibilities') or '')[:200]}...\n"
+                f"자격 요건: {(meta.get('required_qualifications') or '')[:200]}...\n"
+                f"우대 사항: {(meta.get('preferred_qualifications') or '')[:200]}...\n"
+                f"경험 수준: {meta.get('experience') or ''}\n"
+                f"학력: {meta.get('education') or ''}\n"
                 "-------------------\n"
             )
             candidate_summaries.append(summary)
