@@ -27,15 +27,25 @@ class Recruitment(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     company = Column(String, nullable=False)
+    link = Column(String, nullable=True)
     start_date = Column(Date, nullable=True)
     deadline = Column(Date, nullable=True)
+    location = Column(String, nullable=True)
+    experience = Column(String, nullable=True)
+    education = Column(String, nullable=True)
+    employment_type = Column(String, nullable=True)
+    salary = Column(String, nullable=True)
+    job_sector = Column(String, nullable=True)
+    key_responsibilities = Column(Text, nullable=True)
+    required_qualifications = Column(Text, nullable=True)
+    preferred_qualifications = Column(Text, nullable=True)
     content = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)  # List of strings
     category = Column(String, nullable=True)
-    location = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     cover_letters = relationship("CoverLetter", back_populates="recruitment")
+    recommendations = relationship("Recommendation", back_populates="recruitment", cascade="all, delete-orphan")
 
 class Portfolio(Base):
     __tablename__ = "portfolios"
@@ -62,6 +72,7 @@ class Portfolio(Base):
 
     owner = relationship("User", back_populates="portfolios")
     job_queries = relationship("PortfolioJobQuery", back_populates="portfolio", cascade="all, delete-orphan")
+    recommendations = relationship("Recommendation", back_populates="portfolio", cascade="all, delete-orphan")
 
 class PortfolioJobQuery(Base):
     __tablename__ = "portfolio_job_queries"
@@ -87,3 +98,16 @@ class CoverLetter(Base):
 
     owner = relationship("User", back_populates="cover_letters")
     recruitment = relationship("Recruitment", back_populates="cover_letters")
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
+    recruitment_id = Column(Integer, ForeignKey("recruitments.id"), nullable=False)
+    rank_order = Column(Integer, nullable=False)
+    reason = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    portfolio = relationship("Portfolio", back_populates="recommendations")
+    recruitment = relationship("Recruitment", back_populates="recommendations")

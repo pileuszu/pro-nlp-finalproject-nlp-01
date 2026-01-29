@@ -93,17 +93,54 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 leading-relaxed whitespace-pre-line text-lg text-slate-700 min-h-[500px]">
-                            {recruit.content}
-                            <br /><br />
-                            <div className="space-y-4 text-base text-slate-500 mt-8 p-6 bg-slate-50 rounded-lg border border-slate-100">
-                                <div>
-                                    <strong className="text-slate-800 block mb-2">[자격 요건]</strong>
-                                    <ul className="list-disc pl-5 space-y-1">
-                                        <li>관련 경력 3년 이상</li>
-                                        <li>React, Next.js 등 모던 프레임워크 능숙자</li>
-                                    </ul>
+                            {/* Key Responsibilities */}
+                            {recruit.key_responsibilities && (
+                                <div className="mb-8">
+                                    <h3 className="text-xl font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <Briefcase className="h-5 w-5 text-blue-600" />
+                                        주요 업무
+                                    </h3>
+                                    <div className="bg-slate-50 p-5 rounded-xl border border-slate-100 text-base">
+                                        {recruit.key_responsibilities}
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Qualifications Section */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                {recruit.required_qualifications && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                            자격 요건
+                                        </h3>
+                                        <div className="bg-red-50/50 p-4 rounded-lg border border-red-100 text-sm md:text-base text-slate-700">
+                                            {recruit.required_qualifications}
+                                        </div>
+                                    </div>
+                                )}
+                                {recruit.preferred_qualifications && (
+                                    <div className="space-y-3">
+                                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                                            우대 사항
+                                        </h3>
+                                        <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 text-sm md:text-base text-slate-700">
+                                            {recruit.preferred_qualifications}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Original Content / Misc */}
+                            {recruit.content && (
+                                <div className="mt-8 pt-8 border-t border-slate-100">
+                                    <h3 className="text-lg font-bold text-slate-900 mb-4">상세 내용</h3>
+                                    <div className="text-base text-slate-600">
+                                        {recruit.content}
+                                    </div>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
@@ -138,13 +175,14 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                 채용 요약
                             </CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-5 p-6 text-sm">
+                        <CardContent className="space-y-6 p-6 text-sm">
                             <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
                                 <span className="text-slate-500 flex items-center gap-2">
                                     <Building className="h-4 w-4" /> 기업명
                                 </span>
                                 <span className="font-semibold text-right text-slate-700">{recruit.company}</span>
                             </div>
+
                             <div className="flex flex-col gap-2 pb-3 border-b border-slate-100 border-dashed">
                                 <span className="text-slate-500 flex items-center gap-2">
                                     <Calendar className="h-4 w-4" /> 채용 기간
@@ -158,10 +196,40 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     )}>{recruit.deadline}</span>
                                 </div>
                             </div>
-                            <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                <span className="text-slate-500">직무</span>
-                                <span className="font-semibold text-right text-slate-700">Software Engineer</span>
-                            </div>
+
+                            {/* New Detailed Fields in Sidebar */}
+                            {recruit.experience && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">경력</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.experience}</span>
+                                </div>
+                            )}
+                            {recruit.education && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">학력</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.education}</span>
+                                </div>
+                            )}
+                            {recruit.salary && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">급여</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.salary}</span>
+                                </div>
+                            )}
+                            {recruit.location && (
+                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500">근무지</span>
+                                    <span className="font-semibold text-right text-slate-700">{recruit.location}</span>
+                                </div>
+                            )}
+
+                            {recruit.link && (
+                                <div className="pt-2">
+                                    <a href={recruit.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center justify-end gap-1">
+                                        원문 공고 보러가기 →
+                                    </a>
+                                </div>
+                            )}
                         </CardContent>
                         <CardFooter className="p-6 pt-0">
                             <Button

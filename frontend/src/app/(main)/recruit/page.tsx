@@ -133,6 +133,14 @@ export default function RecruitPage() {
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent className="flex-1 pb-6">
+                                                {recruit.reason && (
+                                                    <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs font-bold text-blue-700 leading-relaxed animate-in fade-in zoom-in duration-500">
+                                                        <div className="flex items-center gap-1.5 mb-1 text-[10px] text-blue-600/60 uppercase tracking-tighter">
+                                                            <Sparkles className="h-3 w-3" /> AI 추천 사유
+                                                        </div>
+                                                        {recruit.reason}
+                                                    </div>
+                                                )}
                                                 <div className="flex flex-wrap gap-2">
                                                     {recruit.tags.map((tag) => (
                                                         <Badge key={tag} variant="secondary" className="font-bold bg-slate-100/80 text-slate-600 border-none px-2.5 py-0.5 text-[11px]">

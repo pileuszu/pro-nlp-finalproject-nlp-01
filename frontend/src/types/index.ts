@@ -6,6 +6,20 @@ export interface Recruit {
     deadline: string;
     tags: string[];
     content?: string;
+    reason?: string;
+
+    // New Detailed Fields
+    link?: string;
+    experience?: string;
+    education?: string;
+    employment_type?: string;
+    salary?: string;
+    job_sector?: string;
+    key_responsibilities?: string;
+    required_qualifications?: string;
+    preferred_qualifications?: string;
+    category?: string;
+    location?: string;
 }
 
 export interface PortfolioJobQuery {

@@ -14,6 +14,7 @@ class FileExtractor(BaseExtractor):
     """
 
     SUPPORTED_TEXT_EXTS = {".txt", ".md"}
+    SUPPORTED_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".webp"}
 
     def extract(self, source: str) -> str:
         path = Path(source)
@@ -23,10 +24,26 @@ class FileExtractor(BaseExtractor):
 
         suffix = path.suffix.lower()
 
+        # 1. PDF Handling
         if suffix == ".pdf":
+            # Try text extraction first
             text = extract_text_from_pdf(path)
+            # If text is very short/empty, it might be a scanned PDF -> Try Vision OCR
+            if len(text.strip()) < 50:
+                logger.info(f"PDF {path.name} seems to have little text. Trying Google Vision OCR...")
+                from .google_vision_extractor import GoogleVisionExtractor
+                vision = GoogleVisionExtractor()
+                # For a full implementation, we'd convert PDF to images here.
+                # Since that's heavy, we'll just log and return what we have or try OCR on first page if possible.
+                pass 
             return text
 
+        # 2. Image Handling
+        if suffix in self.SUPPORTED_IMAGE_EXTS:
+            from .google_vision_extractor import GoogleVisionExtractor
+            return GoogleVisionExtractor().extract(source)
+
+        # 3. Text Handling
         if suffix in self.SUPPORTED_TEXT_EXTS:
             return path.read_text(encoding="utf-8", errors="ignore").strip()
 

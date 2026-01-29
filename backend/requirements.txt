@@ -17,6 +17,7 @@ langchain
 langchain-community
 langchain-google-genai
 google-genai
+google-cloud-vision
 
 langchain-postgres
 langchain-text-splitters
@@ -25,4 +26,5 @@ psycopg[binary]
 pypdf
 pdfplumber
 pillow
-
+pandas
+beautifulsoup4

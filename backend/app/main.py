@@ -57,6 +57,8 @@ async def general_exception_handler(request: Request, exc: Exception):
 # Include routers
 app.include_router(health.router, prefix="/api/health", tags=["System"])
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+from app.api.endpoints import admin
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
 app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
 app.include_router(cover_letters.router, prefix="/api/cover-letters", tags=["Cover Letters"])

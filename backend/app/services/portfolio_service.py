@@ -23,9 +23,19 @@ except Exception as e:
     logger.warning(f"Could not create upload directory {UPLOAD_DIR}: {e}")
 
 async def process_portfolio_task(portfolio_id: int, source: str, p_type: str):
-    async with AsyncSessionLocal() as db:
-        service = PortfolioService(db)
-        await service._process_portfolio_logic(portfolio_id, source, p_type)
+    try:
+        async with AsyncSessionLocal() as db:
+            service = PortfolioService(db)
+            await service._process_portfolio_logic(portfolio_id, source, p_type)
+    finally:
+        if p_type == "file" and source:
+            try:
+                path = Path(source)
+                if path.exists() and "/tmp/uploads" in str(path):
+                    os.remove(path)
+                    logger.info(f"Cleaned up temporary file: {source}")
+            except Exception as e:
+                logger.warning(f"Failed to cleanup temporary file {source}: {e}")
 
 class PortfolioService:
     def __init__(self, db: AsyncSession):
@@ -222,7 +232,7 @@ class PortfolioService:
                 raise HTTPException(status_code=500, detail=text or "Extraction failed")
 
             # Call LLM Refiner
-            result = self.llm_refiner.extract_user_data_and_queries(text)
+            result = await self.llm_refiner.extract_user_data_and_queries(text)
             
             # Combine with raw text for preview
             return {
@@ -256,7 +266,7 @@ class PortfolioService:
                 raise HTTPException(status_code=500, detail=text or "Extraction failed")
 
             # Call LLM Refiner
-            result = self.llm_refiner.extract_user_data_and_queries(text)
+            result = await self.llm_refiner.extract_user_data_and_queries(text)
             
             # Combine with raw text for preview
             return {
@@ -298,7 +308,7 @@ class PortfolioService:
             await self.db.commit()
 
             # 2. Refine (AI Pipeline)
-            combined_result = self.llm_refiner.extract_user_data_and_queries(text)
+            combined_result = await self.llm_refiner.extract_user_data_and_queries(text)
             user_data = combined_result.user_data
             projects = user_data.projects
             
@@ -372,6 +382,10 @@ class PortfolioService:
             
                 if all_docs:
                      await self.vector_store.add_documents(all_docs)
+                
+                # 5. Pre-compute Recommendations
+                from app.services.recruit_service import precompute_recommendations_for_portfolio
+                await precompute_recommendations_for_portfolio(self.db, portfolio_id)
 
         except Exception as e:
             logger.error(f"Processing Failed for Portfolio {portfolio_id}: {e}")

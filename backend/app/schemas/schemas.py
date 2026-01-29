@@ -20,12 +20,22 @@ class User(UserBase):
 class RecruitmentBase(BaseModel):
     title: str
     company: str
+    link: Optional[str] = None
     start_date: Optional[date] = None
     deadline: Optional[date] = None
+    location: Optional[str] = None
+    experience: Optional[str] = None
+    education: Optional[str] = None
+    employment_type: Optional[str] = None
+    salary: Optional[str] = None
+    job_sector: Optional[str] = None
+    key_responsibilities: Optional[str] = None
+    required_qualifications: Optional[str] = None
+    preferred_qualifications: Optional[str] = None
     content: Optional[str] = None
     tags: Optional[List[str]] = None
     category: Optional[str] = None
-    location: Optional[str] = None
+    reason: Optional[str] = None
 
 class RecruitmentCreate(RecruitmentBase):
     pass
