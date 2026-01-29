@@ -14,12 +14,10 @@ import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 
 export default function PortfoliosPage() {
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-    const [loading, setLoading] = useState(true);
     const { toast } = useToast();
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     useEffect(() => {
-        setLoading(true);
         fetchWithAuth(getApiUrl("/portfolios"))
             .then(res => res.json())
             .then(data => {
@@ -28,11 +26,9 @@ export default function PortfoliosPage() {
                 } else {
                     setPortfolios(data);
                 }
-                setLoading(false);
             })
             .catch(err => {
                 console.error(err);
-                setLoading(false);
                 toast("포트폴리오 목록을 불러오는데 실패했습니다.", "error");
             });
     }, [toast]);
