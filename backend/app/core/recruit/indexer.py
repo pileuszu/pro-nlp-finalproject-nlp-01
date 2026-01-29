@@ -134,15 +134,13 @@ class RecruitIndexer:
         await db.commit()
         return len(data_list)
 
-    async def search(self, db: AsyncSession, query: str, k: int = 5):
+    async def search_by_vector(self, db: AsyncSession, embedding: List[float], k: int = 5):
         """
-        Search for relevant recruitments directly from the Recruitment table using pgvector.
+        Search for relevant recruitments using a pre-calculated embedding vector.
         """
-        query_emb = await self.vector_store.get_embedding(query)
         from sqlalchemy import text
         
-        # SQL for cosine similarity search on the recruitments table
-        # We cast query_emb to string for PG compatibility
+        # SQL for cosine similarity search
         stmt = text("""
             SELECT id, title, company, category, location, tags, start_date, deadline, 
                    key_responsibilities, required_qualifications, preferred_qualifications,
@@ -153,13 +151,15 @@ class RecruitIndexer:
             LIMIT :k
         """)
         
-        result = await db.execute(stmt, {"emb": str(query_emb), "k": k})
+        # pgvector expects string representation of vector like '[0.1, 0.2, ...]'
+        import json
+        embedding_str = str(embedding)
+        
+        result = await db.execute(stmt, {"emb": embedding_str, "k": k})
         rows = result.all()
         
-        # Convert to Document-like objects or dicts
         matches = []
         for row in rows:
-            # Reconstruct metadata for compatibility with matcher
             metadata = {
                 "id": row.id,
                 "title": row.title,
@@ -172,7 +172,8 @@ class RecruitIndexer:
                 "key_responsibilities": row.key_responsibilities,
                 "required_qualifications": row.required_qualifications,
                 "preferred_qualifications": row.preferred_qualifications,
-                "unique_id": f"{row.company}_{row.title}"
+                "unique_id": f"{row.company}_{row.title}",
+                "distance": row.distance
             }
             doc = Document(
                 page_content=f"{row.key_responsibilities}\n{row.required_qualifications}", 
@@ -180,3 +181,10 @@ class RecruitIndexer:
             )
             matches.append(doc)
         return matches
+
+    async def search(self, db: AsyncSession, query: str, k: int = 5):
+        """
+        Search for relevant recruitments by generating embedding for query text first.
+        """
+        query_emb = await self.vector_store.get_embedding(query)
+        return await self.search_by_vector(db, query_emb, k)

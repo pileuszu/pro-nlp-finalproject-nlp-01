@@ -191,10 +191,12 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
     
     for db_q in db_queries:
         if not db_q.query_text: continue
-        # Pass the pre-calculated embedding if available, otherwise search will generate it
-        # Actually our indexer.search now expects query text and generates its own embedding
-        # but we can optimize it if we want. For now, let's use the new search wrapper.
-        initial_results = await indexer.search(db, db_q.query_text, k=10)
+        if db_q.embedding is not None:
+             # Use pre-calculated embedding directly
+             initial_results = await indexer.search_by_vector(db, db_q.embedding, k=10)
+        else:
+             # Fallback: Generate embedding and search
+             initial_results = await indexer.search(db, db_q.query_text, k=10)
         refined_results = await matcher.rerank_with_ncp(db_q.query_text, initial_results, top_n=5)
         
         for doc in refined_results:
