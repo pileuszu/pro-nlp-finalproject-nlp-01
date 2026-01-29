@@ -84,9 +84,15 @@ class LLMRefiner:
         api_key_env: str = "NCP_CLOVASTUDIO_API_KEY",
     ) -> None:
         self.api_key = os.environ.get(api_key_env)
-        env_url = os.environ.get("NCP_CLOVASTUDIO_BASE_URL")
-        self.base_url = env_url if env_url else "https://clovastudio.stream.ntruss.com"
+        base_url = (os.environ.get("NCP_CLOVASTUDIO_BASE_URL") or "").strip()
+        if not base_url or not base_url.startswith(('http://', 'https://')):
+            if base_url and "." in base_url:
+                base_url = f"https://{base_url}"
+            else:
+                base_url = "https://clovastudio.stream.ntruss.com"
+        self.base_url = base_url
         self.model = model
+        logger.info(f"LLMRefiner initialized with base_url: {self.base_url} and model: {self.model}")
         
         if not self.api_key:
             print(f"Warning: {api_key_env} is not set. NCP features will work.")

@@ -54,6 +54,12 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
     if (loading) return <div className="flex h-[50vh] items-center justify-center">Loading...</div>;
     if (!portfolio) return <div className="flex h-[50vh] items-center justify-center text-slate-500">포트폴리오를 찾을 수 없습니다.</div>;
 
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        return isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString();
+    };
+
     const Icon = portfolio.type === 'github' ? Github : portfolio.type === 'file' ? FileText : ExternalLink;
 
     return (
@@ -82,7 +88,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         </div>
                         <span className="text-slate-400 text-sm flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {new Date(portfolio.createdAt).toLocaleDateString()} 등록
+                            {formatDate(portfolio.createdAt)} 등록
                         </span>
                     </div>
                     <CardTitle className="text-3xl font-bold text-slate-900 leading-tight">
@@ -93,7 +99,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                 <CardContent className="p-8 space-y-8 min-h-[300px]">
 
                     {/* Project Details Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
                             <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
                                 <Calendar className="h-4 w-4" /> Period
@@ -105,12 +111,6 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 <User className="h-4 w-4" /> Role
                             </div>
                             <p className="font-semibold text-slate-800">{portfolio.role || "역할 정보 없음"}</p>
-                        </div>
-                        <div className="space-y-2 p-4 bg-slate-50/50 rounded-xl border border-slate-100">
-                            <div className="flex items-center gap-2 text-slate-400 text-sm font-bold uppercase tracking-wider">
-                                <Briefcase className="h-4 w-4" /> Job Title
-                            </div>
-                            <p className="font-semibold text-slate-800">분석 완료</p>
                         </div>
                     </div>
 
@@ -159,21 +159,37 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         )}
                     </div>
 
-                    {portfolio.url && (
+                    {(portfolio.url || portfolio.source_url) && (
                         <div className="space-y-3 pt-2">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">연결된 리소스</h3>
-                            <a
-                                href={portfolio.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 hover:text-blue-700 transition-all group w-full"
-                            >
-                                <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 shadow-sm">
-                                    <Icon className="h-6 w-6 text-slate-500 group-hover:text-blue-600 transition-colors" />
-                                </div>
-                                <span className="font-medium truncate flex-1">{portfolio.url}</span>
-                                <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-400" />
-                            </a>
+                            {portfolio.url && (
+                                <a
+                                    href={portfolio.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 hover:text-blue-700 transition-all group w-full"
+                                >
+                                    <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 shadow-sm">
+                                        <Icon className="h-6 w-6 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                                    </div>
+                                    <span className="font-medium truncate flex-1">{portfolio.url}</span>
+                                    <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-400" />
+                                </a>
+                            )}
+                            {portfolio.source_url && portfolio.source_url !== portfolio.url && (
+                                <a
+                                    href={portfolio.source_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 hover:text-blue-700 transition-all group w-full"
+                                >
+                                    <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 shadow-sm">
+                                        <Icon className="h-6 w-6 text-slate-500 group-hover:text-blue-600 transition-colors" />
+                                    </div>
+                                    <span className="font-medium truncate flex-1">{portfolio.source_url}</span>
+                                    <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-400" />
+                                </a>
+                            )}
                         </div>
                     )}
                 </CardContent>

@@ -17,36 +17,33 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
     const { id } = use(params);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-
-    const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [content, setContent] = useState("");
     const [url, setUrl] = useState("");
     const [type, setType] = useState<'link' | 'file' | 'github'>('link');
 
-    // New Fields
+    // Updated Fields
     const [projectName, setProjectName] = useState("");
     const [period, setPeriod] = useState("");
     const [role, setRole] = useState("");
-    const [jobTitle, setJobTitle] = useState("");
+    const [sourceUrl, setSourceUrl] = useState(""); // Unified source_url
     const [techStack, setTechStack] = useState(""); // Comma separated string for editing
 
     useEffect(() => {
         fetchWithAuth(getApiUrl(`/portfolios/${id}`))
             .then(res => res.json())
             .then(data => {
-                setTitle(data.title);
                 setDescription(data.description || "");
                 setContent(data.content || "");
                 setUrl(data.url || "");
                 setType(data.type);
 
-                // Flattened fields
-                setProjectName(data.projectName || "");
+                // Flattened fields (Snake Case align)
+                setProjectName(data.project_name || "");
                 setPeriod(data.period || "");
                 setRole(data.role || "");
-                setJobTitle(data.extractedJobTitle || "");
-                setTechStack(Array.isArray(data.techStack) ? data.techStack.join(", ") : "");
+                setSourceUrl(data.source_url || "");
+                setTechStack(Array.isArray(data.tech_stack) ? data.tech_stack.join(", ") : "");
 
                 setLoading(false);
             })
@@ -60,15 +57,14 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
         setSaving(true);
         try {
             const payload = {
-                title,
                 description,
                 content,
                 url,
-                projectName,
+                project_name: projectName,
                 period,
                 role,
-                extractedJobTitle: jobTitle,
-                techStack: techStack.split(",").map(s => s.trim()).filter(Boolean)
+                source_url: sourceUrl,
+                tech_stack: techStack.split(",").map(s => s.trim()).filter(Boolean)
             };
 
             const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`), {
@@ -109,13 +105,8 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                             {type === 'link' ? '웹사이트 / 링크' : type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
                         </Badge>
                     </div>
-                    <CardTitle>
-                        <Input
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            className="text-2xl font-bold bg-transparent border-none p-0 focus-visible:ring-0 placeholder:text-slate-300"
-                            placeholder="파일/소스 제목 (식별용)"
-                        />
+                    <CardTitle className="text-2xl font-bold text-slate-900 leading-tight">
+                        {projectName || "프로젝트 수정"}
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-8 space-y-8">
@@ -151,17 +142,7 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                                 className="border-slate-200 focus-visible:ring-blue-500 bg-white"
                             />
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="jobTitle" className="text-slate-500 font-bold text-xs uppercase tracking-wider">직무 (Job Title)</Label>
-                            <Input
-                                id="jobTitle"
-                                value={jobTitle}
-                                onChange={(e) => setJobTitle(e.target.value)}
-                                placeholder="예: Full Stack Engineer"
-                                className="border-slate-200 focus-visible:ring-blue-500 bg-white"
-                            />
-                        </div>
-                        <div className="space-y-2">
+                        <div className="md:col-span-2 space-y-2">
                             <Label htmlFor="techStack" className="text-slate-500 font-bold text-xs uppercase tracking-wider">기술 스택 (쉼표로 구분)</Label>
                             <Input
                                 id="techStack"
@@ -173,14 +154,14 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="url" className="text-slate-500 font-bold text-xs uppercase tracking-wider">연결 주소 (URL)</Label>
+                    <div className="space-y-2 p-6 bg-slate-50/30 rounded-2xl border border-slate-100">
+                        <Label htmlFor="sourceUrl" className="text-slate-500 font-bold text-xs uppercase tracking-wider">소스 주소 (Source URL)</Label>
                         <Input
-                            id="url"
-                            value={url}
-                            onChange={(e) => setUrl(e.target.value)}
-                            placeholder="https://example.com"
-                            className="border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30"
+                            id="sourceUrl"
+                            value={sourceUrl}
+                            onChange={(e) => setSourceUrl(e.target.value)}
+                            placeholder="https://github.com/..."
+                            className="border-slate-200 focus-visible:ring-blue-500 bg-white"
                         />
                     </div>
 
