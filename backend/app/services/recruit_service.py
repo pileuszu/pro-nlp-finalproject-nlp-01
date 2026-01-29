@@ -1,3 +1,4 @@
+import traceback
 import logging
 from langchain_core.documents import Document
 from typing import List, Optional
@@ -323,6 +324,7 @@ async def trigger_user_recommendation_update(db: AsyncSession, user_id: int):
             
     except Exception as e:
         logger.error(f"Background recommendation update failed for User {user_id}: {e}")
+        logger.error(traceback.format_exc())
 
 async def run_bg_recalc_for_user(user_id: int):
     """
