@@ -128,29 +128,40 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
     from app.models.models import Portfolio, Recommendation, Recruitment
     
     # 1. Fetch Portfolio
+    # 1. Fetch Portfolio or Use User Context
     if portfolio_id:
         stmt = select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user_id)
+        result = await db.execute(stmt)
+        portfolio = result.scalar_one_or_none()
+        
+        if not portfolio:
+            return {"items": []}
+            
+        rec_stmt = select(Recommendation, Recruitment).join(Recruitment).where(
+            Recommendation.portfolio_id == portfolio.id
+        ).order_by(Recommendation.rank_order)
     else:
-        stmt = select(Portfolio).where(Portfolio.user_id == user_id).order_by(Portfolio.created_at.desc())
-    
-    result = await db.execute(stmt)
-    portfolio = result.scalar_one_or_none()
-    
-    if not portfolio:
-        return {"items": []}
-
-    # 2. Fetch Pre-computed Recommendations from DB
-    rec_stmt = select(Recommendation, Recruitment).join(Recruitment).where(
-        Recommendation.portfolio_id == portfolio.id
-    ).order_by(Recommendation.rank_order)
+        # Global View: Fetch all recommendations for the user
+        rec_stmt = select(Recommendation, Recruitment).join(Recruitment).join(Portfolio).where(
+            Portfolio.user_id == user_id
+        ).order_by(Recommendation.rank_order)
     
     rec_result = await db.execute(rec_stmt)
     rows = rec_result.all()
+
+    # Deduplicate by recruitment_id for global view
+    seen_ids = set()
+    unique_rows = []
+    for r_obj, recruitment in rows:
+        if recruitment.id not in seen_ids:
+            unique_rows.append((r_obj, recruitment))
+            seen_ids.add(recruitment.id)
+            
+    rows = unique_rows
     
-    if not rows:
+    if not rows and portfolio_id:
+        # Fallback only for specific portfolio request
         logger.info(f"No pre-computed recommendations for portfolio {portfolio.id}. Triggering initial computation.")
-        # Optional: In a real serverless env, we might return empty or trigger background.
-        # Here we'll try to compute on-the-fly if missing (first time)
         recommendations = await precompute_recommendations_for_portfolio(db, portfolio.id)
         return {"items": recommendations}
 
@@ -304,10 +315,90 @@ async def bulk_precompute_recommendations(db: AsyncSession):
     
     return len(portfolio_ids)
 
+async def global_rerank_recommendations(db: AsyncSession, user_id: int):
+    """
+    Rerank ALL recommendations across all portfolios for a user using their global profile.
+    This provides a unified Top-N list of jobs relevant to the user's overall profile.
+    """
+    from app.core.recruit.matcher import RecruitMatcher
+    from app.models.models import User, Portfolio, Recommendation, Recruitment
+    
+    # 1. Fetch User Profile
+    user_stmt = select(User).where(User.id == user_id)
+    user_res = await db.execute(user_stmt)
+    user = user_res.scalar_one_or_none()
+    if not user: return
+
+    # Global Query: Use profile summary + desired job title
+    global_query = f"{user.desired_job_title or '개발자'} {user.profile_summary or ''}"[:500]
+
+    # 2. Fetch ALL existing recommendations for this user
+    # Join Portfolio to filter by user_id
+    rec_stmt = select(Recommendation, Recruitment).join(Portfolio).join(Recruitment).where(
+        Portfolio.user_id == user_id
+    )
+    rec_result = await db.execute(rec_stmt)
+    rows = rec_result.all()
+    
+    if not rows: return
+
+    # 3. Convert to "Document-like" objects for Reranker
+    # We use Recommendation ID as the "id" for mapping back
+    candidates = []
+    rec_map = {} # Map RecID -> Recommendation Object
+    
+    seen_recruit_ids = set()
+    
+    for rec_obj, recruitment in rows:
+        # Avoid duplicate recruitments if multiple portfolios recommend the same job
+        # But wait, we want to rerank specific (Portfolio, Recruitment) pairs?
+        # User wants "Global List".
+        # If Job A is recommended by P1 and P2, we should probably pick the best one or deduplicate.
+        # Let's deduplicate by Recruitment ID for the global view logic.
+        if recruitment.id in seen_recruit_ids:
+            continue
+        seen_recruit_ids.add(recruitment.id)
+        
+        rec_map[rec_obj.id] = rec_obj
+        
+        # Build content for reranker
+        content = (
+            f"회사: {recruitment.company}\n"
+            f"직무: {recruitment.title}\n"
+            f"주요 업무: {recruitment.key_responsibilities}\n"
+            f"자격 요건: {recruitment.required_qualifications}\n"
+        )
+        
+        doc = Document(page_content=content, metadata={"id": str(rec_obj.id)})
+        candidates.append(doc)
+    
+    if not candidates: return
+
+    # 4. Rerank using NCP
+    matcher = RecruitMatcher()
+    refined_results = await matcher.rerank_with_ncp(global_query, candidates, top_n=20)
+    
+    # 5. Update Rank Order
+    # First, set all ranks to a high number (e.g. 999) to "hide" unranked ones
+    # Or we can just update the ones returned by Reranker.
+    
+    # Let's update rank for the winners.
+    for i, doc in enumerate(refined_results):
+        try:
+            rec_id = int(doc.metadata.get("id"))
+            # Update this recommendation record
+            update_stmt = sa.update(Recommendation).where(Recommendation.id == rec_id).values(rank_order=i)
+            await db.execute(update_stmt)
+        except:
+            continue
+            
+    await db.commit()
+
 async def trigger_user_recommendation_update(db: AsyncSession, user_id: int):
     """
     Helper to trigger recommendation update for a user's latest portfolio.
     Used in background tasks.
+    And now triggers Global Reranking at the end.
     """
     try:
         from app.models.models import Portfolio
@@ -319,6 +410,11 @@ async def trigger_user_recommendation_update(db: AsyncSession, user_id: int):
         if portfolio:
             logger.info(f"Triggering background recommendation update for User {user_id}, Portfolio {portfolio.id}")
             await precompute_recommendations_for_portfolio(db, portfolio.id)
+            
+            # Trigger Global Rerank
+            logger.info(f"Triggering Global Rerank for User {user_id}")
+            await global_rerank_recommendations(db, user_id)
+            
         else:
             logger.info(f"No portfolio found for User {user_id} to update recommendations.")
             
