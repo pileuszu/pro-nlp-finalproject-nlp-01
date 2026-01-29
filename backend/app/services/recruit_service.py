@@ -274,6 +274,7 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
                 portfolio_id=portfolio_id,
                 recruitment_id=recruit_id,
                 rank_order=i,
+                score=rec.get("score"),
                 reason=rec.get("reason", "")
             )
             db.add(new_rec)

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Date, JSON, Table, Enum as SqEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Date, JSON, Float, Table, Enum as SqEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
@@ -110,6 +110,7 @@ class Recommendation(Base):
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
     recruitment_id = Column(Integer, ForeignKey("recruitments.id"), nullable=False)
     rank_order = Column(Integer, nullable=False)
+    score = Column(Float, nullable=True)
     reason = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
