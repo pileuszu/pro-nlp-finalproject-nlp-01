@@ -131,46 +131,7 @@ class LLMRefiner:
             else:
                 raise RuntimeError(f"NCP API Error: {res_json}")
 
-    async def extract_user_data_and_queries(self, text: str) -> Optional[CombinedResult]:
-        if not self.api_key:
-            raise RuntimeError("NCP API helper not initialized (missing API Key).")
 
-        system_prompt = f"""
-너는 한국어 포트폴리오 텍스트를 (1) user1_data JSON으로 구조화하고,
-동시에 (2) 기업 공고 검색 쿼리(A/B/C) 3개를 생성하는 도구야.
-
-========================
-(1) user1_data 생성 규칙
-========================
-- 텍스트에 등장하는 모든 프로젝트를 각각 구조화하여 projects 배열에 담아라.
-- 텍스트에 근거한 내용만 작성(추측/과장/확장 금지)
-- 원문에 없는 profile 값(user_id/name/job_title/summary)은 null
-- period/role/description_for_embedding이 없으면 null
-- role은 1문장으로 짧게 (괄호로 길게 나열 금지)
-- tech_stack은 원문에 등장한 기술명만 배열로
-- skills는 원문 근거 있는 핵심 역량 키워드 0~8개(없으면 빈 배열)
-
-description_for_embedding 형식(반드시 그대로):
-- 멀티라인 문자열이며 아래 헤더를 그대로 사용해라.
-- '문제 상황'과 '해결 과정'이 연결되도록 작성해라(각 해결 과정에 어떤 문제를 해결하는지 포함).
-
-[문제-해결 매핑]
-1) 문제: ...
-   - 해결:
-     - ...
-     - ...
-   - 결과: ... (원문에 있을 때만)
-
-2) 문제: ...
-   - 해결:
-     - ...
-   - 결과: ... (원문에 있을 때만)
-
-[전체 성과]
-- ... (원문에 있을 때만)
-- 없으면: - 미기재
-
-추가 규칙:
     async def extract_user_data_and_queries(self, text: str) -> CombinedResult:
         """
         Extract structured user data and job queries from portfolio text using NCP Structured Outputs.
