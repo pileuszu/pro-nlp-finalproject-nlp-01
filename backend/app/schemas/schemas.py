@@ -52,12 +52,9 @@ class RecruitmentListResponse(BaseModel):
 
 # Portfolio Schemas
 class PortfolioBase(BaseModel):
-    title: str
     type: str
     source_url: Optional[str] = None
     content: Optional[str] = None
-    extracted_summary: Optional[str] = None
-    extracted_job_title: Optional[str] = None
     project_name: Optional[str] = None
     period: Optional[str] = None
     role: Optional[str] = None
@@ -82,11 +79,9 @@ class Portfolio(PortfolioBase):
     created_at: datetime
     
     processing_status: Optional[str] = None
-    extracted_summary: Optional[str] = None
-    extracted_job_title: Optional[str] = None
     
     # Flattened Project Details
-    project_name: Optional[str] = None
+    project_name: str  # Now required
     period: Optional[str] = None
     role: Optional[str] = None
     description: Optional[str] = None
@@ -105,11 +100,9 @@ class PortfolioCreateRequest(PortfolioBase):
     job_queries: Optional[List[PortfolioJobQueryCreate]] = []
 
 class PortfolioUpdateRequest(BaseModel):
-    title: Optional[str] = None
     type: Optional[str] = None
     source_url: Optional[str] = None
     content: Optional[str] = None
-    extracted_job_title: Optional[str] = None
     project_name: Optional[str] = None
     period: Optional[str] = None
     role: Optional[str] = None

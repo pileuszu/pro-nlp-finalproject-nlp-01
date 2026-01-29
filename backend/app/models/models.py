@@ -55,7 +55,6 @@ class Portfolio(Base):
     __tablename__ = "portfolios"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False) # Original File Name or Main Title
     type = Column(String, nullable=False)  # github, link, file, notion
     source_url = Column(String, nullable=True)
     content = Column(Text, nullable=True) # Raw extracted text
@@ -66,7 +65,7 @@ class Portfolio(Base):
     processing_status = Column(SqEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
     
     # Project Details (Flattened)
-    project_name = Column(String, nullable=True)
+    project_name = Column(String, nullable=False)  # Now required since title is removed
     period = Column(String, nullable=True)
     role = Column(String, nullable=True)
     description = Column(Text, nullable=True) # Refined Description for Embedding
