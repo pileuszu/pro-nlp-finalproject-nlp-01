@@ -24,9 +24,9 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     
     # Sorting
     if sort_by == 'popular':
-        stmt = stmt.order_by(models.Recruitment.view_count.desc(), models.Recruitment.created_at.desc())
+        stmt = stmt.order_by(models.Recruitment.view_count.desc(), models.Recruitment.id.desc())
     else:
-        stmt = stmt.order_by(models.Recruitment.created_at.desc())
+        stmt = stmt.order_by(models.Recruitment.id.desc())
 
     # Get items
     stmt = stmt.offset(skip).limit(limit)
