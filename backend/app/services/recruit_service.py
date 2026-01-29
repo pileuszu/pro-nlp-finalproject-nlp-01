@@ -297,3 +297,15 @@ async def run_bg_recalc_for_user(user_id: int):
     from app.db.database import AsyncSessionLocal
     async with AsyncSessionLocal() as db:
         await trigger_user_recommendation_update(db, user_id)
+
+async def run_bg_inc_view_count(recruit_id: int):
+    """
+    Standalone background task to increment view count.
+    Creates its own DB session to avoid "Session is closed" errors.
+    """
+    from app.db.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
+        try:
+            await inc_view_count(db, recruit_id)
+        except Exception as e:
+            logger.error(f"Failed to increment view count for {recruit_id}: {e}")

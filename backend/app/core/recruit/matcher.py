@@ -32,7 +32,7 @@ class RecruitMatcher:
         url = f"{self.ncp_base_url}/v3/chat-completions/{self.model_id}"
         headers = {
             "Authorization": f"Bearer {self.ncp_api_key}",
-            "X-NCP-CLOVASTUDIO-API-KEY": self.ncp_api_key,
+            # "X-NCP-CLOVASTUDIO-API-KEY": self.ncp_api_key,
             "Content-Type": "application/json",
             "Accept": "application/json"
         }

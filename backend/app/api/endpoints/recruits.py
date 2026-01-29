@@ -62,7 +62,7 @@ async def get_recruit(
         raise HTTPException(status_code=404, detail="Recruitment not found")
     
     # Increment view count in background
-    background_tasks.add_task(recruit_service.inc_view_count, db, recruit_id)
+    background_tasks.add_task(recruit_service.run_bg_inc_view_count, recruit_id)
     
     return db_recruit
 

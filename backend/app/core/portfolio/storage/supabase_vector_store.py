@@ -21,7 +21,7 @@ class ManualRAG:
         self.api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY") or os.getenv("NCP_API_KEY")
 
     def get_embedding(self, text_content):
-        base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com").strip()
+        base_url = (os.getenv("NCP_CLOVASTUDIO_BASE_URL") or "https://clovastudio.stream.ntruss.com").strip()
         # Ensure it doesn't end with slash
         if base_url.endswith("/"):
             base_url = base_url[:-1]
@@ -29,7 +29,7 @@ class ManualRAG:
         url = f"{base_url}/v1/api-tools/embedding/v2"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "X-NCP-CLOVASTUDIO-API-KEY": self.api_key,
+            # "X-NCP-CLOVASTUDIO-API-KEY": self.api_key,
             "Content-Type": "application/json"
         }
         res = requests.post(
