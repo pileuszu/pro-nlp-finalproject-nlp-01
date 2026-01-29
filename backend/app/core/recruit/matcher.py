@@ -25,7 +25,7 @@ class RecruitMatcher:
         if not self.ncp_api_key:
             logger.warning("NCP_CLOVASTUDIO_API_KEY is not set. AI features will be disabled.")
 
-    async def _call_ncp_chat_completion(self, messages: List[Dict], max_tokens: int = 4096) -> str:
+    async def _call_ncp_chat_completion(self, messages: List[Dict], max_tokens: int = 4096, **kwargs) -> str:
         """
         Helper to call NCP Chat Completion v3 API.
         """
