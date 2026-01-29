@@ -15,11 +15,7 @@ from config.settings import (
     CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
     LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS
 )
-<<<<<<< Updated upstream
 from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult
-=======
-from src.schemas import GapAnalysisResult, ResumeGenerationResult
->>>>>>> Stashed changes
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
     RESUME_GENERATION_PROMPT,
@@ -335,8 +331,8 @@ def run_single_question_analysis(user_id: str, question_id: int) -> Dict[str, An
     
     return {
         "user_id": user_id,
-        "user_name": user_name,
-        "company_name": company_name,
+        "user_name": user_data.get("profile", {}).get("name", "Unknown"),
+        "company_name": company_data.get("company_info", {}).get("company_name", "Unknown"),
         "relevant_experiences": relevant_experiences,
         "gap_analysis": gap_result,
         "resumes": [{
@@ -364,13 +360,7 @@ def generate_outline(
     job_position = company_data.get("job_position", {})
     
     # 경험 텍스트 결합
-    experiences_text = "\n\n---\n\n".join([
-        f"[프로젝트: {doc.metadata.get('project_name', 'N/A')}]\n"
-        f"역할: {doc.metadata.get('role', 'N/A')}\n"
-        f"기술스택: {doc.metadata.get('tech_stack', 'N/A')}\n"
-        f"내용:\n{doc.page_content}"
-        for doc in user_experiences
-    ])
+    experiences_text = format_experiences(user_experiences)
     
     input_vars = {
         "company_name": company_info.get("company_name", ""),
