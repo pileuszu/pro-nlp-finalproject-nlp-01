@@ -1,6 +1,10 @@
 name: Frontend Build & Deploy (Vercel)
 
 on:
+  push:
+    branches: [ "develop" ]
+    paths:
+      - 'frontend/**'
   workflow_dispatch:
 
 jobs:

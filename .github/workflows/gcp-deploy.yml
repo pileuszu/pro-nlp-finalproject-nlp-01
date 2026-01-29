@@ -1,6 +1,10 @@
 name: Backend GCP Deploy
 
 on:
+  push:
+    branches: [ "develop" ]
+    paths:
+      - 'backend/**'
   workflow_dispatch:
 
 env:
