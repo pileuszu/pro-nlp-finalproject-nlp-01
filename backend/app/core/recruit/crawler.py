@@ -1,5 +1,6 @@
 import os
 import time
+import asyncio
 import json
 import base64
 import requests
@@ -173,7 +174,7 @@ class RecruitmentCrawler:
         }
         
         try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=60)
+            resp = requests.post(url, headers=headers, json=payload, timeout=120)
             if resp.status_code == 200:
                 result = resp.json()
                 if result.get("status", {}).get("code") == "20000":
@@ -235,9 +236,9 @@ class RecruitmentCrawler:
     
     def get_job_detail(self, url: str) -> tuple:
         """Fetch detailed job posting content."""
-        time.sleep(1)  # Politeness delay
+        time.sleep(2)  # Politeness delay increased
         try:
-            resp = requests.get(url, headers=self._get_headers(), timeout=15)
+            resp = requests.get(url, headers=self._get_headers(), timeout=30)
             if resp.status_code != 200:
                 return "", "", ""
             
@@ -275,15 +276,20 @@ class RecruitmentCrawler:
     
     async def crawl_and_parse(self) -> List[Dict]:
         """Main crawling and parsing logic."""
+        loop = asyncio.get_event_loop()
+
         # 1. Crawl job list
-        job_list = self.get_job_list()
+        # job_list = self.get_job_list()
+        job_list = await loop.run_in_executor(None, self.get_job_list)
         
         full_data = []
         logger.info(f"\n=== Collecting details for {len(job_list)} jobs ===")
         
         for idx, job in enumerate(job_list):
             logger.info(f"[{idx+1}/{len(job_list)}] {job['company']} - {job['title']}")
-            text, imgs, apply_url = self.get_job_detail(job['url'])
+            # text, imgs, apply_url = self.get_job_detail(job['url'])
+            text, imgs, apply_url = await loop.run_in_executor(None, self.get_job_detail, job['url'])
+            
             job['content_text'] = text
             job['content_images'] = imgs
             job['apply_url'] = apply_url
@@ -295,7 +301,8 @@ class RecruitmentCrawler:
         
         for idx, row in enumerate(full_data):
             logger.info(f"[{idx+1}/{len(full_data)}] Analyzing...")
-            items = self._analyze_job_with_ncp(row)
+            # items = self._analyze_job_with_ncp(row)
+            items = await loop.run_in_executor(None, self._analyze_job_with_ncp, row)
             final_json_results.extend(items)
         
         logger.info(f"\n[Complete] Parsed {len(final_json_results)} recruitment items")
