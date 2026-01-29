@@ -36,7 +36,7 @@ describe('PortfoliosPage', () => {
 
         // Wait for groups to render
         await waitFor(() => {
-            // Check for group headers with project counts
+            // Check for project names in group headers
             expect(screen.getByText(/나만의 기술 블로그/i)).toBeInTheDocument();
             expect(screen.getByText(/졸업 프로젝트/i)).toBeInTheDocument();
             expect(screen.getByText(/오픈소스 기여 내역/i)).toBeInTheDocument();
@@ -70,9 +70,9 @@ describe('PortfoliosPage', () => {
         if (firstGroupButton) {
             fireEvent.click(firstGroupButton);
 
-            // After expanding, AI READY badge should be visible
+            // After expanding, AI READY badge should be visible (changed from "AI READY" to "AI 분석 완료")
             await waitFor(() => {
-                const badges = screen.getAllByText(/AI READY/i);
+                const badges = screen.getAllByText(/AI 분석 완료/i);
                 expect(badges.length).toBeGreaterThan(0);
             });
         }

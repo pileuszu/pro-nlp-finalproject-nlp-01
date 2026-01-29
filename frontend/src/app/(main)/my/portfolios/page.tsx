@@ -23,11 +23,10 @@ function groupPortfolios(portfolios: Portfolio[]): PortfolioGroup[] {
     const groups = new Map<string, PortfolioGroup>();
 
     portfolios.forEach(portfolio => {
-        // Extract original title (remove " - ProjectName" suffix)
-        const titleParts = portfolio.title.split(' - ');
-        const originalTitle = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : portfolio.title;
+        // Use project_name as the original title
+        const originalTitle = portfolio.project_name || portfolio.projectName || 'Untitled';
 
-        // Create group key based on original title + creation time window (within 5 seconds)
+        // Create group key based on creation time window (within 5 seconds)
         const createdTime = new Date(portfolio.createdAt).getTime();
         const timeWindow = Math.floor(createdTime / 5000);
         const sourceKey = `${originalTitle}_${timeWindow}`;

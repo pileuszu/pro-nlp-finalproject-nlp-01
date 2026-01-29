@@ -25,7 +25,7 @@ const ALL_RECRUITS: MockRecruit[] = [
 const PORTFOLIOS = [
     {
         id: 1,
-        title: '나만의 기술 블로그',
+        project_name: '나만의 기술 블로그',
         type: 'link',
         url: 'https://velog.io/@test',
         createdAt: '2025-12-01',
@@ -39,7 +39,7 @@ const PORTFOLIOS = [
     },
     {
         id: 2,
-        title: '졸업 프로젝트 (PDF)',
+        project_name: '졸업 프로젝트',
         type: 'file',
         createdAt: '2026-01-10',
         description: '학부 졸업 프로젝트 최종 보고서입니다.',
@@ -52,7 +52,7 @@ const PORTFOLIOS = [
     },
     {
         id: 3,
-        title: '오픈소스 기여 내역',
+        project_name: '오픈소스 기여 내역',
         type: 'github',
         url: 'https://github.com/facebook/react',
         createdAt: '2026-01-05',
@@ -419,7 +419,7 @@ export const handlers = [
 
         await delay(1500);
         const selectedPfs = PORTFOLIOS.filter(p => portfolioIds.includes(p.id));
-        const pfHighlights = selectedPfs.map(p => p.title).join(', ');
+        const pfHighlights = selectedPfs.map(p => p.project_name).join(', ');
 
         return HttpResponse.json({
             result: `[AI 생성 초안]\n\n질문: ${question}\n\n사용자께서 선택하신 [${pfHighlights}] 경험을 바탕으로 ${tone || '일반'}적인 톤으로 작성된 초안입니다...\n\n성과 지표를 중심으로 다음과 같이 구성하였습니다...`
