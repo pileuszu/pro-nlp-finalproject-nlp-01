@@ -126,13 +126,14 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         </p>
                     </div>
 
+
                     <div className="space-y-3">
                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                             <Code className="h-4 w-4" /> 기술 스택
                         </h3>
-                        {portfolio.techStack && portfolio.techStack.length > 0 ? (
+                        {((portfolio.techStack && portfolio.techStack.length > 0) || (portfolio.tech_stack && portfolio.tech_stack.length > 0)) ? (
                             <div className="flex flex-wrap gap-2">
-                                {portfolio.techStack.map((tech, i) => (
+                                {(portfolio.techStack || portfolio.tech_stack)!.map((tech, i) => (
                                     <Badge key={i} variant="secondary" className="px-3 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 text-sm">
                                         {tech}
                                     </Badge>

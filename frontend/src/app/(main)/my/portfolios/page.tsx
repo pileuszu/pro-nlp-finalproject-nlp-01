@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Portfolio } from "@/types";
-import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List, ChevronDown, FolderOpen } from "lucide-react";
+import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -28,9 +28,8 @@ function groupPortfolios(portfolios: Portfolio[]): PortfolioGroup[] {
         const originalTitle = titleParts.length > 1 ? titleParts.slice(0, -1).join(' - ') : portfolio.title;
 
         // Create group key based on original title + creation time window (within 5 seconds)
-        // This groups projects from the same upload together
         const createdTime = new Date(portfolio.createdAt).getTime();
-        const timeWindow = Math.floor(createdTime / 5000); // 5-second window
+        const timeWindow = Math.floor(createdTime / 5000);
         const sourceKey = `${originalTitle}_${timeWindow}`;
 
         if (!groups.has(sourceKey)) {
@@ -99,7 +98,6 @@ export default function PortfoliosPage() {
                     <p className="text-slate-500 mt-2 font-medium">등록된 포트폴리오를 관리하고 채용 공고에 활용하세요.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    {/* View Toggle */}
                     <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
                         <Button
                             variant="ghost"
@@ -144,20 +142,17 @@ export default function PortfoliosPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: groupIndex * 0.05 }}
-                                className="border border-slate-200 rounded-2xl overflow-hidden bg-gradient-to-br from-white to-slate-50/30 shadow-sm"
+                                className="space-y-4"
                             >
                                 {/* Group Header */}
                                 <button
                                     onClick={() => toggleGroup(group.sourceKey)}
-                                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors duration-200 group"
+                                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors duration-200 group rounded-xl border border-slate-200 bg-white"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
-                                            <FolderOpen className="h-5 w-5" />
-                                        </div>
                                         <div className="text-left">
                                             <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
-                                                {group.originalTitle}
+                                                {group.portfolios.map(p => p.project_name || p.projectName).filter(Boolean).join(', ') || group.originalTitle}
                                             </h3>
                                             <p className="text-sm text-slate-500 font-medium">
                                                 {group.portfolios.length}개 프로젝트 • {new Date(group.createdAt).toLocaleDateString()}
@@ -183,7 +178,7 @@ export default function PortfoliosPage() {
                                             transition={{ duration: 0.3 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 p-6 pt-2 bg-white/50">
+                                            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                                 {group.portfolios.map((portfolio, index) => (
                                                     <motion.div
                                                         key={portfolio.id}
@@ -197,12 +192,7 @@ export default function PortfoliosPage() {
                                                                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors duration-300">
                                                                         {getIcon(portfolio.type)}
                                                                     </div>
-                                                                    <div className="flex flex-col">
-                                                                        <span className="line-clamp-1">{portfolio.projectName || portfolio.title}</span>
-                                                                        {portfolio.projectName && portfolio.title !== portfolio.projectName && (
-                                                                            <span className="text-xs text-slate-400 font-normal line-clamp-1">{portfolio.title}</span>
-                                                                        )}
-                                                                    </div>
+                                                                    <span className="line-clamp-1">{portfolio.project_name || portfolio.projectName || "프로젝트"}</span>
                                                                 </CardTitle>
                                                                 <div className="text-[11px] text-slate-400 font-bold flex items-center justify-between uppercase tracking-wider mt-2">
                                                                     {portfolio.role || 'N/A'}
@@ -225,18 +215,18 @@ export default function PortfoliosPage() {
                                                             </CardHeader>
                                                             <CardContent className="flex-1 pb-6 space-y-4">
                                                                 <p className="text-sm text-slate-500 line-clamp-3 leading-relaxed font-medium">
-                                                                    {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
+                                                                    {portfolio.description || portfolio.extractedSummary || portfolio.extracted_summary || "설명이 없습니다."}
                                                                 </p>
 
-                                                                {portfolio.techStack && portfolio.techStack.length > 0 && (
+                                                                {(portfolio.techStack || portfolio.tech_stack) && (portfolio.techStack?.length || portfolio.tech_stack?.length || 0) > 0 && (
                                                                     <div className="flex flex-wrap gap-1.5 pt-2">
-                                                                        {portfolio.techStack.slice(0, 4).map((tech, i) => (
+                                                                        {(portfolio.techStack || portfolio.tech_stack)!.slice(0, 4).map((tech, i) => (
                                                                             <Badge key={i} variant="secondary" className="text-[10px] bg-slate-100 text-slate-600 hover:bg-slate-200">
                                                                                 {tech}
                                                                             </Badge>
                                                                         ))}
-                                                                        {portfolio.techStack.length > 4 && (
-                                                                            <span className="text-[10px] text-slate-400 font-bold self-center">+{portfolio.techStack.length - 4}</span>
+                                                                        {(portfolio.techStack?.length || portfolio.tech_stack?.length || 0) > 4 && (
+                                                                            <span className="text-[10px] text-slate-400 font-bold self-center">+{(portfolio.techStack?.length || portfolio.tech_stack?.length || 0) - 4}</span>
                                                                         )}
                                                                     </div>
                                                                 )}
@@ -273,17 +263,14 @@ export default function PortfoliosPage() {
                                 initial={{ opacity: 0, x: -20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: groupIndex * 0.05 }}
-                                className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-sm"
+                                className="space-y-4"
                             >
                                 {/* Group Header */}
                                 <button
                                     onClick={() => toggleGroup(group.sourceKey)}
-                                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors duration-200 group"
+                                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors duration-200 group rounded-xl border border-slate-200 bg-white"
                                 >
                                     <div className="flex items-center gap-4">
-                                        <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100 text-blue-600">
-                                            <FolderOpen className="h-5 w-5" />
-                                        </div>
                                         <div className="text-left">
                                             <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                                                 {group.originalTitle}
@@ -312,7 +299,7 @@ export default function PortfoliosPage() {
                                             transition={{ duration: 0.3 }}
                                             className="overflow-hidden"
                                         >
-                                            <div className="space-y-2 p-6 pt-2 bg-slate-50/30">
+                                            <div className="space-y-2">
                                                 {group.portfolios.map((portfolio, index) => (
                                                     <motion.div
                                                         key={portfolio.id}
@@ -329,7 +316,7 @@ export default function PortfoliosPage() {
                                                                     <div className="flex-1 min-w-0">
                                                                         <div className="flex items-center gap-3 mb-1">
                                                                             <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
-                                                                                {portfolio.projectName || portfolio.title}
+                                                                                {portfolio.project_name || portfolio.projectName || "프로젝트"}
                                                                             </h3>
                                                                             {portfolio.processingStatus === 'COMPLETED' && (
                                                                                 <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
@@ -343,7 +330,7 @@ export default function PortfoliosPage() {
                                                                             )}
                                                                         </div>
                                                                         <p className="text-sm text-slate-400 font-medium truncate italic antialiased leading-relaxed">
-                                                                            {portfolio.description || portfolio.extractedSummary || "설명이 없습니다."}
+                                                                            {portfolio.description || portfolio.extractedSummary || portfolio.extracted_summary || "설명이 없습니다."}
                                                                         </p>
                                                                     </div>
                                                                 </div>

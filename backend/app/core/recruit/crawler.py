@@ -43,7 +43,12 @@ class RecruitmentCrawler:
         self.target_pages = target_pages
         self.google_api_key = os.getenv("GOOGLE_API_KEY")
         self.ncp_api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")
-        self.ncp_base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
+        
+        # Get base URL and ensure it has a proper protocol
+        base_url = os.getenv("NCP_CLOVASTUDIO_BASE_URL", "https://clovastudio.stream.ntruss.com")
+        if base_url and not base_url.startswith(('http://', 'https://')):
+            base_url = f"https://{base_url}"
+        self.ncp_base_url = base_url
         
         if not self.google_api_key:
             logger.warning("GOOGLE_API_KEY not found. OCR will not work.")

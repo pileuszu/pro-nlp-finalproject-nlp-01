@@ -17,6 +17,10 @@ class User(Base):
     name = Column(String, nullable=False)
     profile_image = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # User Profile Fields (extracted from portfolios)
+    profile_summary = Column(Text, nullable=True)  # Overall summary across all projects
+    desired_job_title = Column(String, nullable=True)  # Desired job position
 
     portfolios = relationship("Portfolio", back_populates="owner")
     cover_letters = relationship("CoverLetter", back_populates="owner")
@@ -58,10 +62,8 @@ class Portfolio(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # LLM Extracted Metadata (User Profile)
+    # Processing Status
     processing_status = Column(SqEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
-    extracted_summary = Column(Text, nullable=True)
-    extracted_job_title = Column(String, nullable=True)
     
     # Project Details (Flattened)
     project_name = Column(String, nullable=True)
