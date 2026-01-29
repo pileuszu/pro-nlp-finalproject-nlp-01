@@ -39,8 +39,8 @@ jobs:
 
       - name: Build and Push Container
         run: |
-          cd backend
-          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.image }}:${{ github.sha }}" .
+          # Build from root to include valid paths for backend/Dockerfile
+          docker build -t "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.image }}:${{ github.sha }}" -f backend/Dockerfile .
           docker push "${{ env.GAR_LOCATION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.image }}:${{ github.sha }}"
 
       - name: Set up Python

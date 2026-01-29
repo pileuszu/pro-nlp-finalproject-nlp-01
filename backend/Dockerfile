@@ -8,12 +8,16 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-
+# Build from Root Context
+COPY backend/requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+# Copy Backend Code
+COPY backend/ .
+
+# Copy LLM Pipeline (Recruit Scraper)
+COPY llm-pipeline/ /app/llm-pipeline/
 
 ENV PYTHONPATH=/app
 # PORT env var is injected by Cloud Run (default 8080)
