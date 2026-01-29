@@ -92,12 +92,12 @@ class PGHybridRetriever:
 
         # 2. Vector Scores (Cosine Similarity)
         vector_scores = [0.0] * len(self.documents)
-        if query_embedding:
+        if query_embedding is not None:
             q_vec = np.array(query_embedding)
             norm_q = np.linalg.norm(q_vec)
             
             for i, doc in enumerate(self.documents):
-                if doc["embedding"]:
+                if doc["embedding"] is not None:
                     d_vec = np.array(doc["embedding"])
                     norm_d = np.linalg.norm(d_vec)
                     if norm_q > 0 and norm_d > 0:
@@ -161,7 +161,7 @@ class AICoverLetterService:
         
         # Use recruitment embedding if available for query, else rely on BM25 only (or simple embedding if needed)
         query_embedding = None
-        if recruitment.embedding:
+        if recruitment.embedding is not None:
              # Handle vector format (string or list)
             if isinstance(recruitment.embedding, str):
                  try:
