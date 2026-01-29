@@ -6,13 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useSearchParams, useRouter } from "next/navigation";
-import { ArrowLeft, Save, Sparkles, Loader2, Briefcase, BookOpen, X, Building, Plus, Trash2, FileText, Github, Brain, CheckCircle, Target, MessageSquare, Wand2, Zap, LayoutList, Calendar } from "lucide-react";
+import {
+    ArrowLeft, Save, Sparkles, Loader2, Briefcase, BookOpen, X, Building,
+    Plus, Trash2, FileText, Github, Brain, CheckCircle, Target,
+    MessageSquare, Wand2, Zap, LayoutList, Calendar, MapPin,
+    GraduationCap, Coins, Info, AlertCircle, ChevronRight, Search
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
-import { CoverLetterItem } from "@/types";
+import { CoverLetterItem, GapAnalysisResult } from "@/types";
 
 // --- Types ---
 interface QuestionItem {
@@ -28,6 +33,27 @@ interface Portfolio {
     title: string;
     type: 'link' | 'file' | 'github';
     description: string;
+    project_name?: string;
+    role?: string;
+}
+
+interface RecruitDetail {
+    id: number;
+    company: string;
+    title: string;
+    startDate: string;
+    deadline: string;
+    content?: string;
+    location?: string;
+    experience?: string;
+    education?: string;
+    salary?: string;
+    job_sector?: string;
+    category?: string;
+    key_responsibilities?: string;
+    required_qualifications?: string;
+    preferred_qualifications?: string;
+    tags?: string[];
 }
 
 type AiMode = 'draft' | 'strategy' | 'refine';
@@ -45,7 +71,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         { id: 1, question: "지원동기 및 포부", answer: "" }
     ]);
 
-    const [linkedRecruit, setLinkedRecruit] = useState<{ id: number; company: string; title: string; startDate: string; deadline: string; content?: string; tags?: string[] } | null>(null);
+    const [linkedRecruit, setLinkedRecruit] = useState<RecruitDetail | null>(null);
+    const [gapAnalysis, setGapAnalysis] = useState<GapAnalysisResult | null>(null);
     const [loading, setLoading] = useState(!isNew);
     const [showRecruitPanel, setShowRecruitPanel] = useState(false);
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
@@ -74,10 +101,28 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}`));
                     const data = await res.json();
                     setTitle(data.title);
-                    if (data.questions?.length > 0) setQuestions(data.questions);
-                    if (data.recruitId) {
-                        const rRes = await fetchWithAuth(getApiUrl(`/recruits/${data.recruitId}`));
-                        if (rRes.ok) { setLinkedRecruit(await rRes.json()); setShowRecruitPanel(true); }
+                    if (data.items?.length > 0) {
+                        setQuestions(data.items.map((item: any) => ({
+                            id: item.id || Date.now() + Math.random(),
+                            question: item.question,
+                            answer: item.content,
+                            key_points: item.key_points,
+                            suggested_improvements: item.suggested_improvements
+                        })));
+                    } else if (data.questions?.length > 0) {
+                        setQuestions(data.questions);
+                    }
+
+                    if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
+
+                    if (data.recruitment_id || data.recruitId) {
+                        const rId = data.recruitment_id || data.recruitId;
+                        const rRes = await fetchWithAuth(getApiUrl(`/recruits/${rId}`));
+                        if (rRes.ok) {
+                            const rData = await rRes.json();
+                            setLinkedRecruit(rData);
+                            setShowRecruitPanel(true);
+                        }
                     }
                 } catch (e) { console.error(e); }
             } else if (jobId) {
@@ -98,7 +143,11 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     const handleSave = async () => {
         try {
-            const body = { title, questions, recruitId: linkedRecruit?.id };
+            const body = {
+                title,
+                questions: questions.map(q => ({ question: q.question, content: q.answer })),
+                recruitId: linkedRecruit?.id
+            };
             const res = await fetchWithAuth(isNew ? getApiUrl('/cover-letters') : getApiUrl(`/cover-letters/${id}`), {
                 method: isNew ? 'POST' : 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -120,16 +169,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         setSelectedPortfolioIds(prev => prev.includes(pfId) ? prev.filter(id => id !== pfId) : [...prev, pfId]);
 
     // --- AI Studio Logic ---
-    const openAiStudio = (qId: number) => {
-        if (selectedPortfolioIds.length === 0) {
-            alert("참고할 포트폴리오를 우측 패널에서 먼저 선택하세요!");
-            setShowRecruitPanel(true);
-            setPanelTab("reference");
-            return;
-        }
-        setActiveAiQuestionId(qId);
-    };
-
     const runAiGeneration = async () => {
         setIsGenerating(true);
         try {
@@ -141,7 +180,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     mode: aiMode,
                     tone: aiTone,
                     focus: aiFocus,
-                    portfolioIds: selectedPortfolioIds,
+                    portfolioIds: selectedPortfolioIds, // Can be empty now, backend will auto-retrieve
+                    recruitId: linkedRecruit?.id,
                     question: activeQuestionContent
                 })
             });
@@ -150,8 +190,10 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             const data = await res.json();
 
-            // Backend returns CoverLetter object with items. Find the relevant item or fallback.
-            const generatedItem = data.items ? data.items.find((i: CoverLetterItem) => i.question === activeQuestionContent) : null;
+            // Backend returns full CoverLetter object
+            if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
+
+            const generatedItem = data.items?.find((i: CoverLetterItem) => i.question === activeQuestionContent);
 
             if (generatedItem) {
                 setQuestions(questions.map(q => q.id === activeAiQuestionId ? {
@@ -160,8 +202,9 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     key_points: generatedItem.key_points,
                     suggested_improvements: generatedItem.suggested_improvements
                 } : q));
-            } else {
-                setQuestions(questions.map(q => q.id === activeAiQuestionId ? { ...q, answer: data.content || "" } : q));
+            } else if (data.content) {
+                // Fallback for simple generation responses
+                setQuestions(questions.map(q => q.id === activeAiQuestionId ? { ...q, answer: data.content } : q));
             }
 
             setActiveAiQuestionId(null);
@@ -172,6 +215,13 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         setIsGenerating(false);
     };
 
+    const applySuggestion = (qId: number, suggestion: string) => {
+        const q = questions.find(item => item.id === qId);
+        if (q) {
+            updateQuestion(qId, 'answer', q.answer + "\n\n(참고 제안): " + suggestion);
+        }
+    };
+
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
     return (
@@ -180,14 +230,14 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 {/* Editor Content */}
                 <div className="flex-1 p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-6">
-                        <div className="space-y-3">
+                        <div className="space-y-3 font-pretendard">
                             <div className="flex items-center gap-3">
                                 <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-slate-100"><ArrowLeft className="h-5 w-5" /></Button>
                                 <h1 className="text-2xl font-bold tracking-tight text-slate-900">{isNew ? "새 자기소개서 작성" : "자기소개서 수정"}</h1>
                             </div>
                             <div className="flex items-center gap-2">
                                 {linkedRecruit && (
-                                    <Badge variant="outline" className="bg-slate-50 border-slate-200 px-2 py-1 gap-1.5 font-semibold text-slate-600">
+                                    <Badge variant="outline" className="bg-blue-50 border-blue-100 px-2 py-1 gap-1.5 font-semibold text-blue-700">
                                         <Building className="h-3 w-3" /> {linkedRecruit.company}
                                     </Badge>
                                 )}
@@ -195,9 +245,9 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     variant="outline"
                                     size="sm"
                                     onClick={() => setShowRecruitPanel(!showRecruitPanel)}
-                                    className={cn("h-8 gap-1.5 text-xs border-slate-200", showRecruitPanel && "bg-blue-50 text-blue-600 border-blue-200")}
+                                    className={cn("h-8 gap-1.5 text-xs border-slate-200 transition-all", showRecruitPanel && "bg-slate-900 text-white border-slate-900 shadow-md")}
                                 >
-                                    <BookOpen className="h-3.5 w-3.5" /> 패널 {showRecruitPanel ? "닫기" : "열기"}
+                                    <LayoutList className="h-3.5 w-3.5" /> 분석 패널 {showRecruitPanel ? "닫기" : "열기"}
                                 </Button>
                             </div>
                         </div>
@@ -221,168 +271,274 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     <Trash2 className="h-4 w-4 mr-2" /> 삭제
                                 </Button>
                             )}
-                            <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6">취소</Button>
-                            <Button variant="brand" onClick={handleSave} className="rounded-md h-10 px-6">
+                            <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
+                            <Button variant="brand" onClick={handleSave} className="rounded-md h-10 px-6 font-bold shadow-lg shadow-blue-500/20">
                                 <Save className="mr-2 h-4 w-4" /> 저장하기
                             </Button>
                         </div>
                     </div>
 
+                    {/* Gap Analysis Dashboard */}
+                    {gapAnalysis && (
+                        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="bg-white border-2 border-slate-100 rounded-3xl p-8 shadow-sm">
+                            <div className="flex items-center justify-between mb-8">
+                                <div className="space-y-1">
+                                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                                        <Zap className="h-5 w-5 text-blue-500 fill-blue-500" /> 직무 적합성 분석 리포트
+                                    </h2>
+                                    <p className="text-sm text-slate-500 font-medium">AI가 분석한 지원자님의 강점과 보완점입니다.</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-sm font-bold text-slate-400">종합 적합도</span>
+                                    <Badge className={cn(
+                                        "px-4 py-1.5 text-sm font-black rounded-lg",
+                                        gapAnalysis.overall_fit === '상' ? "bg-green-500 text-white" :
+                                            gapAnalysis.overall_fit === '중' ? "bg-blue-500 text-white" : "bg-amber-500 text-white"
+                                    )}>
+                                        {gapAnalysis.overall_fit}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-black text-green-700 flex items-center gap-2 ml-1">
+                                        <CheckCircle className="h-4 w-4" /> Strong Points
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {gapAnalysis.matching_points.map((point, i) => (
+                                            <div key={i} className="bg-green-50/50 border border-green-100 p-4 rounded-2xl flex items-start gap-3 group transition-all hover:bg-green-50">
+                                                <div className="h-5 w-5 bg-green-500 text-white rounded-full flex items-center justify-center shrink-0 mt-0.5"><span className="text-[10px] font-bold">{i + 1}</span></div>
+                                                <p className="text-sm font-bold text-green-900 leading-snug">{point}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-black text-amber-700 flex items-center gap-2 ml-1">
+                                        <AlertCircle className="h-4 w-4" /> Areas to Focus
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {gapAnalysis.missing_elements.map((point, i) => (
+                                            <div key={i} className="bg-amber-50/50 border border-amber-100 p-4 rounded-2xl flex items-start gap-3 group transition-all hover:bg-amber-50">
+                                                <div className="h-5 w-5 bg-amber-500 text-white rounded-full flex items-center justify-center shrink-0 mt-0.5"><span className="text-[10px] font-bold">{i + 1}</span></div>
+                                                <p className="text-sm font-bold text-amber-900 leading-snug">{point}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
                     <div className="space-y-4">
                         <Label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">문서 제목</Label>
-                        <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-12 text-lg font-bold border-slate-200 bg-white shadow-sm focus-visible:ring-blue-500" placeholder="자소서 제목을 입력하세요" />
+                        <Input value={title} onChange={(e) => setTitle(e.target.value)} className="h-14 text-xl font-black border-2 border-slate-100 bg-white shadow-sm focus-visible:ring-blue-500 focus:border-blue-500 transition-all rounded-2xl" placeholder="자소서 제목을 입력하세요" />
                     </div>
 
                     <div className="space-y-12 pb-40">
                         <AnimatePresence mode="popLayout">
                             {questions.map((q, idx) => (
                                 <motion.div key={q.id} layout initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                                    className="bg-white border border-slate-200 rounded-xl p-8 shadow-sm relative group hover:shadow-md transition-shadow"
+                                    className="bg-white border-2 border-slate-100 rounded-[2rem] p-8 shadow-sm relative group hover:shadow-xl transition-all duration-300"
                                 >
-                                    <div className="flex justify-between items-center mb-6">
+                                    <div className="flex justify-between items-center mb-8">
                                         <div className="flex items-center gap-4 flex-1">
-                                            <div className="flex items-center bg-slate-900 text-white rounded-md px-3 py-1.5 gap-2 shrink-0 h-9">
-                                                <span className="text-xs font-bold uppercase tracking-tighter opacity-70">문항</span>
-                                                <span className="text-sm font-black">{idx + 1}</span>
+                                            <div className="flex items-center bg-slate-900 text-white rounded-xl px-4 py-2 gap-2 shrink-0 shadow-lg shadow-slate-200">
+                                                <span className="text-xs font-bold uppercase tracking-widest opacity-60">ITEM</span>
+                                                <span className="text-md font-black">{idx + 1}</span>
                                             </div>
                                             <Input
                                                 value={q.question}
                                                 onChange={e => updateQuestion(q.id, 'question', e.target.value)}
-                                                className="border-none text-xl font-bold p-0 focus-visible:ring-0 w-full placeholder:text-slate-300"
-                                                placeholder="어떤 문항인가요? (예: 지원동기)"
+                                                className="border-none text-2xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-slate-200"
+                                                placeholder="질문 문항을 입력하세요"
                                             />
                                         </div>
-                                        <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-4 w-4" /></Button>
+                                        <Button variant="ghost" size="icon" onClick={() => removeQuestion(q.id)} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full"><Trash2 className="h-5 w-5" /></Button>
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative group/textarea">
                                         <Textarea
                                             value={q.answer}
                                             onChange={e => updateQuestion(q.id, 'answer', e.target.value)}
-                                            className="min-h-[400px] resize-y border-slate-100 bg-slate-50/50 p-6 text-base leading-relaxed focus:bg-white focus:border-blue-200 transition-all rounded-xl scrollbar-hide"
-                                            placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 실행하세요."
+                                            className="min-h-[450px] resize-none border-2 border-slate-50 bg-slate-50/30 p-8 text-lg font-medium leading-relaxed focus:bg-white focus:border-blue-100 transition-all rounded-3xl scrollbar-hide shadow-inner"
+                                            placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
                                         />
-                                        <div className="absolute bottom-6 right-6">
-                                            <Button variant="brand" onClick={() => openAiStudio(q.id)} className="gap-2 shadow-xl shadow-blue-500/10 px-6 h-12 transition-all hover:scale-105 active:scale-95 group">
-                                                <Sparkles className="h-4 w-4 group-hover:animate-pulse" /> AI 라이팅 스튜디오
+                                        <div className="absolute bottom-8 right-8">
+                                            <Button variant="brand" onClick={() => setActiveAiQuestionId(q.id)} className="gap-2 shadow-2xl shadow-blue-500/20 px-8 h-14 rounded-2xl transition-all hover:scale-105 active:scale-95 group font-bold">
+                                                <Brain className="h-5 w-5 group-hover:animate-bounce" /> AI 라이팅 스튜디오
                                             </Button>
                                         </div>
                                     </div>
 
                                     {/* AI Insights Display */}
                                     {(q.key_points?.length || q.suggested_improvements?.length) ? (
-                                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="mt-8 pt-8 border-t border-slate-100 grid grid-cols-1 md:grid-cols-2 gap-8">
                                             {q.key_points && q.key_points.length > 0 && (
-                                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-5">
-                                                    <h4 className="text-sm font-bold text-blue-700 flex items-center gap-2 mb-3">
-                                                        <CheckCircle className="h-4 w-4" /> 핵심 요약
+                                                <div className="space-y-4">
+                                                    <h4 className="text-sm font-black text-blue-700 flex items-center gap-2 px-1">
+                                                        <CheckCircle className="h-4 w-4 bg-blue-100 text-blue-600 rounded-full p-0.5" /> 답변 핵심 역량
                                                     </h4>
-                                                    <ul className="space-y-2">
+                                                    <div className="flex flex-wrap gap-2">
                                                         {q.key_points.map((kp, i) => (
-                                                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
-                                                                <span className="bg-blue-200 h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" />
-                                                                <span className="leading-relaxed">{kp}</span>
-                                                            </li>
+                                                            <Badge key={i} className="bg-blue-50/80 text-blue-700 border-blue-100 hover:bg-blue-100 px-3 py-1.5 rounded-xl font-bold text-xs ring-1 ring-blue-200/50">
+                                                                #{kp}
+                                                            </Badge>
                                                         ))}
-                                                    </ul>
+                                                    </div>
                                                 </div>
                                             )}
                                             {q.suggested_improvements && q.suggested_improvements.length > 0 && (
-                                                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-5">
-                                                    <h4 className="text-sm font-bold text-amber-700 flex items-center gap-2 mb-3">
-                                                        <Sparkles className="h-4 w-4" /> 개선 제안
+                                                <div className="space-y-4">
+                                                    <h4 className="text-sm font-black text-amber-700 flex items-center gap-2 px-1">
+                                                        <Sparkles className="h-4 w-4 bg-amber-100 text-amber-600 rounded-full p-0.5" /> AI 개선 제안
                                                     </h4>
-                                                    <ul className="space-y-2">
+                                                    <div className="space-y-2">
                                                         {q.suggested_improvements.map((si, i) => (
-                                                            <li key={i} className="text-xs text-slate-600 flex items-start gap-2">
-                                                                <span className="bg-amber-200 h-1.5 w-1.5 rounded-full mt-1.5 shrink-0" />
-                                                                <span className="leading-relaxed">{si}</span>
-                                                            </li>
+                                                            <div
+                                                                key={i}
+                                                                onClick={() => applySuggestion(q.id, si)}
+                                                                className="text-xs text-slate-500 bg-amber-50/30 border border-amber-100/50 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:bg-amber-50 transition-all group/suggest"
+                                                            >
+                                                                <span className="font-semibold leading-relaxed line-clamp-1">{si}</span>
+                                                                <Plus className="h-3 w-3 text-amber-400 opacity-0 group-hover/suggest:opacity-100 transition-opacity" />
+                                                            </div>
                                                         ))}
-                                                    </ul>
+                                                    </div>
                                                 </div>
                                             )}
-                                        </div>
+                                        </motion.div>
                                     ) : null}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
                         <motion.div layout>
-                            <Button variant="outline" onClick={addQuestion} className="w-full h-14 border-dashed border-2 border-slate-200 bg-white/50 hover:bg-white hover:border-blue-200 hover:text-blue-600 transition-all rounded-xl">
-                                <Plus className="mr-2 h-5 w-5" /> 문항 추가
+                            <Button variant="outline" onClick={addQuestion} className="w-full h-16 border-dashed border-2 border-slate-200 bg-white/50 hover:bg-white hover:border-blue-200 hover:text-blue-600 transition-all rounded-[2rem] font-bold text-slate-400">
+                                <Plus className="mr-2 h-6 w-6" /> 문항 추가
                             </Button>
                         </motion.div>
                     </div>
                 </div>
 
                 {/* Info Panel */}
-                <div className={cn("sticky top-0 h-screen transition-all duration-500 overflow-hidden shrink-0 hidden lg:block", showRecruitPanel ? "w-[480px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
-                    <div className="w-[480px] h-full px-8 pt-20 pb-24 flex flex-col overflow-visible">
-                        <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl flex-1 flex flex-col overflow-hidden">
+                <div className={cn("sticky top-0 h-screen transition-all duration-700 overflow-hidden shrink-0 hidden xl:block", showRecruitPanel ? "w-[580px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
+                    <div className="w-[580px] h-full px-8 pt-20 pb-24 flex flex-col overflow-visible">
+                        <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl flex-1 flex flex-col overflow-hidden">
                             <Tabs value={panelTab} onValueChange={setPanelTab} className="h-full flex flex-col">
-                                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
-                                    <div className="flex justify-between items-center mb-4">
-                                        <h2 className="font-bold text-lg flex items-center gap-2 tracking-tight text-slate-800">
-                                            <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-sm"><Briefcase className="h-4 w-4 text-slate-400" /></div>
-                                            데이터 참고소
-                                        </h2>
-                                        <Button variant="ghost" size="icon" onClick={() => setShowRecruitPanel(false)} className="rounded-full hover:bg-slate-200 transition-colors"><X className="h-4 w-4" /></Button>
+                                <div className="p-8 pb-4 bg-white">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20 text-white"><Search className="h-5 w-5" /></div>
+                                            <div className="space-y-0.5">
+                                                <h2 className="font-black text-xl tracking-tight text-slate-900">공고 분석 패널</h2>
+                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">AI Context Studio</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="icon" onClick={() => setShowRecruitPanel(false)} className="rounded-full hover:bg-slate-100 trasition-all"><X className="h-5 w-5 text-slate-400" /></Button>
                                     </div>
-                                    <TabsList className="grid grid-cols-2 w-full h-11 bg-slate-200/50 p-1 rounded-xl">
-                                        <TabsTrigger value="recruit" className="rounded-lg">공고 상세</TabsTrigger>
-                                        <TabsTrigger value="reference" className="rounded-lg">내 포트폴리오</TabsTrigger>
+                                    <TabsList className="grid grid-cols-2 w-full h-12 bg-slate-100 p-1.5 rounded-[1.25rem] mb-2 font-pretendard">
+                                        <TabsTrigger value="recruit" className="rounded-[0.9rem] font-black text-xs">공고 원문</TabsTrigger>
+                                        <TabsTrigger value="reference" className="rounded-[0.9rem] font-black text-xs">포트폴리오</TabsTrigger>
                                     </TabsList>
                                 </div>
-                                <div className="flex-1 overflow-y-auto overflow-x-hidden p-6 scrollbar-hide">
-                                    <TabsContent value="recruit" className="m-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 mt-2">
+                                <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 pt-4 scrollbar-hide font-pretendard">
+                                    <TabsContent value="recruit" className="m-0 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                                         {linkedRecruit ? (
-                                            <div className="space-y-6">
-                                                <div className="space-y-2">
+                                            <div className="space-y-8 pb-8">
+                                                <div className="space-y-4">
                                                     <h3 className="text-2xl font-black tracking-tight text-slate-900 leading-tight">{linkedRecruit.title}</h3>
-                                                    <div className="flex items-center justify-between">
-                                                        <p className="text-blue-600 font-bold text-sm tracking-wide">{linkedRecruit.company}</p>
-                                                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-                                                            <Calendar className="h-3 w-3" />
-                                                            {linkedRecruit.startDate} ~ {linkedRecruit.deadline}
-                                                        </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <Badge variant="brand" className="px-3 py-1 font-bold rounded-lg">{linkedRecruit.company}</Badge>
+                                                        {linkedRecruit.experience && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold">{linkedRecruit.experience}</Badge>}
+                                                        {linkedRecruit.location && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold"><MapPin className="h-3 w-3 mr-1" />{linkedRecruit.location}</Badge>}
+                                                        {linkedRecruit.salary && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold"><Coins className="h-3 w-3 mr-1" />{linkedRecruit.salary}</Badge>}
+                                                        {linkedRecruit.education && <Badge variant="outline" className="border-slate-200 text-slate-600 rounded-lg px-3 py-1 font-bold"><GraduationCap className="h-3 w-3 mr-1" />{linkedRecruit.education}</Badge>}
                                                     </div>
                                                 </div>
-                                                <div className="h-px bg-slate-100" />
-                                                <p className="text-[15px] text-slate-600 leading-relaxed whitespace-pre-line">{linkedRecruit.content}</p>
+
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">공고 등록</div>
+                                                        <div className="text-sm font-bold text-slate-700">{linkedRecruit.startDate || 'N/A'}</div>
+                                                    </div>
+                                                    <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
+                                                        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">마감 기한</div>
+                                                        <div className="text-sm font-bold text-red-600">{linkedRecruit.deadline || 'N/A'}</div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-8">
+                                                    {linkedRecruit.key_responsibilities && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-2 text-sm font-black text-slate-900"><div className="h-1.5 w-1.5 bg-blue-600 rounded-full" /> 주요 업무</div>
+                                                            <p className="text-[14px] text-slate-600 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100 whitespace-pre-wrap font-medium">{linkedRecruit.key_responsibilities}</p>
+                                                        </div>
+                                                    )}
+                                                    {linkedRecruit.required_qualifications && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-2 text-sm font-black text-slate-900"><div className="h-1.5 w-1.5 bg-green-600 rounded-full" /> 자격 요건</div>
+                                                            <p className="text-[14px] text-slate-600 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100 whitespace-pre-wrap font-medium">{linkedRecruit.required_qualifications}</p>
+                                                        </div>
+                                                    )}
+                                                    {linkedRecruit.preferred_qualifications && (
+                                                        <div className="space-y-3">
+                                                            <div className="flex items-center gap-2 text-sm font-black text-slate-900"><div className="h-1.5 w-1.5 bg-amber-600 rounded-full" /> 우대 사항</div>
+                                                            <p className="text-[14px] text-slate-600 leading-relaxed bg-slate-50/50 p-4 rounded-2xl border border-slate-100 whitespace-pre-wrap font-medium">{linkedRecruit.preferred_qualifications}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {linkedRecruit.tags && linkedRecruit.tags.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2 pt-4">
+                                                        {linkedRecruit.tags.map((tag, i) => (
+                                                            <Badge key={i} variant="secondary" className="bg-slate-100 text-slate-500 hover:bg-slate-200 border-none px-3 py-1 font-bold text-[11px] rounded-lg">#{tag}</Badge>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : <div className="text-center py-24 text-slate-400 font-medium">연결된 공고가 없습니다.</div>}
                                     </TabsContent>
-                                    <TabsContent value="reference" className="m-0 space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 mt-2">
-                                        <div className="bg-white border border-blue-100 p-5 rounded-2xl shadow-sm mb-2 group">
-                                            <p className="text-sm font-black text-blue-600 mb-1 flex items-center gap-2">
-                                                <Sparkles className="h-4 w-4 fill-blue-500 text-blue-500" /> AI 가이드
+                                    <TabsContent value="reference" className="m-0 space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+                                        <div className="bg-blue-600 p-6 rounded-3xl shadow-xl shadow-blue-500/20 mb-4 group relative overflow-hidden">
+                                            <Sparkles className="absolute -top-4 -right-4 h-24 w-24 text-white/10 rotate-12" />
+                                            <p className="text-white text-md font-black mb-1 flex items-center gap-2 relative z-10">
+                                                AI 자동 컨텍스트 매칭
                                             </p>
-                                            <p className="text-[13px] text-slate-500 leading-relaxed font-medium">선택한 데이터가 AI 초안 작성의 핵심 재료로 사용됩니다. 관련된 경험을 모두 불러오세요.</p>
+                                            <p className="text-blue-100 text-[13px] leading-relaxed font-semibold relative z-10">
+                                                이제 AI가 지원자님의 포트폴리오에서 최적의 경험을 스스로 찾아 답변을 구성합니다.
+                                                <span className="block mt-2 opacity-80 font-normal">필요한 경우만 수동으로 선택해 주세요.</span>
+                                            </p>
                                         </div>
-                                        {portfolios.map(pf => (
-                                            <div
-                                                key={pf.id}
-                                                onClick={() => togglePortfolio(pf.id)}
-                                                className={cn(
-                                                    "p-5 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden",
-                                                    selectedPortfolioIds.includes(pf.id)
-                                                        ? "bg-blue-50/40 border-slate-200 shadow-sm"
-                                                        : "bg-white border-slate-100 hover:border-slate-200 hover:bg-slate-50"
-                                                )}
-                                            >
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={cn("p-2 rounded-lg transition-colors", selectedPortfolioIds.includes(pf.id) ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-blue-100 group-hover:text-blue-600")}>
-                                                            {pf.type === 'github' ? <Github className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                        <div className="space-y-3">
+                                            {portfolios.map(pf => (
+                                                <div
+                                                    key={pf.id}
+                                                    onClick={() => togglePortfolio(pf.id)}
+                                                    className={cn(
+                                                        "p-5 rounded-3xl border-2 transition-all cursor-pointer group relative overflow-hidden",
+                                                        selectedPortfolioIds.includes(pf.id)
+                                                            ? "bg-blue-50/50 border-blue-500 shadow-sm"
+                                                            : "bg-white border-slate-50 hover:border-slate-100 hover:bg-slate-50/50 shadow-sm"
+                                                    )}
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={cn("p-2.5 rounded-xl transition-colors", selectedPortfolioIds.includes(pf.id) ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-400 group-hover:bg-white group-hover:text-blue-600")}>
+                                                                {pf.type === 'github' ? <Github className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                                                            </div>
+                                                            <div className="space-y-0.5">
+                                                                <span className={cn("font-black text-sm tracking-tight", selectedPortfolioIds.includes(pf.id) ? "text-blue-900" : "text-slate-800")}>{pf.title}</span>
+                                                                {pf.project_name && <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{pf.project_name}</p>}
+                                                            </div>
                                                         </div>
-                                                        <span className={cn("font-bold text-sm tracking-tight", selectedPortfolioIds.includes(pf.id) ? "text-blue-700" : "text-slate-800")}>{pf.title}</span>
+                                                        <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all", selectedPortfolioIds.includes(pf.id) ? "bg-blue-600 border-blue-600 shadow-inner" : "bg-white border-slate-100")}>
+                                                            {selectedPortfolioIds.includes(pf.id) && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCircle className="h-3.5 w-3.5 text-white" /></motion.div>}
+                                                        </div>
                                                     </div>
-                                                    <div className={cn("h-5 w-5 rounded-full border flex items-center justify-center transition-all", selectedPortfolioIds.includes(pf.id) ? "bg-blue-600 border-blue-600 shadow-sm" : "bg-white border-slate-200")}>
-                                                        {selectedPortfolioIds.includes(pf.id) && <CheckCircle className="h-3 w-3 text-white" />}
-                                                    </div>
+                                                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed pl-[44px] font-medium">{pf.description}</p>
                                                 </div>
-                                                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed pl-11">{pf.description}</p>
-                                            </div>
-                                        ))}
+                                            ))}
+                                        </div>
                                     </TabsContent>
                                 </div>
                             </Tabs>
@@ -395,46 +551,43 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             <AnimatePresence>
                 {activeAiQuestionId && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isGenerating && setActiveAiQuestionId(null)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-xl" />
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => !isGenerating && setActiveAiQuestionId(null)} className="absolute inset-0 bg-slate-900/40 backdrop-blur-3xl" />
                         <motion.div initial={{ opacity: 0, scale: 0.95, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 30 }}
-                            className="bg-white rounded-[1.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] w-full max-w-[650px] overflow-hidden relative border-none"
+                            className="bg-white rounded-[3rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] w-full max-w-[700px] overflow-hidden relative border-none font-pretendard"
                         >
-                            <div className="flex bg-slate-900 text-white p-7 items-center justify-between border-b border-white/5 relative z-10">
-                                <div className="space-y-1">
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20"><Sparkles className="h-5 w-5 text-white" /></div>
-                                        <h2 className="text-xl font-black tracking-tight text-white">AI 라이팅 스튜디오</h2>
-                                    </div>
-                                    <p className="text-slate-400 text-[13px] font-medium opacity-70">전략을 설정하고 합격하는 자소서를 만드세요.</p>
-                                </div>
+                            <div className="bg-slate-900 text-white p-10 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                                <Sparkles className="absolute -top-10 -left-10 h-40 w-40 text-blue-500/20" />
+                                <div className="h-16 w-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/40 mb-6 relative z-10"><Brain className="h-8 w-8 text-white" /></div>
+                                <h2 className="text-3xl font-black tracking-tight text-white mb-2 relative z-10">AI 라이팅 스튜디오</h2>
+                                <p className="text-slate-400 text-sm font-bold opacity-70 relative z-10">지원자님만의 필승 전략을 설정하세요.</p>
                                 {!isGenerating && (
                                     <Button
                                         variant="ghost"
                                         onClick={() => setActiveAiQuestionId(null)}
-                                        className="text-slate-500 hover:text-white hover:bg-transparent transition-all group p-0 h-auto"
+                                        className="absolute top-8 right-8 text-slate-500 hover:text-white hover:bg-white/10 rounded-full h-12 w-12 p-0"
                                     >
-                                        <X className="h-8 w-8 transition-all group-hover:scale-110 active:scale-95" />
+                                        <X className="h-6 w-6" />
                                     </Button>
                                 )}
                             </div>
 
-                            <div className="p-8 space-y-8">
+                            <div className="p-10 space-y-10">
                                 {/* [Mode Selection] */}
-                                <div className="space-y-4">
-                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
-                                        <Zap className="h-3.5 w-3.5 text-blue-500 fill-blue-500" /> 작성 모드 선택
+                                <div className="space-y-5">
+                                    <Label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2 ml-1">
+                                        <Zap className="h-4 w-4 text-blue-500 fill-blue-500" /> 답변 구성 모드
                                     </Label>
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-3 gap-4">
                                         {[
-                                            { id: 'draft', label: '완성형 초안', icon: <Wand2 className="h-5 w-5" />, desc: '풀 스토리' },
-                                            { id: 'strategy', label: '작성 전략', icon: <LayoutList className="h-5 w-5" />, desc: '개요 추출' },
-                                            { id: 'refine', label: '메모 정교화', icon: <MessageSquare className="h-5 w-5" />, desc: '문장화' }
+                                            { id: 'draft', label: '완성형 초안', icon: <Wand2 className="h-6 w-6" />, desc: '풀 에피소드' },
+                                            { id: 'strategy', label: '뼈대 개요', icon: <LayoutList className="h-6 w-6" />, desc: '논리적 설계' },
+                                            { id: 'refine', label: '문장 정교화', icon: <MessageSquare className="h-6 w-6" />, desc: '어휘 최적화' }
                                         ].map(mode => (
-                                            <div key={mode.id} onClick={() => setAiMode(mode.id as AiMode)} className={cn("p-4 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-2 group relative overflow-hidden", aiMode === mode.id ? "border-blue-600 bg-blue-50/30" : "border-slate-50 bg-slate-50/50 hover:border-slate-200 hover:bg-white")}>
-                                                <div className={cn("mx-auto h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300", aiMode === mode.id ? "bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-105" : "bg-white text-slate-400 group-hover:bg-slate-100")}>{mode.icon}</div>
-                                                <div className="space-y-0.5">
-                                                    <div className={cn("font-black text-sm tracking-tight transition-colors", aiMode === mode.id ? "text-blue-700" : "text-slate-700")}>{mode.label}</div>
-                                                    <div className="text-[10px] text-slate-400 font-bold opacity-60 tracking-tighter">{mode.desc}</div>
+                                            <div key={mode.id} onClick={() => setAiMode(mode.id as AiMode)} className={cn("p-6 rounded-[2rem] border-4 transition-all cursor-pointer text-center space-y-3 group relative overflow-hidden", aiMode === mode.id ? "border-blue-600 bg-blue-50/50 shadow-lg shadow-blue-500/10" : "border-slate-50 bg-slate-50/50 hover:border-slate-100 hover:bg-white")}>
+                                                <div className={cn("mx-auto h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-300", aiMode === mode.id ? "bg-blue-600 text-white shadow-xl shadow-blue-500/20 scale-110" : "bg-white text-slate-300 group-hover:bg-slate-100 group-hover:text-blue-500")}>{mode.icon}</div>
+                                                <div className="space-y-1">
+                                                    <div className={cn("font-black text-md tracking-tight transition-colors", aiMode === mode.id ? "text-blue-900" : "text-slate-600")}>{mode.label}</div>
+                                                    <div className="text-[10px] text-slate-400 font-bold opacity-60 tracking-widest">{mode.desc}</div>
                                                 </div>
                                             </div>
                                         ))}
@@ -442,26 +595,26 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 </div>
 
                                 {/* [Detail Options] */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                     <div className="space-y-4">
-                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
-                                            <Target className="h-3.5 w-3.5 text-blue-500" /> 집중 요청 사항
+                                        <Label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2 ml-1">
+                                            <Target className="h-4 w-4 text-blue-500" /> 커스텀 요청
                                         </Label>
-                                        <Textarea placeholder="예: 구체적인 수치를 넣어줘..." value={aiFocus} onChange={e => setAiFocus(e.target.value)} className="min-h-[120px] resize-none border-slate-100 bg-slate-50/50 focus:bg-white rounded-2xl px-4 py-3 text-sm leading-relaxed transition-all focus:border-blue-200 shadow-inner" />
+                                        <Textarea placeholder="예: 구체적인 프로젝트 이름과 수치를 포함해줘..." value={aiFocus} onChange={e => setAiFocus(e.target.value)} className="min-h-[140px] resize-none border-2 border-slate-50 bg-slate-50/50 focus:bg-white rounded-[1.5rem] px-5 py-4 text-[15px] font-medium leading-relaxed transition-all focus:border-blue-100 shadow-inner" />
                                     </div>
                                     <div className="space-y-4">
-                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 ml-1">
-                                            <Brain className="h-3.5 w-3.5 text-blue-500" /> 분위기 (Tone)
+                                        <Label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] flex items-center gap-2 ml-1">
+                                            <Brain className="h-4 w-4 text-blue-500" /> 말투 (Tone)
                                         </Label>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-1 gap-2.5">
                                             {[
-                                                { id: 'professional', label: '전문적인' },
-                                                { id: 'passionate', label: '열정적인' },
-                                                { id: 'humble', label: '성실한' },
-                                                { id: 'confident', label: '자신감' }
+                                                { id: 'professional', label: '이성적이고 전문적인' },
+                                                { id: 'passionate', label: '열정이 느껴지는' },
+                                                { id: 'humble', label: '겸손하고 성실한' },
+                                                { id: 'confident', label: '당당하고 매력적인' }
                                             ].map(tone => (
-                                                <Button key={tone.id} variant="outline" onClick={() => setAiTone(tone.id as ToneType)} className={cn("justify-start h-11 rounded-xl border-slate-100 px-4 text-xs font-bold transition-all", aiTone === tone.id ? "border-blue-600 bg-blue-50 text-blue-700 ring-1 ring-blue-600 shadow-sm" : "bg-slate-50/50 hover:bg-white")}>
-                                                    <div className={cn("h-2 w-2 rounded-full mr-2", aiTone === tone.id ? "bg-blue-600" : "bg-slate-300")} />
+                                                <Button key={tone.id} variant="outline" onClick={() => setAiTone(tone.id as ToneType)} className={cn("justify-start h-14 rounded-2xl border-2 px-5 text-sm font-bold transition-all", aiTone === tone.id ? "border-blue-600 bg-blue-50/50 text-blue-900 shadow-sm" : "bg-slate-50/30 border-slate-50 hover:bg-white")}>
+                                                    <div className={cn("h-2.5 w-2.5 rounded-full mr-3 shadow-inner", aiTone === tone.id ? "bg-blue-600 scale-125" : "bg-slate-200")} />
                                                     {tone.label}
                                                 </Button>
                                             ))}
@@ -469,12 +622,12 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     </div>
                                 </div>
 
-                                <div className="pt-2">
-                                    <Button variant="brand" size="lg" onClick={runAiGeneration} disabled={isGenerating} className="w-full h-16 rounded-2xl text-lg font-black shadow-lg shadow-blue-500/10 transition-all hover:-translate-y-1 active:scale-[0.98]">
+                                <div className="pt-4">
+                                    <Button variant="brand" size="lg" onClick={runAiGeneration} disabled={isGenerating} className="w-full h-20 rounded-[2rem] text-xl font-black shadow-2xl shadow-blue-500/20 transition-all hover:-translate-y-1.5 active:scale-[0.97]">
                                         {isGenerating ? (
-                                            <span className="flex items-center gap-3"><Loader2 className="h-5 w-5 animate-spin" /> 분석 중...</span>
+                                            <span className="flex items-center gap-4"><Loader2 className="h-6 w-6 animate-spin" /> 유저 데이터 분석 및 최적화 중...</span>
                                         ) : (
-                                            <span className="flex items-center gap-2"><Sparkles className="h-6 w-6" /> AI 작성 시작하기</span>
+                                            <span className="flex items-center gap-2"><Sparkles className="h-8 w-8" /> 대소동 시작하기</span>
                                         )}
                                     </Button>
                                 </div>
