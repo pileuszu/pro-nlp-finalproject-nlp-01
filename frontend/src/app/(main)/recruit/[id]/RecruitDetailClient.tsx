@@ -199,39 +199,39 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
 
                             {/* New Detailed Fields in Sidebar */}
                             {recruit.experience && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">경력</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.experience}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">경력</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.experience}</span>
                                 </div>
                             )}
                             {recruit.education && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">학력</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.education}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">학력</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.education}</span>
                                 </div>
                             )}
                             {recruit.employment_type && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">고용 형태</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.employment_type}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">고용 형태</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.employment_type}</span>
                                 </div>
                             )}
                             {recruit.salary && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">급여</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.salary}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">급여</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.salary}</span>
                                 </div>
                             )}
                             {recruit.category && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">분야</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.category}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">분야</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.category}</span>
                                 </div>
                             )}
                             {recruit.location && (
-                                <div className="flex justify-between items-center pb-3 border-b border-slate-100 border-dashed">
-                                    <span className="text-slate-500">근무지</span>
-                                    <span className="font-semibold text-right text-slate-700">{recruit.location}</span>
+                                <div className="flex justify-between items-start pb-3 border-b border-slate-100 border-dashed">
+                                    <span className="text-slate-500 whitespace-nowrap shrink-0">근무지</span>
+                                    <span className="font-semibold text-right text-slate-700 break-keep">{recruit.location}</span>
                                 </div>
                             )}
 

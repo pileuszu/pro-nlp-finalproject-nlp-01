@@ -53,28 +53,92 @@ class GitHubExtractor(BaseExtractor):
     def _fetch_repo_readme(self, owner: str, repo: str) -> str:
         """Fetches README for a single repository."""
         # Try raw content first (no API limit)
-        branches = ['main', 'master']
+        text_content = ""
+        branches = ['main', 'master', 'develop']
+        base_url_for_images = ""
+        
         for branch in branches:
             raw_url = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/README.md"
             try:
                 response = httpx.get(raw_url)
                 if response.status_code == 200:
-                    return f"# README for {owner}/{repo}\n\n{response.text}\n\n"
+                    text_content = response.text
+                    base_url_for_images = f"https://raw.githubusercontent.com/{owner}/{repo}/{branch}/"
+                    break
             except Exception:
                 continue
 
-        # Fallback to API if raw fails
-        url = f"https://api.github.com/repos/{owner}/{repo}/readme"
-        try:
-            response = self.client.get(url)
-            if response.status_code == 200:
-                data = response.json()
-                content = base64.b64decode(data['content']).decode('utf-8')
-                return f"# README for {owner}/{repo}\n\n{content}\n\n"
-        except Exception as e:
-            print(f"Error fetching README for {owner}/{repo}: {e}")
+        # Fallback to API
+        if not text_content:
+            url = f"https://api.github.com/repos/{owner}/{repo}/readme"
+            try:
+                response = self.client.get(url)
+                if response.status_code == 200:
+                    data = response.json()
+                    text_content = base64.b64decode(data['content']).decode('utf-8')
+                    # API result doesn't give easy base url for relative images, 
+                    # but usually it's default branch. Let's try main/master logic for images later.
+                    base_url_for_images = f"https://raw.githubusercontent.com/{owner}/{repo}/main/" 
+            except Exception as e:
+                print(f"Error fetching README for {owner}/{repo}: {e}")
+
+        if text_content:
+            # Run OCR on images found in README
+            ocr_content = self._process_images_in_markdown(text_content, base_url_for_images)
+            return f"# README for {owner}/{repo}\n\n{text_content}\n\n{ocr_content}\n\n"
 
         return f"Could not fetch README for {owner}/{repo}.\n\n"
+
+    def _process_images_in_markdown(self, markdown_text: str, base_url: str) -> str:
+        """Finds images in markdown, downloads them, and runs OCR."""
+        import re
+        from .google_vision_extractor import GoogleVisionExtractor
+
+        vision = GoogleVisionExtractor()
+        ocr_results = []
+        
+        # 1. Regex for Markdown images: ![alt](url)
+        md_images = re.findall(r'!\[.*?\]\((.*?)\)', markdown_text)
+        
+        # 2. Regex for HTML images: <img src="url">
+        html_images = re.findall(r'<img.*?src=["\'](.*?)["\']', markdown_text)
+        
+        all_images = list(set(md_images + html_images))
+        
+        # Limit to avoid processing too many (e.g., badges)
+        # Filter for likely content images (png, jpg, jpeg) and ignore common badges (shields.io)
+        valid_images = [
+            img for img in all_images 
+            if not "shields.io" in img and not "badge" in img
+            and any(ext in img.lower() for ext in ['.png', '.jpg', '.jpeg', '.webp'])
+        ][:5] # Max 5 images to prevent timeout
+        
+        for img_url in valid_images:
+            # Handle relative URLs
+            if not img_url.startswith("http"):
+                # Clean path (./assets/img.png -> assets/img.png)
+                clean_path = img_url.lstrip("./")
+                full_url = f"{base_url}{clean_path}"
+            else:
+                full_url = img_url
+            
+            try:
+                # Download image
+                # Use longer timeout for images
+                with httpx.Client(timeout=10.0) as client:
+                    resp = client.get(full_url)
+                    if resp.status_code == 200:
+                        img_bytes = resp.content
+                        if len(img_bytes) < 5000: continue # Skip tiny icons (< 5KB)
+
+                        ocr_text = vision.extract_bytes(img_bytes)
+                        if ocr_text:
+                            ocr_results.append(f"[Image OCR ({img_url})]:\n{ocr_text}")
+            except Exception as e:
+                print(f"Failed to process image {full_url}: {e}")
+                continue
+                
+        return "\n\n".join(ocr_results)
 
     def _fetch_user_readmes(self, user_id: str) -> str:
         """Fetches READMEs for all public repositories of a user."""

@@ -53,6 +53,41 @@ class GoogleVisionExtractor(BaseExtractor):
         except Exception as e:
             logger.error(f"Google Vision OCR failed: {e}")
             return f"[Error] Vision OCR failure: {e}"
+
+    def extract_bytes(self, image_bytes: bytes) -> str:
+        """
+        Extracts text from image bytes directly.
+        """
+        if not self.api_key:
+            return "[Error] Vision API key missing"
+
+        try:
+            content = base64.b64encode(image_bytes).decode("utf-8")
+            
+            payload = {
+                "requests": [
+                    {
+                        "image": {"content": content},
+                        "features": [{"type": "TEXT_DETECTION"}]
+                    }
+                ]
+            }
+
+            with httpx.Client() as client:
+                response = client.post(self.api_url, json=payload, timeout=30)
+                response.raise_for_status()
+                data = response.json()
+
+            full_text = ""
+            responses = data.get("responses", [])
+            if responses:
+                full_text = responses[0].get("fullTextAnnotation", {}).get("text", "")
+
+            return full_text.strip()
+
+        except Exception as e:
+            logger.error(f"Google Vision OCR (Bytes) failed: {e}")
+            return ""
             
     def extract_from_pdf_pages(self, pdf_path: str) -> str:
         """

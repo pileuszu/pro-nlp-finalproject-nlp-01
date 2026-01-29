@@ -26,16 +26,8 @@ class FileExtractor(BaseExtractor):
 
         # 1. PDF Handling
         if suffix == ".pdf":
-            # Try text extraction first
-            text = extract_text_from_pdf(path)
-            # If text is very short/empty, it might be a scanned PDF -> Try Vision OCR
-            if len(text.strip()) < 50:
-                logger.info(f"PDF {path.name} seems to have little text. Trying Google Vision OCR...")
-                from .google_vision_extractor import GoogleVisionExtractor
-                vision = GoogleVisionExtractor()
-                # For a full implementation, we'd convert PDF to images here.
-                # Since that's heavy, we'll just log and return what we have or try OCR on first page if possible.
-                pass 
+            # Hybrid Extraction: Text + OCR for pages with images
+            text = extract_text_and_ocr_images_from_pdf(path)
             return text
 
         # 2. Image Handling
@@ -89,3 +81,66 @@ def extract_text_from_pdf(pdf_path: Path) -> str:
         return extract_text_with_pypdf(pdf_path)
     except Exception:
         return ""
+
+def extract_text_and_ocr_images_from_pdf(pdf_path: Path) -> str:
+    """
+    Extracts text from PDF.
+    Additionally, if a page contains images (larger than icon size),
+    it renders the page to an image and runs Google Vision OCR to capture non-selectable text.
+    """
+    import pdfplumber
+    import io
+    from .google_vision_extractor import GoogleVisionExtractor
+    
+    vision = GoogleVisionExtractor()
+    full_text = []
+
+    try:
+        with pdfplumber.open(str(pdf_path)) as pdf:
+            for i, page in enumerate(pdf.pages):
+                # 1. Standard Text Extraction
+                page_text = (page.extract_text() or "").strip()
+                if page_text:
+                    full_text.append(page_text)
+                
+                # 2. Check for significant images
+                # Filter small icons/lines (e.g. < 50x50 pixels)
+                has_images = False
+                if hasattr(page, 'images') and page.images:
+                    for img in page.images:
+                        # pdfplumber image objects have x0, y0, x1, y1 or width/height depending on version/context?
+                        # actually page.images is a list of dicts: {'x0':.., 'width':..}
+                        w = img.get('width', 0)
+                        h = img.get('height', 0)
+                        if w > 50 and h > 50:
+                            has_images = True
+                            break
+                
+                # If images found (or if page text is suspiciously empty?), run OCR
+                # User asked: "If images present, unconditionally OCR".
+                if has_images:
+                    try:
+                        # Render page to image (requires pillow)
+                        # resolution=150 is usually enough for OCR
+                        pil_image = page.to_image(resolution=150).original
+                        
+                        # Convert to bytes
+                        img_byte_arr = io.BytesIO()
+                        pil_image.save(img_byte_arr, format='JPEG')
+                        img_bytes = img_byte_arr.getvalue()
+                        
+                        ocr_text = vision.extract_bytes(img_bytes)
+                        
+                        if ocr_text and ocr_text.strip():
+                            full_text.append(f"\n[Page {i+1} OCR Result]\n{ocr_text}\n")
+                            
+                    except Exception as e:
+                        # Fallback simply to continue without OCR for this page
+                        logger.warning(f"Failed to OCR page {i+1} of {pdf_path}: {e}")
+                        
+    except Exception as e:
+        logger.error(f"Hybrid PDF extraction failed: {e}")
+        # Fallback to simple text extraction
+        return extract_text_from_pdf(pdf_path)
+
+    return "\n\n".join(full_text).strip()
