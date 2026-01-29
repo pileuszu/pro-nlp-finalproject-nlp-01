@@ -126,14 +126,18 @@ class PGHybridRetriever:
 
 class AICoverLetterService:
     def __init__(self):
-        # Initialize HyperCLOVA X
-        # HCX-007 is the model ID
-        self.llm = ChatClovaX(
-            model="HCX-007",
-            temperature=0.5,
-            max_tokens=2048,
-            # thinking={"effort": "low"} # Optional if supported
-        )
+        self._llm = None
+
+    @property
+    def llm(self):
+        if self._llm is None:
+            # Check for required environment variables or alert if missing
+            self._llm = ChatClovaX(
+                model="HCX-007",
+                temperature=0.5,
+                max_tokens=2048,
+            )
+        return self._llm
 
     async def generate_cover_letter(
         self, 
