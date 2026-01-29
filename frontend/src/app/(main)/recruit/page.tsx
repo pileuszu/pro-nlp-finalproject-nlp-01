@@ -20,6 +20,7 @@ import { Sparkles, Flame, LayoutGrid, List, ArrowRight, Building, Calendar, More
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl } from "@/lib/apiUtils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function RecruitPage() {
     const { isAuthenticated, token } = useAuthStore();
@@ -144,12 +145,26 @@ export default function RecruitPage() {
                                             </CardHeader>
                                             <CardContent className="flex-1 pb-6">
                                                 {recruit.reason && (
-                                                    <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs font-bold text-blue-700 leading-relaxed animate-in fade-in zoom-in duration-500">
-                                                        <div className="flex items-center gap-1.5 mb-1 text-[10px] text-blue-600/60 uppercase tracking-tighter">
-                                                            <Sparkles className="h-3 w-3" /> AI 추천 사유
-                                                        </div>
-                                                        {recruit.reason}
-                                                    </div>
+                                                    <TooltipProvider delayDuration={0}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs font-bold text-blue-700 leading-relaxed animate-in fade-in zoom-in duration-500 cursor-help text-left">
+                                                                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-blue-600/60 uppercase tracking-tighter">
+                                                                        <Sparkles className="h-3 w-3" /> AI 추천 사유
+                                                                    </div>
+                                                                    <div className="line-clamp-2">
+                                                                        {recruit.reason}
+                                                                    </div>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="bottom" className="max-w-[300px] p-4 bg-slate-900 border-slate-800 text-slate-100 whitespace-pre-wrap leading-relaxed shadow-xl text-xs font-medium">
+                                                                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50 text-blue-400 font-bold">
+                                                                    <Sparkles className="h-3.5 w-3.5" /> 상세 추천 사유
+                                                                </div>
+                                                                {recruit.reason}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
                                                 )}
                                                 <div className="flex flex-wrap gap-2">
                                                     {recruit.tags?.map((tag) => (
