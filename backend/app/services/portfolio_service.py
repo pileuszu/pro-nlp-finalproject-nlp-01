@@ -288,22 +288,8 @@ class PortfolioService:
         result = await self.db.execute(stmt)
         portfolio = result.scalar_one()
 
-        # 2. Add to Vector Store for RAG
-        try:
-            # from langchain_core.documents import Document (Moved to top)
-            desc = portfolio.description or ""
-            if desc:
-                metadata = {
-                    "portfolio_id": portfolio.id,
-                    "type": "project",
-                    "project_name": portfolio.project_name,
-                    "tech_stack": portfolio.tech_stack,
-                    "chunk_index": 0
-                }
-                await self.vector_store.add_documents([Document(page_content=desc, metadata=metadata)])
-        except Exception as e:
-            print(f"Error embedding manually saved portfolio: {e}")
-
+        # 2. Add to Vector Store for RAG - REMOVED (We use direct DB embeddings now)
+        # The embedding is already stored in the Portfolio.embedding column.
         return portfolio
     
     async def save_verified_portfolios_from_ai(self, user_id: int, ai_result, original_title: str, p_type: str, source_url: str = None):
@@ -384,21 +370,10 @@ class PortfolioService:
         result = await self.db.execute(stmt)
         portfolios = result.scalars().all()
         
-        # Add each to vector store
-        for portfolio in portfolios:
-            try:
-                desc = portfolio.description or ""
-                if desc:
-                    metadata = {
-                        "portfolio_id": portfolio.id,
-                        "type": "project",
-                        "project_name": portfolio.project_name,
-                        "tech_stack": portfolio.tech_stack,
-                        "chunk_index": 0
-                    }
-                    await self.vector_store.add_documents([Document(page_content=desc, metadata=metadata)])
-            except Exception as e:
-                logger.error(f"Error embedding portfolio {portfolio.id}: {e}")
+        # Add each to vector store - REMOVED (Legacy RAG table)
+        # We rely on direct embeddings in Portfolio/PortfolioJobQuery tables.
+        
+        return portfolios
         
         return portfolios
 
