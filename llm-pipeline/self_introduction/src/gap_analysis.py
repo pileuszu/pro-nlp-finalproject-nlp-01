@@ -11,7 +11,10 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.documents import Document
 
-from config.settings import CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE
+from config.settings import (
+    CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
+    LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS
+)
 from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
@@ -29,7 +32,16 @@ def get_llm() -> ChatOpenAI:
         model=LLM_MODEL,
         api_key=CLOVA_API_KEY,
         base_url=CLOVA_BASE_URL,
-        temperature=LLM_TEMPERATURE
+        temperature=LLM_TEMPERATURE,
+        model_kwargs={
+            # 필요한 경우 다른 model_kwargs 추가
+        },
+        # LangChain 최신 버전에서는 extra_body를 명시적 인자로 지원
+        extra_body={
+            "topP": LLM_TOP_P,
+            "repetitionPenalty": LLM_REPETITION_PENALTY,
+            "maxTokens": LLM_MAX_TOKENS
+        }
     )
 
 
@@ -103,13 +115,15 @@ def generate_resume(
     user_experiences: List[Document],
     gap_result: GapAnalysisResult,
     company_data: Dict[str, Any],
-    question: Dict[str, Any] = None
+    question: Dict[str, Any] = None,
+    used_experiences: List[str] = None  # 이전 문항에서 사용한 경험 목록
 ) -> ResumeGenerationResult:
     """
     자소서 생성
     - Gap 분석 결과를 반영하여 자소서 작성
     - CoT 프롬프트로 논리적인 글 생성
     - question이 주어지면 해당 문항에 맞는 자소서 생성
+    - used_experiences: 이전 문항에서 사용한 프로젝트명 목록 (중복 방지용)
     """
     llm = get_llm()
     parser = PydanticOutputParser(pydantic_object=ResumeGenerationResult)
@@ -126,6 +140,11 @@ def generate_resume(
         for doc in user_experiences
     ])
     
+    # 이전 사용 경험 정보 추가
+    used_exp_text = ""
+    if used_experiences:
+        used_exp_text = f"\n⚠️ 다음 경험/프로젝트는 이전 문항에서 이미 사용했으므로 다른 경험을 우선 사용하세요: {', '.join(used_experiences)}"
+    
     # 문항이 주어진 경우 해당 문항에 맞는 프롬프트 사용
     if question:
         template = QUESTION_BASED_RESUME_PROMPT
@@ -133,7 +152,7 @@ def generate_resume(
             "company_name": company_info.get("company_name", ""),
             "core_values": ", ".join(company_info.get("core_values", [])),
             "job_title": job_position.get("title", ""),
-            "user_experiences": experiences_text,
+            "user_experiences": experiences_text + used_exp_text,
             "question": question.get("question", ""),
             "max_length": question.get("max_length", 1000),
             "hint": question.get("hint", ""),
@@ -216,9 +235,34 @@ def run_full_analysis(user_id: str) -> Dict[str, Any]:
     resumes = []
     
     if resume_questions:
-        # 문항이 있으면 각 문항별로 자소서 생성
+        # 문항별 경험 분배: 이전 문항에서 사용한 경험 추적
+        used_experiences = []
+        
         for question in resume_questions:
-            resume = generate_resume(relevant_experiences, gap_result, company_data, question)
+            # 각 문항에 사용할 경험 선택 (이전에 사용하지 않은 것 우선)
+            available_experiences = [
+                exp for exp in relevant_experiences 
+                if exp.metadata.get("project_name") not in used_experiences
+            ]
+            
+            # 사용 가능한 경험이 없으면 전체에서 선택
+            if not available_experiences:
+                available_experiences = relevant_experiences
+            
+            # 첫 번째 사용 가능한 경험의 프로젝트명 기록
+            if available_experiences:
+                primary_project = available_experiences[0].metadata.get("project_name", "")
+                if primary_project:
+                    used_experiences.append(primary_project)
+            
+            # 문항별로 할당된 경험 정보 전달
+            resume = generate_resume(
+                available_experiences, 
+                gap_result, 
+                company_data, 
+                question,
+                used_experiences=used_experiences[:-1]  # 현재 제외한 이전 사용 경험
+            )
             resumes.append({
                 "question_id": question.get("id"),
                 "question": question.get("question"),
