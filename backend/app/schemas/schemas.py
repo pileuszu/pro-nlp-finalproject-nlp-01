@@ -28,13 +28,11 @@ class RecruitmentBase(BaseModel):
     education: Optional[str] = None
     employment_type: Optional[str] = None
     salary: Optional[str] = None
-    job_sector: Optional[str] = None
+    category: Optional[str] = None
     key_responsibilities: Optional[str] = None
     required_qualifications: Optional[str] = None
     preferred_qualifications: Optional[str] = None
-    content: Optional[str] = None
     tags: Optional[List[str]] = None
-    category: Optional[str] = None
     reason: Optional[str] = None
 
 class RecruitmentCreate(RecruitmentBase):

@@ -83,3 +83,8 @@ class SupabaseVectorStore:
         loop = asyncio.get_event_loop()
         results = await loop.run_in_executor(None, self.rag.similarity_search, query, k)
         return [Document(page_content=r["content"], metadata=r["metadata"]) for r in results]
+
+    async def get_embedding(self, text: str) -> List[float]:
+        import asyncio
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, self.rag.get_embedding, text)

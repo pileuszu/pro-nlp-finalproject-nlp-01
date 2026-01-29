@@ -39,13 +39,11 @@ class Recruitment(Base):
     education = Column(String, nullable=True)
     employment_type = Column(String, nullable=True)
     salary = Column(String, nullable=True)
-    job_sector = Column(String, nullable=True)
+    category = Column(String, nullable=True) # Merged job_sector into category
     key_responsibilities = Column(Text, nullable=True)
     required_qualifications = Column(Text, nullable=True)
     preferred_qualifications = Column(Text, nullable=True)
-    content = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)  # List of strings
-    category = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     cover_letters = relationship("CoverLetter", back_populates="recruitment")
@@ -70,6 +68,7 @@ class Portfolio(Base):
     role = Column(String, nullable=True)
     description = Column(Text, nullable=True) # Refined Description for Embedding
     tech_stack = Column(JSON, nullable=True) # List of strings
+    embedding = Column(JSON, nullable=True)  # Native vector storage (List of floats)
 
     owner = relationship("User", back_populates="portfolios")
     job_queries = relationship("PortfolioJobQuery", back_populates="portfolio", cascade="all, delete-orphan")

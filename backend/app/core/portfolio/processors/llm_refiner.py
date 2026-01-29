@@ -97,7 +97,7 @@ class LLMRefiner:
         if not self.api_key:
             print(f"Warning: {api_key_env} is not set. NCP features will work.")
     
-    async def _call_ncp(self, messages: List[dict], response_schema: dict = None, max_tokens: int = 3000) -> str:
+    async def _call_ncp(self, messages: List[dict], response_schema: dict = None, max_tokens: int = 4096) -> str:
         """Call NCP Chat Completions V3 with Structured Outputs support."""
         if not self.api_key:
             raise RuntimeError("NCP API Key is missing.")

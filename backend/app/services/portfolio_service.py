@@ -248,11 +248,21 @@ class PortfolioService:
                 )
             )
 
+        # 1. Generate Embedding for 1:1 storage
+        desc = req.description or ""
+        embedding = None
+        if desc:
+            try:
+                embedding = await self.vector_store.get_embedding(desc)
+            except Exception as e:
+                logger.error(f"Failed to generate embedding during manual save: {e}")
+
         portfolio = Portfolio(
             **data,
             user_id=user_id,
             processing_status=ProcessingStatus.COMPLETED,
-            job_queries=db_queries
+            job_queries=db_queries,
+            embedding=embedding
         )
         
         self.db.add(portfolio)
@@ -319,6 +329,15 @@ class PortfolioService:
                     )
                 )
             
+            # Generate embedding for 1:1 storage
+            desc = project.description_for_embedding or ""
+            embedding = None
+            if desc:
+                try:
+                    embedding = await self.vector_store.get_embedding(desc)
+                except Exception as e:
+                    logger.error(f"Failed to generate embedding for project {project.project_name}: {e}")
+
             # Create Portfolio record
             portfolio = Portfolio(
                 title=portfolio_title,
@@ -334,7 +353,8 @@ class PortfolioService:
                 role=project.role,
                 description=project.description_for_embedding,
                 tech_stack=project.tech_stack,
-                job_queries=db_queries
+                job_queries=db_queries,
+                embedding=embedding
             )
             
             self.db.add(portfolio)
@@ -476,6 +496,15 @@ class PortfolioService:
             else:
                 base_title = portfolio.title
                 p0 = projects[0]
+                # Generate embedding for 1:1 storage (p0)
+                desc0 = p0.description_for_embedding or ""
+                embedding0 = None
+                if desc0:
+                    try:
+                        embedding0 = await self.vector_store.get_embedding(desc0)
+                    except Exception as e:
+                        logger.error(f"Failed to generate embedding for background project {p0.project_name}: {e}")
+
                 portfolio.project_name = p0.project_name
                 portfolio.period = p0.period
                 portfolio.role = p0.role
@@ -484,11 +513,21 @@ class PortfolioService:
                 portfolio.extracted_summary = user_data.profile.summary
                 portfolio.extracted_job_title = user_data.profile.job_title
                 portfolio.processing_status = ProcessingStatus.COMPLETED
+                portfolio.embedding = embedding0
                 
                 self.db.add(portfolio)
                 new_portfolios = [portfolio]
                 
                 for proj in projects[1:]:
+                    # Generate embedding for 1:1 storage
+                    desc_proj = proj.description_for_embedding or ""
+                    embedding_proj = None
+                    if desc_proj:
+                        try:
+                            embedding_proj = await self.vector_store.get_embedding(desc_proj)
+                        except Exception as e:
+                            logger.error(f"Failed to generate embedding for background project {proj.project_name}: {e}")
+
                     new_p = Portfolio(
                         title=base_title + f" ({proj.project_name})",
                         type=portfolio.type,
@@ -502,7 +541,8 @@ class PortfolioService:
                         period=proj.period,
                         role=proj.role,
                         description=proj.description_for_embedding,
-                        tech_stack=proj.tech_stack
+                        tech_stack=proj.tech_stack,
+                        embedding=embedding_proj
                     )
                     self.db.add(new_p)
                     new_portfolios.append(new_p)

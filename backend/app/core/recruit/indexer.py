@@ -30,7 +30,7 @@ class RecruitIndexer:
         content_parts = [
             f"회사: {data.get('company', '')}",
             f"제목: {data.get('title', '')}",
-            f"직무 타입: {data.get('job_sector', '')}",
+            f"카테고리: {data.get('category', '')}",
             f"경험 수준: {data.get('experience', '')}",
             f"학력: {data.get('education', '')}",
             f"고용 형태: {data.get('employment_type', '')}",
@@ -108,13 +108,11 @@ class RecruitIndexer:
                     education=item.get('education'),
                     employment_type=item.get('employment_type'),
                     salary=item.get('salary'),
-                    job_sector=item.get('job_sector'),
+                    category=item.get('category'),
                     key_responsibilities=item.get('key_responsibilities'),
                     required_qualifications=item.get('required_qualifications'),
                     preferred_qualifications=item.get('preferred_qualifications'),
-                    tags=item.get('tags', []),
-                    category=item.get('category'),
-                    content=item.get('content_text') # Fallback content
+                    tags=item.get('tags', [])
                 )
                 db.add(db_recruit)
             else:

@@ -21,14 +21,12 @@ class RecruitmentItem(BaseModel):
     experience: Optional[str] = Field(None, description="경력 무관, 3년 이상 등")
     education: Optional[str] = Field(None, description="학력")
     employment_type: Optional[str] = Field(None, description="정규직 등")
-    salary: Optional[str] = Field(None, description="급여")
-    job_sector: Optional[str] = Field(None, description="개발, 디자인 등")
+    salary: Optional[str] = Field(None, description="급여 (정보 없으면 '면접 후 결정' 또는 '회사 내규에 따름')")
+    category: Optional[str] = Field(None, description="카테고리 (리스트: '프론트엔드', '서버/백엔드', '웹 풀스택', 'AI/ML/NLP', '데이터', '모바일', 'DevOps' 중 하나 선택)")
     key_responsibilities: Optional[str] = Field(None, description="주요 업무")
     required_qualifications: Optional[str] = Field(None, description="자격 요건")
     preferred_qualifications: Optional[str] = Field(None, description="우대 사항")
-    content: Optional[str] = Field(None, description="전체 원문 요약")
-    tags: Optional[List[str]] = Field(None, description="태그 리스트 (예: ['Python', 'Backend', 'AI'])")
-    category: Optional[str] = Field(None, description="카테고리 (예: '개발', '디자인')")
+    tags: Optional[List[str]] = Field(None, description="기술 스택 (리스트: React, TypeScript, Next.js, Java, Spring, Python, PyTorch, Node.js, Go, Swift, AWS, Kubernetes 중 해당되는 것 모두 선택)")
 
 class RecruitmentList(BaseModel):
     items: List[RecruitmentItem] = Field(default_factory=list, description="채용 공고 리스트")
@@ -110,8 +108,9 @@ class RecruitmentCrawler:
         img_urls = job_data.get('content_images', '').split(',') if job_data.get('content_images') else []
         ocr_text_all = ""
         
-        # OCR processing if text is too short
-        if "(이미지 자동 추출 텍스트)" not in existing_text and len(existing_text) < 200:
+        # OCR processing if images are present (unconditional per user request)
+        if "(이미지 자동 추출 텍스트)" not in existing_text and img_urls:
+            logger.info(f"Triggering OCR for job (found {len(img_urls)} images)")
             for url in img_urls:
                 url = url.strip()
                 if not url:
@@ -137,9 +136,14 @@ class RecruitmentCrawler:
 
 규칙:
 1. 한 공고 내에 여러 직무(예: 백엔드, 프론트엔드)가 있다면 각각 독립된 객체로 분리하여 items 배열에 담으세요.
-2. 모든 필드를 최대한 채우세요. 정보가 없으면 null로 설정하세요.
-3. key_responsibilities, required_qualifications, preferred_qualifications는 줄바꿈으로 구분된 문자열로 작성하세요.
-        """
+2. 모든 필드를 최대한 채우세요. 정보가 없으면 null 대신 적절한 기본값을 사용하세요.
+   - salary: 정보 없으면 '면접 후 결정' 또는 '회사 내규에 따름'
+   - location: 상세 주소가 없으면 구/군 단위까지라도 기재 (예: 서울 강남구)
+   - experience/education: 정보 없으면 '경력 무관' / '학력 무관'
+3. category는 반드시 다음 중 하나를 선택하세요: ['프론트엔드', '서버/백엔드', '웹 풀스택', 'AI/ML/NLP', '데이터', '모바일', 'DevOps']. 해당되는 것이 없으면 가장 유사한 것을 선택하거나 null로 두세요.
+4. tags는 반드시 다음 기술 스택 리스트에서만 선택하세요: [React, TypeScript, Next.js, Java, Spring, Python, PyTorch, Node.js, Go, Swift, AWS, Kubernetes]. 공고에 명시된 것만 선택하세요.
+5. key_responsibilities, required_qualifications, preferred_qualifications는 줄바꿈으로 구분된 문자열로 작성하세요.
+"""
         
         url = f"{self.ncp_base_url}/v3/chat-completions/HCX-007"
         headers = {
@@ -156,7 +160,7 @@ class RecruitmentCrawler:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": full_text}
             ],
-            "maxCompletionTokens": 3000,
+            "maxCompletionTokens": 4096,
             "temperature": 0.1,
             "topP": 0.8,
             "topK": 0,
@@ -251,12 +255,18 @@ class RecruitmentCrawler:
                     apply_url = a.get('href', '')
                     break
             
-            # Extract images
-            images = [img.get('src') for img in content_area.select('img') if img.get('src')]
+            # Extract images (limit to reasonable number)
+            images = [img.get('src') for img in content_area.select('img') if img.get('src')][:5]
             images_str = ", ".join(images)
             
-            text_content = content_area.get_text(separator='\n', strip=True)
-            return text_content[:5000], images_str, apply_url
+            # Capture sidebar/metadata if present (often outside main content)
+            sidebar = soup.select_one('.fusion-sidebar') or soup.select_one('#sidebar')
+            sidebar_text = sidebar.get_text(separator=' ', strip=True) if sidebar else ""
+            
+            main_text = content_area.get_text(separator='\n', strip=True)
+            full_content_text = f"{main_text}\n\n[기타 정보]:\n{sidebar_text}"
+            
+            return full_content_text[:8000], images_str, apply_url
         
         except Exception as e:
             logger.error(f"  → Detail error: {e}")
