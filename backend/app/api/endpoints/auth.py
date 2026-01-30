@@ -25,7 +25,14 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 @router.get("/kakao/callback")
-async def kakao_callback(code: str, db: AsyncSession = Depends(get_async_db)):
+async def kakao_callback(
+    code: str, 
+    redirect_uri: Optional[str] = None, 
+    db: AsyncSession = Depends(get_async_db)
+):
+    # Determine which redirect_uri to use (parameter has priority for dynamic environments)
+    actual_redirect_uri = redirect_uri or settings.KAKAO_REDIRECT_URI
+    
     # 1. Exchange code for token
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
@@ -34,7 +41,7 @@ async def kakao_callback(code: str, db: AsyncSession = Depends(get_async_db)):
                 "grant_type": "authorization_code",
                 "client_id": settings.KAKAO_REST_API_KEY,
                 "client_secret": settings.KAKAO_CLIENT_SECRET,
-                "redirect_uri": settings.KAKAO_REDIRECT_URI,
+                "redirect_uri": actual_redirect_uri,
                 "code": code,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"},
