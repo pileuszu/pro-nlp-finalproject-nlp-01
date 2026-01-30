@@ -23,15 +23,15 @@ jobs:
           if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
             echo "VERCEL_ARGS=--prod" >> $GITHUB_OUTPUT
             echo "ENV_TYPE=Production" >> $GITHUB_OUTPUT
-            echo "API_URL=${{ secrets.GCP_PRODUCTION_BACKEND_URL }}" >> $GITHUB_OUTPUT
+            echo "API_URL=${{ secrets.GCP_PRODUCTION_BACKEND_URL || 'https://pro-nlp-backend-511248599405.asia-northeast3.run.app' }}" >> $GITHUB_OUTPUT
           else
             echo "VERCEL_ARGS=" >> $GITHUB_OUTPUT
             echo "ENV_TYPE=Preview" >> $GITHUB_OUTPUT
             if [[ -n "${{ secrets.GCP_PREVIEW_BACKEND_URL }}" ]]; then
               echo "API_URL=${{ secrets.GCP_PREVIEW_BACKEND_URL }}" >> $GITHUB_OUTPUT
             else
-              # Fallback to production if preview secret is missing
-              echo "API_URL=${{ secrets.GCP_PRODUCTION_BACKEND_URL }}" >> $GITHUB_OUTPUT
+              # Fallback to production secret, then to hardcoded prod URL
+              echo "API_URL=${{ secrets.GCP_PRODUCTION_BACKEND_URL || 'https://pro-nlp-backend-511248599405.asia-northeast3.run.app' }}" >> $GITHUB_OUTPUT
             fi
           fi
 
@@ -63,13 +63,7 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-version: latest
           working-directory: ./frontend
-          vercel-args: ${{ steps.args.outputs.VERCEL_ARGS }}
-          vercel-env: |
-            NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}
-            NEXT_PUBLIC_API_MOCKING=disabled
-          vercel-build-env: |
-            NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}
-            NEXT_PUBLIC_API_MOCKING=disabled
+          vercel-args: '${{ steps.args.outputs.VERCEL_ARGS }} -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }} -b NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}'
 
       - name: Display Deployment Summary
         run: |
