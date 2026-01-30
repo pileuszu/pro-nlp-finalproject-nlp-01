@@ -11,11 +11,18 @@ export function getApiUrl(path: string): string {
 
     // If path is already relative /api/..., just prepend baseUrl
     if (cleanPath.startsWith(prefix)) {
-        return `${baseUrl}${cleanPath}`;
+        const url = `${baseUrl}${cleanPath}`;
+        if (typeof window !== 'undefined' && path === '/auth/kakao/callback') {
+            console.log(`[API DEBUG] Target URL: ${url}`);
+        }
+        return url;
     }
 
-    return `${baseUrl}${prefix}${cleanPath}`;
-    return `${baseUrl}${prefix}${cleanPath}`;
+    const url = `${baseUrl}${prefix}${cleanPath}`;
+    if (typeof window !== 'undefined' && path === '/auth/kakao/callback') {
+        console.log(`[API DEBUG] Target URL: ${url}`);
+    }
+    return url;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {

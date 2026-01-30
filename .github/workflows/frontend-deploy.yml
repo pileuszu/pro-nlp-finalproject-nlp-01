@@ -62,7 +62,13 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-version: latest
           working-directory: ./frontend
-          vercel-args: '${{ steps.args.outputs.VERCEL_ARGS }} -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }} -b NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}'
+          vercel-args: ${{ steps.args.outputs.VERCEL_ARGS }}
+          vercel-env: |
+            NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}
+            NEXT_PUBLIC_API_MOCKING=disabled
+          vercel-build-env: |
+            NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}
+            NEXT_PUBLIC_API_MOCKING=disabled
 
       - name: Display Deployment Summary
         run: |
