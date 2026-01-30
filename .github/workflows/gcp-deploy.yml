@@ -37,26 +37,52 @@ jobs:
             echo "JOB_SERVICE=pro-nlp-jobs" >> $GITHUB_OUTPUT
             echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
             # Secrets Prefixes
-            echo "DB_URL=${{ secrets.PROD_DATABASE_URL }}" >> $GITHUB_OUTPUT
-            echo "SEC_KEY=${{ secrets.PROD_SECRET_KEY }}" >> $GITHUB_OUTPUT
-            echo "G_API_KEY=${{ secrets.PROD_GOOGLE_API_KEY }}" >> $GITHUB_OUTPUT
-            echo "K_REDIRECT=${{ secrets.PROD_KAKAO_REDIRECT_URI }}" >> $GITHUB_OUTPUT
-            echo "K_SECRET=${{ secrets.PROD_KAKAO_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
-            echo "NCP_BASE=${{ secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}" >> $GITHUB_OUTPUT
-            echo "NCP_KEY=${{ secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}" >> $GITHUB_OUTPUT
+            DB_URL="${{ secrets.PROD_DATABASE_URL }}"
+            SEC_KEY="${{ secrets.PROD_SECRET_KEY }}"
+            G_API_KEY="${{ secrets.PROD_GOOGLE_API_KEY }}"
+            K_REDIRECT="${{ secrets.PROD_KAKAO_REDIRECT_URI }}"
+            K_SECRET="${{ secrets.PROD_KAKAO_CLIENT_SECRET }}"
+            NCP_BASE="${{ secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}"
+            NCP_KEY="${{ secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}"
+
+            # Ensure K_REDIRECT starts with https:// if not empty
+            if [[ -n "$K_REDIRECT" && ! "$K_REDIRECT" =~ ^http ]]; then
+              K_REDIRECT="https://$K_REDIRECT"
+            fi
+
+            echo "DB_URL=$DB_URL" >> $GITHUB_OUTPUT
+            echo "SEC_KEY=$SEC_KEY" >> $GITHUB_OUTPUT
+            echo "G_API_KEY=$G_API_KEY" >> $GITHUB_OUTPUT
+            echo "K_REDIRECT=$K_REDIRECT" >> $GITHUB_OUTPUT
+            echo "K_SECRET=$K_SECRET" >> $GITHUB_OUTPUT
+            echo "NCP_BASE=$NCP_BASE" >> $GITHUB_OUTPUT
+            echo "NCP_KEY=$NCP_KEY" >> $GITHUB_OUTPUT
           else
             echo "ENV_TYPE=preview" >> $GITHUB_OUTPUT
             echo "BACKEND_SERVICE=pro-nlp-backend-preview" >> $GITHUB_OUTPUT
             echo "JOB_SERVICE=pro-nlp-jobs-preview" >> $GITHUB_OUTPUT
             echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
             # Secrets Prefixes (Fallback to PROD if PREVIEW is missing)
-            echo "DB_URL=${{ secrets.PREVIEW_DATABASE_URL || secrets.PROD_DATABASE_URL }}" >> $GITHUB_OUTPUT
-            echo "SEC_KEY=${{ secrets.PREVIEW_SECRET_KEY || secrets.PROD_SECRET_KEY }}" >> $GITHUB_OUTPUT
-            echo "G_API_KEY=${{ secrets.PREVIEW_GOOGLE_API_KEY || secrets.PROD_GOOGLE_API_KEY }}" >> $GITHUB_OUTPUT
-            echo "K_REDIRECT=${{ secrets.PREVIEW_KAKAO_REDIRECT_URI || secrets.PROD_KAKAO_REDIRECT_URI }}" >> $GITHUB_OUTPUT
-            echo "K_SECRET=${{ secrets.PREVIEW_KAKAO_CLIENT_SECRET || secrets.PROD_KAKAO_CLIENT_SECRET }}" >> $GITHUB_OUTPUT
-            echo "NCP_BASE=${{ secrets.PREVIEW_NCP_CLOVASTUDIO_BASE_URL || secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}" >> $GITHUB_OUTPUT
-            echo "NCP_KEY=${{ secrets.PREVIEW_NCP_CLOVASTUDIO_API_KEY || secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}" >> $GITHUB_OUTPUT
+            DB_URL="${{ secrets.PREVIEW_DATABASE_URL || secrets.PROD_DATABASE_URL }}"
+            SEC_KEY="${{ secrets.PREVIEW_SECRET_KEY || secrets.PROD_SECRET_KEY }}"
+            G_API_KEY="${{ secrets.PREVIEW_GOOGLE_API_KEY || secrets.PROD_GOOGLE_API_KEY }}"
+            K_REDIRECT="${{ secrets.PREVIEW_KAKAO_REDIRECT_URI || secrets.PROD_KAKAO_REDIRECT_URI }}"
+            K_SECRET="${{ secrets.PREVIEW_KAKAO_CLIENT_SECRET || secrets.PROD_KAKAO_CLIENT_SECRET }}"
+            NCP_BASE="${{ secrets.PREVIEW_NCP_CLOVASTUDIO_BASE_URL || secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}"
+            NCP_KEY="${{ secrets.PREVIEW_NCP_CLOVASTUDIO_API_KEY || secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}"
+
+            # Ensure K_REDIRECT starts with https:// if not empty
+            if [[ -n "$K_REDIRECT" && ! "$K_REDIRECT" =~ ^http ]]; then
+              K_REDIRECT="https://$K_REDIRECT"
+            fi
+
+            echo "DB_URL=$DB_URL" >> $GITHUB_OUTPUT
+            echo "SEC_KEY=$SEC_KEY" >> $GITHUB_OUTPUT
+            echo "G_API_KEY=$G_API_KEY" >> $GITHUB_OUTPUT
+            echo "K_REDIRECT=$K_REDIRECT" >> $GITHUB_OUTPUT
+            echo "K_SECRET=$K_SECRET" >> $GITHUB_OUTPUT
+            echo "NCP_BASE=$NCP_BASE" >> $GITHUB_OUTPUT
+            echo "NCP_KEY=$NCP_KEY" >> $GITHUB_OUTPUT
           fi
 
       - name: Google Auth

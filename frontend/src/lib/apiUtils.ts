@@ -1,7 +1,10 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function getApiUrl(path: string): string {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    if (baseUrl && !baseUrl.startsWith('http')) {
+        baseUrl = `https://${baseUrl}`;
+    }
     const prefix = process.env.NEXT_PUBLIC_API_URL_PREFIX || '/api';
 
     // Ensure path starts with / if it's just the endpoint
