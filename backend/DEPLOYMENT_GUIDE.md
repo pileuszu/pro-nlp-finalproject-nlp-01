@@ -110,12 +110,19 @@ Workflows require the following Secrets to be set in your GitHub repository:
 | `GCP_SA_KEY` | GCP Service Account Key (JSON) | Yes |
 | `VERCEL_TOKEN` | Vercel API Token | Yes |
 | `VERCEL_ORG_ID` | Vercel Org ID | Yes |
+| Secret Name | Description | Required |
+| :--- | :--- | :--- |
+| `GCP_PROJECT_ID` | GCP Project ID | Yes |
+| `GCP_SA_KEY` | GCP Service Account Key (JSON) | Yes |
+| `VERCEL_TOKEN` | Vercel API Token | Yes |
+| `VERCEL_ORG_ID` | Vercel Org ID | Yes |
 | `VERCEL_PROJECT_ID` | Vercel Project ID | Yes |
+| `GCP_PRODUCTION_BACKEND_URL` | **Production Backend URL** (e.g., `https://pro-nlp-backend-...`) | Yes |
 | `GCP_PREVIEW_BACKEND_URL` | **Preview Backend URL** (e.g., `https://pro-nlp-backend-preview-...`) | No (Defaults to Prod) |
-| `GCP_PREVIEW_KAKAO_REDIRECT_URI` | **Preview Kakao Redirect URI** (e.g., `https://...-final.vercel.app/auth/kakao/callback`) | No (Defaults to known preview branch) |
 | `KAKAO_REST_API_KEY` | Kakao REST API Key | Yes |
 | `KAKAO_CLIENT_SECRET` | Kakao Client Secret | Yes |
-| `KAKAO_REDIRECT_URI` | **Production Kakao Redirect URI** | Yes |
+| `KAKAO_REDIRECT_URI` | **Production Kakao Redirect URI** (Vercel Prod URL) | Yes |
+| `GCP_PREVIEW_KAKAO_REDIRECT_URI` | **Preview Kakao Redirect URI** (Vercel Preview URL) | No (Defaults to Prod) |
 | `NCP_API_KEY` | Naver Cloud Platform API Key (for Jobs) | Yes |
 
 > [!IMPORTANT]
