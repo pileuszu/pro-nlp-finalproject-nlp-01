@@ -22,21 +22,21 @@ class PortfolioService:
     @property
     def file_extractor(self):
         if not self._file_extractor:
-            from common.extractors.file_extractor import FileExtractor
+            from jobs.core.portfolio.extractors.file_extractor import FileExtractor
             self._file_extractor = FileExtractor()
         return self._file_extractor
 
     @property
     def notion_extractor(self):
         if not self._notion_extractor:
-            from common.extractors.notion_extractor import NotionExtractor
+            from jobs.core.portfolio.extractors.notion_extractor import NotionExtractor
             self._notion_extractor = NotionExtractor()
         return self._notion_extractor
 
     @property
     def github_extractor(self):
         if not self._github_extractor:
-            from common.extractors.github_extractor import GitHubExtractor
+            from jobs.core.portfolio.extractors.github_extractor import GitHubExtractor
             self._github_extractor = GitHubExtractor()
         return self._github_extractor
 
@@ -272,3 +272,80 @@ class PortfolioService:
             logger.error(f"Failed to update global profile for user {user_id}: {e}")
 
 
+    async def run_analysis_extraction(self, portfolio_id: int):
+        """
+        Specialized task for 'Preview/Analysis' only.
+        Extracts text and runs AI refinement, but DOES NOT generate embeddings
+        or trigger post-processing recommendations.
+        """
+        try:
+            stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one_or_none()
+            
+            if not portfolio:
+                logger.error(f"Portfolio {portfolio_id} not found for analysis")
+                return
+
+            portfolio.processing_status = ProcessingStatus.PROCESSING
+            await self.db.commit()
+
+            source = portfolio.source_url
+            p_type = portfolio.type
+            
+            # 1. Extract
+            if p_type == "file":
+                text = self.file_extractor.extract(source)
+            elif p_type == "notion":
+                text = self.notion_extractor.extract(source)
+            elif p_type == "github":
+                text = self.github_extractor.extract(source)
+            else:
+                text = ""
+
+            if not text or text.startswith("[Error]"):
+                raise ValueError(f"Extraction failed: {text}")
+
+            portfolio.content = text
+            await self.db.commit()
+
+            # 2. Refine (AI Pipeline) - Reuse existing refiner
+            combined_result = await self.llm_refiner.extract_user_data_and_queries(text)
+            user_data = combined_result.user_data
+            projects = user_data.projects
+            
+            if projects:
+                p0 = projects[0]
+                portfolio.project_name = p0.project_name
+                portfolio.period = p0.period
+                portfolio.role = p0.role
+                portfolio.description = p0.description_for_embedding
+                portfolio.tech_stack = p0.tech_stack
+                
+                # Add Job Queries
+                for jq in p0.job_queries:
+                    portfolio.job_queries.append(
+                        PortfolioJobQuery(
+                            type=jq.type,
+                            query_text=jq.query,
+                            evidence=jq.evidence
+                        )
+                    )
+            
+            portfolio.extracted_summary = user_data.profile.summary
+            portfolio.extracted_job_title = user_data.profile.job_title
+            
+            portfolio.processing_status = ProcessingStatus.COMPLETED
+            await self.db.commit()
+            logger.info(f"Analysis (Extraction + Refinement) completed for Portfolio {portfolio_id}")
+
+        except Exception as e:
+            logger.error(f"Analysis extraction failed for Portfolio {portfolio_id}: {e}")
+            # Mark as failed
+            stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one_or_none()
+            if portfolio:
+                portfolio.processing_status = ProcessingStatus.FAILED
+                await self.db.commit()
+            raise

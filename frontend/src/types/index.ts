@@ -36,9 +36,11 @@ export interface Portfolio {
     url?: string;
     fileName?: string;
     createdAt: string;
+    created_at?: string;
     content?: string;
 
     // Status
+    processing_status?: 'PENDING' | 'COMPLETED' | 'FAILED';
     processingStatus?: 'PENDING' | 'COMPLETED' | 'FAILED';
 
     // Flattened Project Data

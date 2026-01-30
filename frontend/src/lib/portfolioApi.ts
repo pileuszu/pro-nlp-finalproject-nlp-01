@@ -2,25 +2,10 @@ import { getApiUrl, fetchWithAuth } from "./apiUtils";
 import { Portfolio } from "../types";
 
 export interface AnalysisResult {
-    user_data: {
-        profile: {
-            summary: string;
-            job_title: string;
-        };
-        projects: Array<{
-            project_name: string;
-            period: string;
-            role: string;
-            description_for_embedding: string;
-            tech_stack: string[];
-            job_queries: Array<{
-                type: 'A' | 'B' | 'C';
-                query: string;
-                evidence: string[];
-            }>;
-        }>;
-    };
-    raw_text: string;
+    portfolio_id?: number;
+    status?: string;
+    success: boolean;
+    error?: string;
 }
 
 export interface PortfolioApi {
@@ -29,8 +14,10 @@ export interface PortfolioApi {
     importGithub: (url: string, title?: string) => Promise<Portfolio>;
     analyzePortfolio: (source: string, type: string) => Promise<AnalysisResult>;
     analyzePortfolioFile: (file: File) => Promise<AnalysisResult>;
+    getPortfolio: (id: number) => Promise<Portfolio>;
     createPortfolio: (data: Partial<Portfolio>) => Promise<Portfolio>;
     fetchAll: () => Promise<{ items: Portfolio[] }>;
+    deletePortfolio: (id: number) => Promise<boolean>;
 }
 
 export const portfolioApi: PortfolioApi = {
@@ -132,6 +119,24 @@ export const portfolioApi: PortfolioApi = {
         }
 
         return res.json() as Promise<AnalysisResult>;
+    },
+
+    getPortfolio: async (id: number): Promise<Portfolio> => {
+        const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`));
+        if (!res.ok) {
+            throw new Error("Failed to fetch portfolio detail");
+        }
+        return res.json() as Promise<Portfolio>;
+    },
+
+    /**
+     * Delete a portfolio.
+     */
+    deletePortfolio: async (id: number): Promise<boolean> => {
+        const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}`), {
+            method: "DELETE"
+        });
+        return res.ok;
     },
 
     /**

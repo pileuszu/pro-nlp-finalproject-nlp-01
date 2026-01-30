@@ -45,6 +45,19 @@ async def main():
                 return
             await process_portfolio(args.id)
             
+        elif args.task == "portfolio_analysis":
+            if not args.id:
+                logger.error("Portfolio ID is required for portfolio_analysis")
+                return
+            # Reuse process_portfolio logic or a specialized one?
+            # User wants "analysis" for preview.
+            # We'll call a specific service method for this.
+            from jobs.services.portfolio_service import PortfolioService
+            from common.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as db:
+                service = PortfolioService(db)
+                await service.run_analysis_extraction(args.id)
+            
         elif args.task == "cover_letter_generation":
             if not args.id:
                 logger.error("Cover Letter ID is required for cover_letter_generation")

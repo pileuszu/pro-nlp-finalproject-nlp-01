@@ -174,36 +174,40 @@ class PortfolioService:
         await self.db.commit()
         return True
 
-    async def analyze_portfolio_source(self, source: str, type: str):
+    async def analyze_portfolio_source(self, user_id: int, source: str, p_type: str):
         """
-        Synchronous/Real-time analysis of a portfolio source for preview.
-        Uses the extractors from jobs.core directly.
+        Asynchronous analysis of a portfolio source for preview.
+        Offloads the extraction to a Cloud Run Job.
         """
-        logger.info(f"Analyzing portfolio source: {source} ({type})")
-        text = ""
+        logger.info(f"Analyzing portfolio source asynchronously: {source} ({p_type})")
+        
         try:
-            if type == "notion":
-                from common.extractors.notion_extractor import NotionExtractor
-                extractor = NotionExtractor()
-                text = extractor.extract(source)
-            elif type == "github":
-                from common.extractors.github_extractor import GitHubExtractor
-                extractor = GitHubExtractor()
-                text = extractor.extract(source)
-            else:
-                 raise ValueError("Unsupported type for source analysis")
-                 
-            # Return preview
-            return {"content": text[:2000], "full_length": len(text), "success": True}
+            # 1. Create a placeholder record for analysis
+            portfolio = Portfolio(
+                project_name=f"Analysis: {source[:20]}",
+                type=p_type,
+                source_url=source,
+                user_id=user_id,
+                processing_status=ProcessingStatus.PENDING
+            )
+            self.db.add(portfolio)
+            await self.db.commit()
+            await self.db.refresh(portfolio)
+            
+            # 2. Trigger analysis job
+            job_service.trigger_job(task="portfolio_analysis", target_id=portfolio.id)
+            
+            return {"portfolio_id": portfolio.id, "status": "PENDING", "success": True}
         except Exception as e:
-            logger.error(f"Analysis failed: {e}")
-            return {"content": "", "error": str(e), "success": False}
+            logger.error(f"Async analysis trigger failed: {e}")
+            return {"error": str(e), "success": False}
 
-    async def analyze_portfolio_file(self, file: UploadFile):
+    async def analyze_portfolio_file(self, user_id: int, file: UploadFile):
         """
-        Synchronous/Real-time analysis of an uploaded file.
+        Asynchronous analysis of an uploaded file.
+        Offloads extraction to a Cloud Run Job.
         """
-        logger.info(f"Analyzing portfolio file: {file.filename}")
+        logger.info(f"Analyzing portfolio file asynchronously: {file.filename}")
         
         file_ext = Path(file.filename).suffix
         file_name = f"analyze_{uuid.uuid4()}{file_ext}"
@@ -212,19 +216,28 @@ class PortfolioService:
         try:
             with open(file_path, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
-                
-            from common.extractors.file_extractor import FileExtractor
-            extractor = FileExtractor()
-            text = extractor.extract(str(file_path))
             
-            return {"content": text[:2000], "full_length": len(text), "success": True}
+            # 1. Create placeholder
+            portfolio = Portfolio(
+                project_name=f"Analysis: {file.filename}",
+                type="file",
+                source_url=str(file_path),
+                user_id=user_id,
+                processing_status=ProcessingStatus.PENDING
+            )
+            self.db.add(portfolio)
+            await self.db.commit()
+            await self.db.refresh(portfolio)
             
+            # 2. Trigger job
+            job_service.trigger_job(task="portfolio_analysis", target_id=portfolio.id)
+            
+            return {"portfolio_id": portfolio.id, "status": "PENDING", "success": True}
         except Exception as e:
-             logger.error(f"File analysis failed: {e}")
-             return {"content": "", "error": str(e), "success": False}
-        finally:
-            if file_path.exists():
-                file_path.unlink()
+             logger.error(f"Async file analysis trigger failed: {e}")
+             if file_path.exists():
+                 file_path.unlink()
+             return {"error": str(e), "success": False}
 
 
 

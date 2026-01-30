@@ -27,6 +27,28 @@ export default function NewPortfolioPage() {
     const [previewData, setPreviewData] = useState<Partial<Portfolio> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const pollAnalysisResult = async (portfolioId: number) => {
+        const maxRetries = 60; // 2 minutes with 2s interval
+        let retries = 0;
+
+        const poll = async (): Promise<Portfolio | null> => {
+            if (retries >= maxRetries) throw new Error("분석 시간이 초과되었습니다.");
+
+            const portfolio = await portfolioApi.getPortfolio(portfolioId);
+            if (portfolio.processing_status === 'COMPLETED') {
+                return portfolio;
+            } else if (portfolio.processing_status === 'FAILED') {
+                throw new Error("분석 중 오류가 발생했습니다.");
+            }
+
+            retries++;
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return poll();
+        };
+
+        return poll();
+    };
+
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
             toast("GitHub URL을 입력해주세요.", "warning");
@@ -34,35 +56,20 @@ export default function NewPortfolioPage() {
         }
         setIsAnalyzing(true);
         try {
-            const result = await portfolioApi.analyzePortfolio(url, "github");
-
-            if (!result || !result.user_data) {
-                throw new Error("분석 데이터가 올바르지 않습니다.");
+            const initialResult = await portfolioApi.analyzePortfolio(url, "github");
+            if (!initialResult.success || !initialResult.portfolio_id) {
+                throw new Error(initialResult.error || "분석 요청에 실패했습니다.");
             }
 
-            // Map LLM result to Portfolio structure
-            const user_data = result.user_data;
-            const projects = user_data.projects || [];
+            const portfolio = await pollAnalysisResult(initialResult.portfolio_id);
 
-            if (projects.length === 0) {
-                throw new Error("프로젝트 정보가 없습니다.");
+            if (!portfolio) {
+                throw new Error("분석 데이터를 가져오지 못했습니다.");
             }
-            const p0 = projects[0];
 
             setPreviewData({
-                type: 'github',
-                source_url: githubUrl,
-                project_name: p0.project_name || "",
-                period: p0.period || "",
-                role: p0.role || "",
-                description: p0.description_for_embedding || "",
-                tech_stack: p0.tech_stack || [],
-                job_queries: (p0.job_queries || []).map(q => ({
-                    type: q.type,
-                    query_text: q.query,
-                    evidence: q.evidence
-                })),
-                content: result.raw_text || ""
+                ...portfolio,
+                source_url: githubUrl, // Keep original
             });
         } catch (err) {
             console.error(err);
@@ -76,34 +83,20 @@ export default function NewPortfolioPage() {
         if (!file) return;
         setIsAnalyzing(true);
         try {
-            const result = await portfolioApi.analyzePortfolioFile(file);
-
-            if (!result || !result.user_data) {
-                throw new Error("분석 데이터가 올바르지 않습니다.");
+            const initialResult = await portfolioApi.analyzePortfolioFile(file);
+            if (!initialResult.success || !initialResult.portfolio_id) {
+                throw new Error(initialResult.error || "파일 분석 요청에 실패했습니다.");
             }
 
-            const user_data = result.user_data;
-            const projects = user_data.projects || [];
+            const portfolio = await pollAnalysisResult(initialResult.portfolio_id);
 
-            if (projects.length === 0) {
-                throw new Error("프로젝트 정보가 없습니다.");
+            if (!portfolio) {
+                throw new Error("분석 데이터를 가져오지 못했습니다.");
             }
-            const p0 = projects[0];
 
             setPreviewData({
-                type: 'file',
+                ...portfolio,
                 source_url: file.name,
-                project_name: p0.project_name || "",
-                period: p0.period || "",
-                role: p0.role || "",
-                description: p0.description_for_embedding || "",
-                tech_stack: p0.tech_stack || [],
-                job_queries: (p0.job_queries || []).map(q => ({
-                    type: q.type,
-                    query_text: q.query,
-                    evidence: q.evidence
-                })),
-                content: result.raw_text || ""
             });
         } catch (err) {
             console.error(err);
