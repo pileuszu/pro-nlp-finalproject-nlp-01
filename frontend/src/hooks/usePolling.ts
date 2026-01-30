@@ -10,8 +10,20 @@ export function usePolling<T>(
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<unknown>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const stopConditionRef = useRef(stopCondition);
+
+    // Keep stopConditionRef up to date without re-triggering the effect
+    useEffect(() => {
+        stopConditionRef.current = stopCondition;
+    }, [stopCondition]);
 
     useEffect(() => {
+        // Guard: If endpoint is empty, don't do anything
+        if (!endpoint) {
+            setLoading(false);
+            return;
+        }
+
         let isMounted = true;
         const fetchData = async () => {
             try {
@@ -28,26 +40,30 @@ export function usePolling<T>(
             }
         };
 
-        // Initial fetch
-        fetchData().then((result) => {
-            if (result && stopCondition && stopCondition(result)) {
-                // Already done, don't poll
+        const startPolling = async () => {
+            const result = await fetchData();
+
+            // Check initial result against stop condition
+            if (result && stopConditionRef.current && stopConditionRef.current(result)) {
                 return;
             }
-            // Start polling
+
+            // Start periodic polling
             intervalRef.current = setInterval(async () => {
                 const newData = await fetchData();
-                if (newData && stopCondition && stopCondition(newData)) {
+                if (newData && stopConditionRef.current && stopConditionRef.current(newData)) {
                     if (intervalRef.current) clearInterval(intervalRef.current);
                 }
             }, intervalMs);
-        });
+        };
+
+        startPolling();
 
         return () => {
             isMounted = false;
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [endpoint, intervalMs, stopCondition]);
+    }, [endpoint, intervalMs]); // stopCondition removed from dependencies
 
     return { data, loading, error };
 }
