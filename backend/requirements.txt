@@ -31,3 +31,4 @@ beautifulsoup4
 requests
 pgvector
 rank_bm25
+google-cloud-run
