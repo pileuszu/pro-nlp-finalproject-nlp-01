@@ -78,10 +78,27 @@ The backend triggers this job automatically via API, but you can manually test:
 gcloud run jobs execute pro-nlp-jobs --args="--task=portfolio_extraction --id=1" --region asia-northeast3
 ```
 
-## 6. CI/CD Pipeline
+## 6. CI/CD Pipeline & Environments
 
-Typically, GitHub Actions handles this. See `.github/workflows/gcp-deploy.yml` (Backend) and `backend-ci.yml` (Test).
-Ensure secrets like `GCP_SA_KEY` and `DATABASE_URL` are configured in GitHub Repo Settings.
+The project uses a dynamic deployment strategy based on GitHub Branches.
+
+### 6.1 Branching Strategy
+
+| Branch | Environment | Cloud Run Service | Vercel Deployment |
+| :--- | :--- | :--- | :--- |
+| **`develop`** | **Production** | `pro-nlp-backend` | Production Domain (`--prod`) |
+| **`feature/async-architecture-refactor`** | **Preview** | `pro-nlp-backend-preview` | Preview URL (Generating...) |
+
+*Note: Any branch matching `feature/**` patterns will trigger a Preview deployment.*
+
+### 6.2 Workflows
+- **Backend**: `.github/workflows/gcp-deploy.yml`
+    - Detects branch name.
+    - If `develop`: Deploys to Prod Service.
+    - If others: Deploys to Preview Service (creates it if missing).
+- **Frontend**: `.github/workflows/frontend-deploy.yml`
+    - If `develop`: Deploys to Vercel Prod.
+    - If others: Deploys to Vercel Preview.
 
 ## 7. Troubleshooting
 
