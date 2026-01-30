@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Date
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
-from app.db.database import Base
+from common.database import Base
 import enum
 
 class ProcessingStatus(str, enum.Enum):
@@ -105,7 +105,7 @@ class CoverLetter(Base):
     items = relationship("CoverLetterItem", back_populates="cover_letter", cascade="all, delete-orphan")
     
     # Analysis Results
-    status = Column(SqEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
+    processing_status = Column(SqEnum(ProcessingStatus), default=ProcessingStatus.PENDING)
     gap_analysis = Column(JSON, nullable=True)
     job_analysis = Column(JSON, nullable=True)
 

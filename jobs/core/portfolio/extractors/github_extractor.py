@@ -2,7 +2,11 @@ import os
 import httpx
 import base64
 from typing import Optional
+import logging
 from .base import BaseExtractor
+from common.config import settings
+
+logger = logging.getLogger(__name__)
 
 class GitHubExtractor(BaseExtractor):
     """
@@ -13,7 +17,7 @@ class GitHubExtractor(BaseExtractor):
     """
 
     def __init__(self):
-        self.github_token = os.getenv("GITHUB_TOKEN")
+        self.github_token = settings.GITHUB_TOKEN
         self.headers = {"Accept": "application/vnd.github.v3+json"}
         if self.github_token:
             self.headers["Authorization"] = f"token {self.github_token}"
@@ -80,7 +84,7 @@ class GitHubExtractor(BaseExtractor):
                     # but usually it's default branch. Let's try main/master logic for images later.
                     base_url_for_images = f"https://raw.githubusercontent.com/{owner}/{repo}/main/" 
             except Exception as e:
-                print(f"Error fetching README for {owner}/{repo}: {e}")
+                logger.error(f"Error fetching README for {owner}/{repo}: {e}")
 
         if text_content:
             # Run OCR on images found in README
@@ -135,7 +139,7 @@ class GitHubExtractor(BaseExtractor):
                         if ocr_text:
                             ocr_results.append(f"[Image OCR ({img_url})]:\n{ocr_text}")
             except Exception as e:
-                print(f"Failed to process image {full_url}: {e}")
+                logger.warning(f"Failed to process image {full_url}: {e}")
                 continue
                 
         return "\n\n".join(ocr_results)
@@ -151,7 +155,7 @@ class GitHubExtractor(BaseExtractor):
             repos = response.json()
             combined_content = f"# Portfolio for GitHub User: {user_id}\n\n"
             
-            print(f"Found {len(repos)} repositories for user {user_id}.")
+            logger.info(f"Found {len(repos)} repositories for user {user_id}.")
 
             for repo in repos:
                 # owner, name = full_name.split("/")

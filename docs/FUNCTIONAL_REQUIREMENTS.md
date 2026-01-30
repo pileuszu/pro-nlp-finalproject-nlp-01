@@ -1,6 +1,70 @@
 # 기능 상세 명세서 (Detailed Functional Requirements)
 
-이 문서는 Pro-NLP 플랫폼의 주요 기능들을 상세하게 정의합니다. 각 기능은 고유 ID를 가지며, 입력, 출력, 처리 로직 및 예외 사항을 포함합니다.
+이 문서는 Pro-NLP 플랫폼의 주요 기능들을 상세하게 정의합니다.
+
+---
+
+## 1. 인증 및 계정 관리 (Authentication & Account)
+
+### F-AUTH-01: 카카오 로그인
+- **기능 설명**: 카카오 계정을 연동하여 별도의 회원가입 절차 없이 쉽고 빠르게 시스템에 접속한다.
+- **API**: `GET /api/auth/kakao/callback`
+
+---
+
+## 2. 포트폴리오 관리 (Portfolio Management)
+
+### F-PORT-01: 외부 소스 데이터 수집 및 등록
+- **기능 설명**: GitHub, Notion, PDF 파일 등을 등록하면 **비동기 백그라운드 작업**으로 텍스트를 추출하고 분석한다.
+- **입력값**: 소스 타입(URL/File), 제목
+- **출력값**: 생성된 포트폴리오 ID (상태: PENDING)
+- **API**: 
+    - `POST /api/portfolios/upload` (File)
+    - `POST /api/portfolios/notion` (Notion)
+    - `POST /api/portfolios/github` (GitHub)
+
+### F-PORT-02: 실시간 미리보기 (Preview)
+- **기능 설명**: 등록 전, URL이나 파일을 분석하여 추출될 내용을 미리 확인한다. (저장되지 않음)
+- **API**: `POST /api/portfolios/analyze`
+
+### F-PORT-03: AI 프로젝트 분석 (Background Job)
+- **기능 설명**: 수집된 텍스트를 AI가 분석하여 프로젝트명, 역할, 기술 스택, 성과 등을 구조화하고 임베딩(Vector)을 생성한다.
+- **트리거**: 포트폴리오 생성 직후 자동 실행 (Cloud Run Jobs)
+
+### F-PORT-04: 포트폴리오 관리 (CRUD)
+- **기능 설명**: 분석된 내용을 수정하거나 프로젝트를 삭제한다.
+- **API**: `GET`, `PATCH`, `DELETE /api/portfolios/{id}`
+
+---
+
+## 3. 채용 공고 관리 (Recruit & Recommendation)
+
+### F-RECR-01: 공고 필터링 및 검색
+- **기능 설명**: 기술 스택, 직무, 카테고리 등으로 공고를 검색한다.
+- **API**: `GET /api/recruits`
+
+### F-RECR-02: AI 맞춤형 공고 추천
+- **기능 설명**: 사용자의 포트폴리오 임베딩과 공고의 JD 임베딩 간 유사도를 분석하여 추천 순위를 제공한다.
+- **API**: `GET /api/recruits/recommend`
+
+---
+
+## 4. 자기소개서 지원 (Cover Letter Support)
+
+### F-LTR-01: AI 자기소개서 초안 생성
+- **기능 설명**: 공고와 내 프로젝트 경험을 결합하여 자소서 초안을 생성한다.
+- **API**: `POST /api/cover-letters/generate`
+
+### F-LTR-02: 자소서 관리
+- **기능 설명**: 생성된 자소서를 저장, 조회, 수정한다.
+- **API**: `GET`, `PATCH /api/cover-letters/{id}`
+
+---
+
+## 5. 비기능 요구사항
+- **성능**: 헤비한 AI 작업(분석/임베딩)은 **비동기 큐(Jobs)**로 처리하여 사용자 경험을 저해하지 않는다.
+- **확장성**: Backend(API)와 Worker(Jobs)를 분리하여 독립적으로 스케일링한다.
+
 
 ---
 

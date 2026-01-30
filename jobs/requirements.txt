@@ -1,0 +1,26 @@
+# Common
+sqlalchemy==2.0.25
+psycopg[binary]
+asyncpg
+pydantic>=2.7.4
+python-dotenv==1.0.0
+requests
+pandas
+beautifulsoup4
+
+# AI / NLP (The heavy ones)
+langchain>=0.2.6
+langchain-community>=0.2.6
+langchain-naver>=0.1.1
+langchain-core>=0.2.10
+langchain-text-splitters>=0.2.0
+google-genai
+google-cloud-vision
+
+# Utils
+pypdf
+pdfplumber
+pillow
+rank_bm25
+numpy
+pgvector

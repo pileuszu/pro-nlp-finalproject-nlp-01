@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
+import { usePolling } from "@/hooks/usePolling";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,19 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
     const [loading, setLoading] = useState(true);
 
     const { toast } = useToast();
+
+    // Polling logic
+    const { data: polledData } = usePolling<Portfolio>(
+        portfolio?.processingStatus === 'PENDING' ? `/portfolios/${id}` : '',
+        3000,
+        (data) => data.processingStatus !== 'PENDING'
+    );
+
+    useEffect(() => {
+        if (polledData) {
+            setPortfolio(polledData);
+        }
+    }, [polledData]);
 
     useEffect(() => {
         fetchWithAuth(getApiUrl(`/portfolios/${id}`))

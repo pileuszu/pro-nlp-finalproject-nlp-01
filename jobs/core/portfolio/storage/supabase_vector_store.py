@@ -5,10 +5,11 @@ import requests
 from sqlalchemy import create_engine, text
 from typing import List, Dict
 from langchain_core.documents import Document
+from common.config import settings
 
 class ManualRAG:
     def __init__(self, collection_name="portfolio_embeddings"):
-        url = os.getenv("DATABASE_URL")
+        url = settings.DATABASE_URL
         # Ensure we use synchronous driver for this part
         if "postgresql+asyncpg://" in url:
             url = url.replace("postgresql+asyncpg://", "postgresql://")
@@ -18,10 +19,10 @@ class ManualRAG:
         from sqlalchemy.pool import NullPool
         self.engine = create_engine(url, poolclass=NullPool)
         self.collection_name = collection_name
-        self.api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY") or os.getenv("NCP_API_KEY")
+        self.api_key = settings.NCP_CLOVASTUDIO_API_KEY
 
     def get_embedding(self, text_content):
-        base_url = (os.getenv("NCP_CLOVASTUDIO_BASE_URL") or "https://clovastudio.stream.ntruss.com").strip()
+        base_url = settings.NCP_CLOVASTUDIO_BASE_URL.strip()
         # Ensure it doesn't end with slash
         if base_url.endswith("/"):
             base_url = base_url[:-1]

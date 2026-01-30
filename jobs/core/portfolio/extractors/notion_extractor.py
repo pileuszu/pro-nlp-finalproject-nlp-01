@@ -8,6 +8,10 @@ except ImportError:
     Client = None
 
 from .base import BaseExtractor
+from common.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NotionExtractor(BaseExtractor):
@@ -17,10 +21,10 @@ class NotionExtractor(BaseExtractor):
     """
 
     def __init__(self):
-        self.access_token = os.getenv("NOTION_TOKEN")
+        self.access_token = settings.NOTION_TOKEN
         if not self.access_token:
             # Main service should handle this check if needed
-            print("Warning: NOTION_TOKEN not found in environment.")
+            logger.warning("Warning: NOTION_TOKEN not set.")
             self.client = None
         else:
             if Client is None:
@@ -129,7 +133,7 @@ class NotionExtractor(BaseExtractor):
                     content += self._process_node(page["id"], "page")
 
         except Exception as e:
-            print(f"Error processing node {node_id}: {e}")
+            logger.error(f"Error processing node {node_id}: {e}")
 
         return content
 
@@ -141,7 +145,7 @@ class NotionExtractor(BaseExtractor):
             has_more = True
             next_cursor = None
 
-            print("Searching for all accessible Notion pages and databases...")
+            logger.info("Searching for all accessible Notion pages and databases...")
             while has_more:
                 response = self.client.search(start_cursor=next_cursor).get(
                     "results", []
@@ -149,7 +153,7 @@ class NotionExtractor(BaseExtractor):
                 results.extend(response)
                 break  # Safety break for one page
 
-            print(f"Found {len(results)} items in workspace.")
+            logger.info(f"Found {len(results)} items in workspace.")
 
             for item in results:
                 item_id = item["id"]

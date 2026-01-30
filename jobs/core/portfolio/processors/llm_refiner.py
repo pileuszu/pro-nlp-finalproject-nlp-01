@@ -4,6 +4,7 @@ import os
 from typing import Optional, List, Literal
 from pydantic import BaseModel, Field, model_validator, field_validator
 import logging
+from common.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +84,8 @@ class LLMRefiner:
         model: str = "HCX-007",  # Changed to HCX-007 for Structured Outputs
         api_key_env: str = "NCP_CLOVASTUDIO_API_KEY",
     ) -> None:
-        self.api_key = os.environ.get(api_key_env)
-        base_url = (os.environ.get("NCP_CLOVASTUDIO_BASE_URL") or "").strip()
+        self.api_key = settings.NCP_CLOVASTUDIO_API_KEY
+        base_url = settings.NCP_CLOVASTUDIO_BASE_URL.strip()
         if not base_url or not base_url.startswith(('http://', 'https://')):
             if base_url and "." in base_url:
                 base_url = f"https://{base_url}"
@@ -95,7 +96,7 @@ class LLMRefiner:
         logger.info(f"LLMRefiner initialized with base_url: {self.base_url} and model: {self.model}")
         
         if not self.api_key:
-            print(f"Warning: {api_key_env} is not set. NCP features will work.")
+            logger.warning(f"Warning: {api_key_env} is not set. NCP features will work.")
     
     async def _call_ncp(self, messages: List[dict], response_schema: dict = None, max_tokens: int = 4096) -> str:
         """Call NCP Chat Completions V3 with Structured Outputs support."""

@@ -4,8 +4,8 @@ from datetime import date
 from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.models.models import Recruitment
-from app.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
+from common.models import Recruitment
+from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
 
 logger = logging.getLogger(__name__)
 

@@ -1,40 +1,9 @@
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from typing import List
-import os
-from app.db.database import get_async_db
+from common.database import get_async_db
+from common.config import settings
 
 router = APIRouter()
-
-async def run_crawler_script(db_session_factory):
-    """Background task to run the crawler and index results."""
-    import logging
-    from app.core.recruit.indexer import RecruitIndexer
-    from app.core.recruit.crawler import RecruitmentCrawler
-
-    logger = logging.getLogger("crawler")
-    logging.basicConfig(level=logging.INFO)
-
-    try:
-        logger.info("Starting recruitment crawler...")
-        
-        # Run crawler
-        crawler = RecruitmentCrawler(target_pages=1)
-        data = await crawler.crawl_and_parse()
-        
-        if not data:
-            logger.warning("No data returned from crawler")
-            return
-        
-        logger.info(f"Crawler returned {len(data)} items. Indexing to database...")
-        
-        # Index data
-        async with db_session_factory() as db:
-            indexer = RecruitIndexer()
-            count = await indexer.add_recruitments(db, data)
-            logger.info(f"Successfully indexed {count} items.")
-
-    except Exception as e:
-        logger.error(f"Crawler/Indexer Task Exception: {e}", exc_info=True)
 
 @router.post("/crawl", status_code=202)
 def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
@@ -42,14 +11,13 @@ def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
     Trigger the recruitment crawling process in the background.
     Requires a secret key for basic security.
     """
-    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "nlp-final-admin-secret")
-    
-    if secret != ADMIN_SECRET:
+    if secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
     
-    from app.db.database import AsyncSessionLocal
-    background_tasks.add_task(run_crawler_script, AsyncSessionLocal)
-    return {"message": "Crawling started in background"}
+    from app.services.job_service import job_service
+    # Trigger the scraping job
+    job_service.trigger_job(task="recruit_update")
+    return {"message": "Crawling job triggered successfully"}
 
 @router.delete("/clear", status_code=200)
 async def clear_database(
@@ -62,14 +30,13 @@ async def clear_database(
     WARNING: This will delete everything!
     """
     # Security check
-    ADMIN_SECRET = os.getenv("ADMIN_SECRET", "nlp-final-admin-secret")
-    if secret != ADMIN_SECRET:
+    if secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
 
     try:
         from sqlalchemy import text
-        from app.db.database import async_engine, Base
-        import app.models.models # Ensure models are loaded
+        from common.database import async_engine, Base
+        import common.models # Ensure models are loaded
 
         # 1. Get all tables in the public schema except alembic_version and spatial_ref_sys
         get_tables_query = text("""

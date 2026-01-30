@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict
-from app.db.database import get_async_db
-from app.schemas import schemas
+from common.database import get_async_db
+from common import schemas
 from app.services import recruit_service
 from app.api import deps
-from app.models import models
+from common import models
 
 router = APIRouter()
 
@@ -83,12 +83,13 @@ async def index_recruitments(
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """
-    Bulk index recruitment data into vector store.
+    Trigger bulk indexing job.
     """
-    from app.core.recruit.indexer import RecruitIndexer
-    indexer = RecruitIndexer()
-    count = await indexer.add_recruitments(db, payload)
-    return {"message": f"Successfully indexed {count} recruitments"}
+    from app.services.job_service import job_service
+    # We trigger a job instead of doing it inline
+    # Assuming 'recruit_indexing' task exists or reusing 'recruit_update'
+    job_service.trigger_job(task="recruit_indexing") 
+    return {"message": "Recruitment indexing job triggered"}
 
 @router.put("/{recruit_id}", response_model=schemas.Recruitment)
 async def update_recruit(

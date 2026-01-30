@@ -4,20 +4,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+
 
 # Setup basic logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-try:
-    load_dotenv()
-except Exception:
-    pass
-
 from sqlalchemy.pool import NullPool
+from common.config import settings
 
-raw_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/pro_nlp_db")
+raw_url = settings.DATABASE_URL
 
 # Handle legacy 'postgres://' prefix
 if raw_url.startswith("postgres://"):

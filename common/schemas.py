@@ -113,7 +113,7 @@ class CoverLetterBase(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
     recruitment_id: Optional[int] = Field(None, alias="recruitId")
-    status: Optional[str] = "PENDING"
+    processing_status: Optional[str] = "PENDING"
 
 class CoverLetterItemBase(BaseModel):
     question: str

@@ -1,44 +1,45 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.schemas import schemas
-from app.services import cover_letter_service
+from sqlalchemy.ext.asyncio import AsyncSession
+from common.database import get_async_db
+from common import schemas
+from app.services.cover_letter_service import CoverLetterService
+from app.services.ai_cover_letter_service import AICoverLetterService
 from app.api import deps
-from app.models import models
-from app.services.ai_cover_letter_service import cover_letter_service as ai_service
+from common import models
 
 router = APIRouter()
 
 @router.get("", response_model=schemas.CoverLetterListResponse)
 async def list_cover_letters(
     recruitId: Optional[int] = Query(None),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    items = cover_letter_service.get_cover_letters(db, user_id=current_user.id, recruitment_id=recruitId)
+    service = CoverLetterService(db)
+    items = await service.get_cover_letters(user_id=current_user.id, recruitment_id=recruitId)
     return {"items": items}
 
 @router.post("", response_model=schemas.CoverLetter, status_code=201)
 async def create_cover_letter(
     cl: schemas.CoverLetterCreateRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    service = CoverLetterService(db)
     # Convert Request schema to internal Create schema (adding user_id)
     cl_data = cl.model_dump()
-    # Handle potential field mismatch if service expects strict schema
-    # We create the internal schema object
     internal_cl = schemas.CoverLetterCreate(**cl_data, user_id=current_user.id)
-    return cover_letter_service.create_cover_letter(db, internal_cl)
+    return await service.create_cover_letter(internal_cl)
 
 @router.get("/{cl_id}", response_model=schemas.CoverLetter)
 async def get_cover_letter(
     cl_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    db_cl = cover_letter_service.get_cover_letter(db, cl_id, current_user.id)
+    service = CoverLetterService(db)
+    db_cl = await service.get_cover_letter(cl_id, current_user.id)
     if not db_cl:
         raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
     return db_cl
@@ -47,11 +48,12 @@ async def get_cover_letter(
 async def update_cover_letter(
     cl_id: int, 
     cl: schemas.CoverLetterUpdateRequest, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    db_cl = cover_letter_service.update_cover_letter(
-        db, cl_id, current_user.id, cl.model_dump(exclude_unset=True)
+    service = CoverLetterService(db)
+    db_cl = await service.update_cover_letter(
+        cl_id, current_user.id, cl.model_dump(exclude_unset=True)
     )
     if not db_cl:
         raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
@@ -60,10 +62,11 @@ async def update_cover_letter(
 @router.delete("/{cl_id}")
 async def delete_cover_letter(
     cl_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    success = cover_letter_service.delete_cover_letter(db, cl_id, current_user.id)
+    service = CoverLetterService(db)
+    success = await service.delete_cover_letter(cl_id, current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
     return {"success": True, "message": "Cover letter deleted"}
@@ -71,11 +74,13 @@ async def delete_cover_letter(
 @router.post("/generate", response_model=schemas.CoverLetter)
 async def generate_cover_letter(
     req: schemas.CoverLetterGenerateRequest,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """
     Generates a cover letter using AI (HyperCLOVA X).
     """
+    ai_service = AICoverLetterService()
     # Verify user ownership of portfolios if needed inside service or here
     return await ai_service.generate_cover_letter(db, current_user.id, req)
+

@@ -1,15 +1,16 @@
 import os
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.models import models
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from common.database import get_async_db
+from common import models
 from jose import jwt
 from datetime import datetime, timedelta
 
-from app.core.config import settings
+from common.config import settings
 from app.api import deps
-from app.schemas import schemas
+from common import schemas
 
 router = APIRouter()
 
@@ -24,7 +25,7 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 @router.get("/kakao/callback")
-async def kakao_callback(code: str, db: Session = Depends(get_db)):
+async def kakao_callback(code: str, db: AsyncSession = Depends(get_async_db)):
     # 1. Exchange code for token
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
@@ -65,7 +66,10 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
         profile_image = profile.get("profile_image_url")
 
         # 3. DB Check & Create
-        user = db.query(models.User).filter(models.User.email == email).first()
+        stmt = select(models.User).where(models.User.email == email)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
         if not user:
             user = models.User(
                 email=email,
@@ -73,8 +77,8 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
                 profile_image=profile_image
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+            await db.commit()
+            await db.refresh(user)
 
         # 4. Create Local Token
         local_token = create_access_token(data={"sub": user.email, "user_id": user.id})

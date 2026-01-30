@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { Button } from "@/components/ui/button";
+import { usePolling } from "@/hooks/usePolling";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,6 +86,59 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const [aiTone, setAiTone] = useState<ToneType>('professional');
     const [aiFocus, setAiFocus] = useState("");
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Polling logic for AI generation result
+    const [pollingTarget, setPollingTarget] = useState<string>("");
+    const { data: polledResult, loading: isPollLoading } = usePolling<any>(
+        pollingTarget,
+        3000,
+        (data) => data.processingStatus === 'COMPLETED' || data.processingStatus === 'FAILED'
+    );
+
+    // Effect to handle polled data updates
+    useEffect(() => {
+        if (!polledResult || !activeAiQuestionId) return;
+
+        if (polledResult.processingStatus === 'COMPLETED') {
+            // Backend returns full CoverLetter object
+            if (polledResult.gap_analysis) {
+                setGapAnalysis(prev => ({ ...prev, ...polledResult.gap_analysis }));
+            }
+
+            // Find the updated item
+            // Note: polledResult should be the full CoverLetter object
+            const activeQuestionContent = questions.find(q => q.id === activeAiQuestionId)?.question || "";
+            const generatedItem = polledResult.items?.find((i: CoverLetterItem) => i.question === activeQuestionContent);
+
+            if (generatedItem) {
+                setQuestions(prev => prev.map(q => q.id === activeAiQuestionId ? {
+                    ...q,
+                    answer: generatedItem.content || "",
+                    key_points: generatedItem.key_points,
+                    suggested_improvements: generatedItem.suggested_improvements
+                } : q));
+
+                // Clear polling and loading state
+                setPollingTarget("");
+                setIsGenerating(false);
+                setActiveAiQuestionId(null);
+
+            } else if (polledResult.content && polledResult.items?.length === 0) {
+                // Fallback if no items (legacy or simple update)
+                setQuestions(prev => prev.map(q => q.id === activeAiQuestionId ? { ...q, answer: polledResult.content } : q));
+                setPollingTarget("");
+                setIsGenerating(false);
+                setActiveAiQuestionId(null);
+            }
+        } else if (polledResult.processingStatus === 'FAILED') {
+            alert("AI 생성에 실패했습니다.");
+            setPollingTarget("");
+            setIsGenerating(false);
+            setActiveAiQuestionId(null);
+        }
+    }, [polledResult, activeAiQuestionId]);
+
+
 
     useEffect(() => {
         const loadData = async () => {
@@ -186,33 +240,22 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 })
             });
 
-            if (!res.ok) throw new Error("AI 생성에 실패했습니다.");
+            if (!res.ok) throw new Error("AI 생성 요청에 실패했습니다.");
 
             const data = await res.json();
-
-            // Backend returns full CoverLetter object
-            if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
-
-            const generatedItem = data.items?.find((i: CoverLetterItem) => i.question === activeQuestionContent);
-
-            if (generatedItem) {
-                setQuestions(questions.map(q => q.id === activeAiQuestionId ? {
-                    ...q,
-                    answer: generatedItem.content || "",
-                    key_points: generatedItem.key_points,
-                    suggested_improvements: generatedItem.suggested_improvements
-                } : q));
-            } else if (data.content) {
-                // Fallback for simple generation responses
-                setQuestions(questions.map(q => q.id === activeAiQuestionId ? { ...q, answer: data.content } : q));
+            // Start polling for this specific cover letter
+            // Assuming data contains the cover letter ID
+            if (data.id) {
+                setPollingTarget(`/cover-letters/${data.id}`);
+            } else {
+                throw new Error("Invalid response from server");
             }
 
-            setActiveAiQuestionId(null);
         } catch (e) {
             console.error(e);
             alert("AI 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+            setIsGenerating(false);
         }
-        setIsGenerating(false);
     };
 
     const applySuggestion = (qId: number, suggestion: string) => {

@@ -1,7 +1,9 @@
-import time
-print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Starting main.py import...")
-
 import logging
+import sys
+
+# Configure basic logging for startup
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logger = logging.getLogger("main")
 
 # Suppress pdfminer logs
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
@@ -11,10 +13,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Importing endpoints...")
+logger.info("Importing endpoints...")
 from app.api.endpoints import auth, recruits, portfolios, cover_letters, health
 
-print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Initializing FastAPI app...")
+logger.info("Initializing FastAPI app...")
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
     description="AI 기반 채용 플랫폼의 프론트엔드-백엔드 협업을 위한 표준 API 규격서입니다.",
@@ -36,7 +38,7 @@ app.add_middleware(
 async def root():
     return {"status": "ok", "message": "Pro-NLP Backend is running", "docs": "/docs"}
 
-print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] FastAPI app READY for port binding.")
+logger.info("FastAPI app READY for port binding.")
 
 # Global Exception Handlers
 @app.exception_handler(RequestValidationError)

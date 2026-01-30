@@ -1,23 +1,24 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
-from sqlalchemy.orm import Session
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from app.db.database import get_db, get_async_db
-from app.schemas import schemas
-from app.services import portfolio_service, recruit_service
+from common.database import get_async_db
+from common import schemas
+from app.services import recruit_service
 from app.services.portfolio_service import PortfolioService
 from app.api import deps
-from app.models import models
+
+from common import models
 
 router = APIRouter()
 
 @router.get("", response_model=schemas.PortfolioListResponse)
 async def list_portfolios(
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    items = portfolio_service.get_portfolios(db, user_id=current_user.id)
+    service = PortfolioService(db)
+    items = await service.get_portfolios(user_id=current_user.id)
     return {"items": items}
 
 @router.post("", response_model=schemas.Portfolio, status_code=201)
@@ -74,26 +75,30 @@ async def import_github_portfolio(
     return await service.create_portfolio_from_github(current_user.id, payload.title, payload.source_url, background_tasks)
 
 @router.get("/{portfolio_id}", response_model=schemas.Portfolio)
+@router.get("/{portfolio_id}", response_model=schemas.Portfolio)
 async def get_portfolio(
     portfolio_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    portfolio = portfolio_service.get_portfolio(db, portfolio_id, current_user.id)
+    service = PortfolioService(db)
+    portfolio = await service.get_portfolio(portfolio_id, current_user.id)
     if not portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found")
     return portfolio
 
 @router.patch("/{portfolio_id}", response_model=schemas.Portfolio)
+@router.patch("/{portfolio_id}", response_model=schemas.Portfolio)
 async def update_portfolio(
     portfolio_id: int,
     portfolio: schemas.PortfolioUpdateRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    updated_portfolio = portfolio_service.update_portfolio(
-        db, portfolio_id, current_user.id, portfolio.model_dump(exclude_unset=True)
+    service = PortfolioService(db)
+    updated_portfolio = await service.update_portfolio(
+        portfolio_id, current_user.id, portfolio.model_dump(exclude_unset=True)
     )
     if not updated_portfolio:
         raise HTTPException(status_code=404, detail="Portfolio not found or unauthorized")
@@ -103,12 +108,14 @@ async def update_portfolio(
     return updated_portfolio
 
 @router.delete("/{portfolio_id}")
+@router.delete("/{portfolio_id}")
 async def delete_portfolio(
     portfolio_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    success = portfolio_service.delete_portfolio(db, portfolio_id, current_user.id)
+    service = PortfolioService(db)
+    success = await service.delete_portfolio(portfolio_id, current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Portfolio not found or unauthorized")
     return {"success": True, "message": "Portfolio deleted"}

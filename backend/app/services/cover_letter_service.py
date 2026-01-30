@@ -1,47 +1,49 @@
-from sqlalchemy.orm import Session
-from app.models import models
-from app.schemas import schemas
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from common import models
+from common import schemas
 
-def get_cover_letters(db: Session, user_id: int, recruitment_id: int = None):
-    query = db.query(models.CoverLetter).filter(models.CoverLetter.user_id == user_id)
-    if recruitment_id:
-        query = query.filter(models.CoverLetter.recruitment_id == recruitment_id)
-    return query.all()
+class CoverLetterService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
 
-def get_cover_letter(db: Session, cl_id: int, user_id: int):
-    return db.query(models.CoverLetter).filter(models.CoverLetter.id == cl_id, models.CoverLetter.user_id == user_id).first()
+    async def get_cover_letters(self, user_id: int, recruitment_id: int = None):
+        stmt = select(models.CoverLetter).where(models.CoverLetter.user_id == user_id)
+        if recruitment_id:
+            stmt = stmt.where(models.CoverLetter.recruitment_id == recruitment_id)
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
-def create_cover_letter(db: Session, cl: schemas.CoverLetterCreate):
-    db_cl = models.CoverLetter(**cl.model_dump())
-    db.add(db_cl)
-    db.commit()
-    db.refresh(db_cl)
-    return db_cl
+    async def get_cover_letter(self, cl_id: int, user_id: int):
+        stmt = select(models.CoverLetter).where(models.CoverLetter.id == cl_id, models.CoverLetter.user_id == user_id)
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
-def update_cover_letter(db: Session, cl_id: int, user_id: int, data: dict):
-    db_cl = get_cover_letter(db, cl_id, user_id)
-    if not db_cl:
-        return None
-    for key, value in data.items():
-        setattr(db_cl, key, value)
-    db.commit()
-    db.refresh(db_cl)
-    return db_cl
+    async def create_cover_letter(self, cl: schemas.CoverLetterCreate):
+        db_cl = models.CoverLetter(**cl.model_dump())
+        self.db.add(db_cl)
+        await self.db.commit()
+        await self.db.refresh(db_cl)
+        return db_cl
 
-def delete_cover_letter(db: Session, cl_id: int, user_id: int):
-    db_cl = get_cover_letter(db, cl_id, user_id)
-    if not db_cl:
-        return False
-    db.delete(db_cl)
-    db.commit()
-    return True
+    async def update_cover_letter(self, cl_id: int, user_id: int, data: dict):
+        db_cl = await self.get_cover_letter(cl_id, user_id)
+        if not db_cl:
+            return None
+        
+        for key, value in data.items():
+            setattr(db_cl, key, value)
+            
+        await self.db.commit()
+        await self.db.refresh(db_cl)
+        return db_cl
 
-def mock_generate_cover_letter(req: schemas.CoverLetterGenerateRequest):
-    # Mock data for AI generation
-    tone_styles = {
-        "professional": "As a highly motivated developer...",
-        "creative": "Passionate about building the future of AI...",
-        "warm": "I have always enjoyed solving problems through code..."
-    }
-    content = tone_styles.get(req.tone, tone_styles["professional"])
-    return f"[MOCK AI GENERATION]\nQuestion: {req.question}\n\n{content}\n\nThis is a placeholder result since the AI pipeline is in another branch."
+    async def delete_cover_letter(self, cl_id: int, user_id: int):
+        db_cl = await self.get_cover_letter(cl_id, user_id)
+        if not db_cl:
+            return False
+        
+        await self.db.delete(db_cl)
+        await self.db.commit()
+        return True
+
