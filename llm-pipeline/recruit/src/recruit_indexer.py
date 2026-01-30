@@ -6,12 +6,21 @@ from pathlib import Path
 from langchain_core.documents import Document
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+from langchain_community.retrievers import BM25Retriever
+from langchain_classic.retrievers import EnsembleRetriever
+
+try:
+    from kiwipiepy import Kiwi
+    KIWI_AVAILABLE = True
+except ImportError:
+    KIWI_AVAILABLE = False
+    print("Warning: kiwipiepy is not installed. Falling back to simple split.")
 
 # Configuration constants
 # Adjust these paths as needed, assuming we run from project root or relative to this file
 CURRENT_DIR = Path(__file__).resolve().parent
 RECRUIT_ROOT = CURRENT_DIR.parent
-PERSIST_DIR = RECRUIT_ROOT / "data" / "chroma_db"
+PERSIST_DIR = RECRUIT_ROOT / "data" / "chroma_db_new"
 EMBEDDING_MODEL_NAME = "jhgan/ko-sroberta-multitask"
 
 class RecruitIndexer:
@@ -22,6 +31,12 @@ class RecruitIndexer:
             model_kwargs={'device': 'cpu'},
             encode_kwargs={'normalize_embeddings': True}
         )
+        self.kiwi = None
+        if KIWI_AVAILABLE:
+            try:
+                self.kiwi = Kiwi()
+            except Exception as e:
+                print(f"Kiwi initialization failed: {e}")
         
     def preprocess_recruitment(self, data: Dict) -> Document:
         """
@@ -56,6 +71,27 @@ class RecruitIndexer:
         # Ideally we pass 'id' to the vectorstore add_documents method, 
         # but storing it in metadata/object is also good practice.
         return Document(page_content=page_content, metadata=metadata)
+
+    def _kiwi_tokenize(self, text: str) -> List[str]:
+        """
+        Kiwi 형태소 분석기를 사용하여 명사(NNG, NNP, SL)만 추출합니다.
+        BM25 검색의 정확도를 높이기 위해 사용됩니다.
+        """
+        if not self.kiwi:
+            return text.split() # Fallback
+
+        tokens = []
+        try:
+            # tokenize returns list of Token(form, tag, start, len)
+            matches = self.kiwi.tokenize(text, normalize_coda=True)
+            for token in matches:
+                # NNG: 일반 명사, NNP: 고유 명사, SL: 외국어(기술명 등)
+                if token.tag in ['NNG', 'NNP', 'SL']:
+                    tokens.append(token.form)
+        except Exception:
+             return text.split()
+        
+        return tokens if tokens else text.split() # Return split if no nouns found (e.g. only particles)
 
     def create_vectorstore(self, data_list: List[Dict], collection_name: str = "recruit_collection"):
         """
@@ -129,6 +165,97 @@ class RecruitIndexer:
             persist_directory=self.persist_dir
         )
         return vectorstore.get()
+
+    def search_bm25(self, query: str, k: int = 10, collection_name: str = "recruit_collection"):
+        """
+        Pure BM25 search with Kiwi tokenization.
+        """
+        vectorstore = Chroma(
+            collection_name=collection_name,
+            embedding_function=self.embedding_model,
+            persist_directory=self.persist_dir
+        )
+        
+        all_data = vectorstore.get()
+        documents = []
+        if all_data['documents']:
+            for content, metadata in zip(all_data['documents'], all_data['metadatas']):
+                documents.append(Document(page_content=content, metadata=metadata))
+        
+        if not documents:
+            return []
+
+        bm25_retriever = BM25Retriever.from_documents(
+            documents,
+            preprocess_func=self._kiwi_tokenize
+        )
+        bm25_retriever.k = k
+        return bm25_retriever.invoke(query)
+
+    def search_hybrid(self, query: str, keyword_query: Optional[str] = None, k: int = 5, collection_name: str = "recruit_collection"):
+        """
+        Hybrid Search: Combines Vector search (Chroma) and Keyword search (BM25).
+        If keyword_query is provided, it is used specifically for the BM25 component.
+        """
+        # 1. Prepare Vector Retriever
+        vectorstore = Chroma(
+            collection_name=collection_name,
+            embedding_function=self.embedding_model,
+            persist_directory=self.persist_dir
+        )
+        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
+        
+        # 2. Prepare BM25 Retriever
+        all_data = vectorstore.get()
+        documents = []
+        if all_data['documents']:
+            for content, metadata in zip(all_data['documents'], all_data['metadatas']):
+                documents.append(Document(page_content=content, metadata=metadata))
+        
+        if not documents:
+            return []
+            
+        bm25_retriever = BM25Retriever.from_documents(
+            documents,
+            preprocess_func=self._kiwi_tokenize
+        )
+        bm25_retriever.k = k
+        
+        # 3. Combine using EnsembleRetriever
+        # If keyword_query is provided, we need to handle them separately.
+        # Otherwise, EnsembleRetriever can handle it in one go.
+        if keyword_query:
+            # Manually invoke and combine results if they use different queries
+            bm25_docs = bm25_retriever.invoke(keyword_query)
+            vector_docs = vector_retriever.invoke(query)
+            
+            # Simple ensemble: Combine and remove duplicates while maintaining order
+            # (In a real scenario, you might want to use Rank Fusion)
+            combined = []
+            seen_ids = set()
+            
+            # Interleave results for a simple "ensemble" effect
+            for docs in zip(bm25_docs, vector_docs):
+                for doc in docs:
+                    uid = doc.metadata.get('unique_id')
+                    if uid not in seen_ids:
+                        combined.append(doc)
+                        seen_ids.add(uid)
+            
+            # Add remaining
+            for doc in bm25_docs + vector_docs:
+                uid = doc.metadata.get('unique_id')
+                if uid not in seen_ids:
+                    combined.append(doc)
+                    seen_ids.add(uid)
+            
+            return combined[:k]
+        else:
+            ensemble_retriever = EnsembleRetriever(
+                retrievers=[bm25_retriever, vector_retriever],
+                weights=[0.5, 0.5]
+            )
+            return ensemble_retriever.invoke(query)
 
 if __name__ == "__main__":
     print("RecruitIndexer module loaded.")
