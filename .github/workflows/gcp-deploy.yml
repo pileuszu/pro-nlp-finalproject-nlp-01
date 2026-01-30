@@ -36,7 +36,7 @@ jobs:
             echo "BACKEND_SERVICE=pro-nlp-backend" >> $GITHUB_OUTPUT
             echo "JOB_SERVICE=pro-nlp-jobs" >> $GITHUB_OUTPUT
             echo "IMAGE_TAG=latest" >> $GITHUB_OUTPUT
-            echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI || 'https://pro-nlp-finalproject-nlp-01.vercel.app/auth/kakao/callback' }}" >> $GITHUB_OUTPUT
+            echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}" >> $GITHUB_OUTPUT
           else
             echo "ENV_TYPE=preview" >> $GITHUB_OUTPUT
             echo "BACKEND_SERVICE=pro-nlp-backend-preview" >> $GITHUB_OUTPUT
@@ -45,8 +45,8 @@ jobs:
             if [[ -n "${{ secrets.GCP_PREVIEW_KAKAO_REDIRECT_URI }}" ]]; then
               echo "KAKAO_REDIRECT_URI=${{ secrets.GCP_PREVIEW_KAKAO_REDIRECT_URI }}" >> $GITHUB_OUTPUT
             else
-              # Fallback to production secret, then to hardcoded production URL
-              echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI || 'https://pro-nlp-finalproject-nlp-01.vercel.app/auth/kakao/callback' }}" >> $GITHUB_OUTPUT
+              # Use production secret if preview secret is missing
+              echo "KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}" >> $GITHUB_OUTPUT
             fi
           fi
 
