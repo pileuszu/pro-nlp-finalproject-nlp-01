@@ -312,7 +312,7 @@ class PortfolioService:
             if not text or text.startswith("[Error]"):
                 raise ValueError(f"Extraction failed: {text}")
 
-            portfolio.content = text
+            portfolio.content = self._sanitize_text(text)
             await self.db.commit()
 
             # 2. Refine (AI Pipeline) - Reuse existing refiner
