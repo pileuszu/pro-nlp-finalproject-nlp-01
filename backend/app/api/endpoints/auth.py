@@ -81,8 +81,7 @@ async def kakao_callback(
         if not user:
             user = models.User(
                 email=email,
-                name=name,
-                profile_image=profile_image
+                name=name
             )
             db.add(user)
             await db.commit()
@@ -97,8 +96,7 @@ async def kakao_callback(
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "name": user.name,
-                "profile_image": user.profile_image
+                "name": user.name
             }
         }
 
