@@ -83,7 +83,7 @@
 - **Body**:
 ```json
 {
-  "recruitId": 1,
+  "recruit_id": 1,
   "portfolioIds": [1, 2],
   "question": "지원동기",
   "tone": "professional"
@@ -249,7 +249,7 @@ AI를 통해 포트폴리오 기반의 자소서 초안을 생성합니다.
 **요청 본문:**
 ```json
 {
-  "recruitId": 1,
+  "recruit_id": 1,
   "portfolioIds": [1, 2],
   "question": "지원동기",
   "tone": "professional"

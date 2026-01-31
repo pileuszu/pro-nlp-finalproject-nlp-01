@@ -51,7 +51,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
             });
 
         if (isAuthenticated && id) {
-            fetchWithAuth(getApiUrl(`/cover-letters?recruitId=${id}`), { cache: 'no-store' })
+            fetchWithAuth(getApiUrl(`/cover-letters?recruit_id=${id}`), { cache: 'no-store' })
                 .then(res => res.ok ? res.json() : { items: [] })
                 .then(data => setExistingDocs(data.items || []))
                 .catch(err => console.error(err));

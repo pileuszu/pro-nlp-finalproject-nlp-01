@@ -6,7 +6,7 @@ from datetime import date, datetime
 class UserBase(BaseModel):
     email: EmailStr
     name: str
-    profile_image: Optional[str] = None
+    name: str
 
 class UserCreate(UserBase):
     pass
@@ -175,6 +175,7 @@ class PortfolioAnalyzeRequest(BaseModel):
 
 class CoverLetterGenerateRequest(BaseModel):
     recruit_id: int
+    portfolio_ids: List[int] = []
     questions: List[str]
     tone: str = "professional"
 

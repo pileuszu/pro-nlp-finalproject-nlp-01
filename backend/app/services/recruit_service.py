@@ -90,52 +90,28 @@ async def get_recruitment(db: AsyncSession, recruit_id: int):
 async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: Optional[int] = None):
     """
     Get pre-computed recruitment recommendations for a user.
+    Aggregates all relevant recommendations across all user's portfolios.
     """
-    from common.models import Portfolio, Recommendation, Recruitment
+    from common.models import Recommendation, Recruitment
     
-    if portfolio_id:
-        stmt = select(Portfolio).where(Portfolio.id == portfolio_id, Portfolio.user_id == user_id)
-        result = await db.execute(stmt)
-        portfolio = result.scalar_one_or_none()
-        
-        if not portfolio:
-            return {"items": []}
-            
-        rec_stmt = select(Recommendation, Recruitment).join(Recruitment).where(
-            Recommendation.portfolio_id == portfolio.id
-        ).order_by(Recommendation.rank_order)
-    else:
-        rec_stmt = select(Recommendation, Recruitment).join(Recruitment).join(Portfolio).where(
-            Portfolio.user_id == user_id
-        ).order_by(Recommendation.rank_order)
+    # Simple query: join Recommendation and Recruitment for the user
+    # Order by score desc (highest match first) or rank_order
+    rec_stmt = select(Recommendation, Recruitment).join(Recruitment).where(
+        Recommendation.user_id == user_id
+    ).order_by(Recommendation.rank_order.asc())
     
     rec_result = await db.execute(rec_stmt)
     rows = rec_result.all()
 
-    recruitment_map = {}
-    for r_obj, recruitment in rows:
-        if recruitment.id not in recruitment_map:
-            recruitment_map[recruitment.id] = {
-                "recruitment": recruitment,
-                "reasons": []
-            }
-        if r_obj.reason and r_obj.reason not in recruitment_map[recruitment.id]["reasons"]:
-            recruitment_map[recruitment.id]["reasons"].append(r_obj.reason)
-            
-    if not recruitment_map and portfolio_id:
-        logger.info(f"No recommendations for portfolio {portfolio_id}. Triggering job.")
-        success = job_service.trigger_job(task="recruit_update", target_id=user_id)
-        if not success:
-            return {"items": [], "status": "ERROR", "error": "Failed to trigger recommendation update"}
-        return {"items": [], "status": "PROCESSING"}
-
     final_results = []
-    for rid, data in recruitment_map.items():
-        recruitment = data["recruitment"]
-        reasons = data["reasons"]
+    for r_obj, recruitment in rows:
+        reasons = r_obj.reason or []
+        if not isinstance(reasons, list):
+            reasons = [str(reasons)]
+            
         combined_reason = "• " + "\n• ".join(reasons) if len(reasons) > 1 else (reasons[0] if reasons else "")
 
-        item = {
+        final_results.append({
             "id": recruitment.id,
             "title": recruitment.title,
             "company": recruitment.company,
@@ -145,8 +121,14 @@ async def get_ai_recommendations(db: AsyncSession, user_id: int, portfolio_id: O
             "deadline": recruitment.deadline.isoformat() if recruitment.deadline else None,
             "startDate": recruitment.start_date.isoformat() if recruitment.start_date else None,
             "reason": combined_reason
-        }
-        final_results.append(item)
+        })
+    
+    if not final_results and portfolio_id:
+        logger.info(f"No recommendations for user {user_id}. Triggering job.")
+        success = job_service.trigger_job(task="recruit_update", target_id=user_id)
+        if not success:
+            return {"items": [], "status": "ERROR", "error": "Failed to trigger recommendation update"}
+        return {"items": [], "status": "PROCESSING"}
     
     return {
         "items": final_results,

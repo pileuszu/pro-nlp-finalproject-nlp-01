@@ -19,7 +19,6 @@ import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 import { CoverLetterItem, GapAnalysisResult } from "@/types";
 
 // --- Sub-Components ---
-import { AiStudioModal } from "./components/AiStudioModal";
 import { RecruitInfoPanel } from "./components/RecruitInfoPanel";
 import { GapAnalysisReport } from "./components/GapAnalysisReport";
 import { QuestionEditorItem } from "./components/QuestionEditorItem";
@@ -87,7 +86,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const [status, setStatus] = useState<'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED' | null>(null);
 
     // --- AI Studio State ---
-    const [isAiStudioOpen, setIsAiStudioOpen] = useState(false);
     const [aiMode, setAiMode] = useState<AiMode>('draft');
     const [aiTone, setAiTone] = useState<ToneType>('professional');
     const [aiFocus, setAiFocus] = useState("");
@@ -152,7 +150,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             setPollingTarget("");
             setIsGenerating(false);
-            setIsAiStudioOpen(false);
         }
     }, [polledResult]);
 
@@ -253,6 +250,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     mode: aiMode,
                     tone: aiTone,
                     recruit_id: linkedRecruit?.id,
+                    portfolio_ids: selectedPortfolioIds, // Standardized: snake_case
                     questions: allQuestions
                 })
             });
@@ -375,42 +373,24 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     </div>
                 </div>
 
-                {/* Floating Action Bar for AI Studio */}
-                <div className="fixed bottom-12 left-1/2 -translate-x-[calc(50%+290px/2)] z-50 flex gap-4 pr-[290px] xl:pr-0">
-                    <Button
-                        variant="default"
-                        size="lg"
-                        onClick={() => setIsAiStudioOpen(true)}
-                        className="h-16 px-10 rounded-[2rem] bg-blue-600 hover:bg-blue-700 text-white font-black shadow-2xl shadow-blue-500/40 border-4 border-blue-400/20 flex gap-3 scale-110"
-                    >
-                        <Sparkles className="h-5 w-5 fill-white" />
-                        AI로 전체 문항 일괄 작성하기
-                    </Button>
-                </div>
+                {/* Info Panel */}
+                <RecruitInfoPanel
+                    isOpen={showRecruitPanel}
+                    onClose={() => setShowRecruitPanel(false)}
+                    recruit={linkedRecruit}
+                    panelTab={panelTab}
+                    setPanelTab={setPanelTab}
+
+                    aiMode={aiMode}
+                    setAiMode={setAiMode}
+                    aiTone={aiTone}
+                    setAiTone={setAiTone}
+                    aiFocus={aiFocus}
+                    setAiFocus={setAiFocus}
+                    isGenerating={isGenerating}
+                    onRunGeneration={runAiGeneration}
+                />
             </div>
-
-            {/* Info Panel */}
-            <RecruitInfoPanel
-                isOpen={showRecruitPanel}
-                onClose={() => setShowRecruitPanel(false)}
-                recruit={linkedRecruit}
-                panelTab={panelTab}
-                setPanelTab={setPanelTab}
-            />
-
-            {/* --- AI Studio OverLay Modal --- */}
-            <AiStudioModal
-                isOpen={isAiStudioOpen}
-                onClose={() => setIsAiStudioOpen(false)}
-                aiMode={aiMode}
-                setAiMode={setAiMode}
-                aiTone={aiTone}
-                setAiTone={setAiTone}
-                aiFocus={aiFocus}
-                setAiFocus={setAiFocus}
-                isGenerating={isGenerating}
-                onRunGeneration={runAiGeneration}
-            />
         </div>
     );
 }

@@ -14,6 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.exceptions import AppBaseException
+from common.config import settings
 
 logger.info("Importing endpoints...")
 from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications

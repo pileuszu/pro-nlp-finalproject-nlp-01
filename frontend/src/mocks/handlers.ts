@@ -153,7 +153,6 @@ export const handlers = [
                 id: 1,
                 email: 'user@kakao.com',
                 name: '카카오본인',
-                profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
             },
             token: 'mock-jwt-token'
         });
@@ -165,7 +164,6 @@ export const handlers = [
             id: 1,
             email: 'user@kakao.com',
             name: '카카오본인',
-            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kakao'
         })
     }),
 

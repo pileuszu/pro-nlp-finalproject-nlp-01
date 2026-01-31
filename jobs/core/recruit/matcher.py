@@ -264,20 +264,6 @@ class RecruitMatcher:
                     item = dict(candidates[idx].metadata)
                     item["reason"] = r.get("reason", "매칭 사유를 생성하지 못했습니다.")
                     
-                    # Calculate Score from distance
-                    dist = item.get("distance")
-                    if dist is not None:
-                        try:
-                            # Cosine distance to similarity score
-                            # distance usually 0 to 2. Score 0 to 1.
-                            # Sim = 1 - dist (approx for normalized). Or 1 - (dist/2)?
-                            # Let's use 1 - distance. If distance is small (0.1), score is 0.9.
-                            item["score"] = max(0.0, 1.0 - float(dist))
-                        except:
-                            item["score"] = None
-                    else:
-                        item["score"] = None # No score available (fallback search)
-
                     # Also include content if needed
                     item["content_snippet"] = candidates[idx].page_content[:500]
                     final_results.append(item)

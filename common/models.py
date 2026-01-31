@@ -18,7 +18,6 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
-    profile_image = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # User Profile Fields (extracted from portfolios)
@@ -136,7 +135,7 @@ class Recommendation(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     recruitment_id = Column(Integer, ForeignKey("recruitments.id"), nullable=False)
     rank_order = Column(Integer, nullable=False)
-    reason = Column(JSON, nullable=True) # List of strings or objects explaining why it's recommended
+    reason = Column(JSON, nullable=True) # List of strings
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User") # Optional: add back_populates if needed

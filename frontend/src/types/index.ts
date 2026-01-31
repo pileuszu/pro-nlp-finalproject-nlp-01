@@ -83,7 +83,6 @@ export interface User {
     id: number;
     email: string;
     name: string;
-    profileImage?: string;
     profile_summary?: string;
     desired_job_title?: string;
 }

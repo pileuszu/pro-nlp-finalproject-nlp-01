@@ -18,7 +18,7 @@ class AICoverLetterService:
         Creates placeholders for multiple questions and triggers the AI generation job.
         """
         # 1. Fetch Recruitment
-        stmt = select(models.Recruitment).where(models.Recruitment.id == generate_req.recruitId)
+        stmt = select(models.Recruitment).where(models.Recruitment.id == generate_req.recruit_id)
         result = await db.execute(stmt)
         recruitment = result.scalar_one_or_none()
         
@@ -60,7 +60,8 @@ class AICoverLetterService:
         success = job_service.trigger_job(
             task="cover_letter_generation", 
             target_id=cover_letter.id,
-            tone=generate_req.tone
+            tone=generate_req.tone,
+            portfolio_ids=generate_req.portfolio_ids
         )
         
         if not success:

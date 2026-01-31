@@ -206,7 +206,9 @@ async def global_rerank_recommendations(db: AsyncSession, user_id: int):
     for i, doc in enumerate(refined_results):
         try:
             rec_id = int(doc.metadata.get("id"))
-            update_stmt = sa.update(Recommendation).where(Recommendation.id == rec_id).values(rank_order=i)
+            update_stmt = sa.update(Recommendation).where(Recommendation.id == rec_id).values(
+                rank_order=i
+            )
             await db.execute(update_stmt)
         except:
             continue
