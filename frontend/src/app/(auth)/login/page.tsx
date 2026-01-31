@@ -21,15 +21,7 @@ export default function LoginPage() {
         window.location.href = kakaoAuthUrl;
     };
 
-    const handleDevLogin = () => {
-        setLoading(true);
-        const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzY5NzA5NjE4fQ.HnjbWspQg_Rebzg67uyLSIJqrTrZZoxNKzzjEoEy4K0"; // Generated for User ID 1
-        const user = { id: 1, email: "test@example.com", name: "Dev User" }; // Mock user data
 
-        login(user, token);
-        document.cookie = `accessToken=${token}; path=/; max-age=86400; SameSite=Lax; Secure`;
-        router.push("/my/portfolios/new");
-    };
 
     return (
         <div className="flex items-center justify-center min-h-screen px-4 bg-slate-50/50 animate-in fade-in duration-700">
@@ -89,14 +81,6 @@ export default function LoginPage() {
                         <div className="flex items-center gap-2 text-[8px] font-black text-slate-300 tracking-[0.3em] uppercase">
                             <ArrowRight className="h-2 w-2 opacity-30" /> Powered by Advanced NLP
                         </div>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleDevLogin}
-                            className="text-xs text-slate-300 hover:text-slate-500 h-6"
-                        >
-                            (Dev) Local Login
-                        </Button>
                     </CardFooter>
                 </Card>
             </div>
