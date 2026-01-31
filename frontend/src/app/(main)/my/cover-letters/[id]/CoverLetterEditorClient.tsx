@@ -5,13 +5,10 @@ import { Button } from "@/components/ui/button";
 import { usePolling } from "@/hooks/usePolling";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
-    ArrowLeft, Save, Sparkles, Loader2, X, Building,
-    Plus, Trash2, FileText, Github, Brain, CheckCircle, Target,
-    MessageSquare, Wand2, Zap, LayoutList, MapPin,
-    GraduationCap, Coins, AlertCircle, Search
+    ArrowLeft, Save, Sparkles, Loader2, Building,
+    Plus, Trash2, LayoutList
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
