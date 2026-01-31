@@ -24,10 +24,15 @@ export function useNotifications() {
         if (!isAuthenticated) return;
         try {
             const url = getApiUrl("/api/notifications");
-            const res = await fetch(url, {
+            // Add timestamp to query to force bypass browser cache
+            const cacheBuster = `?t=${new Date().getTime()}`;
+            const res = await fetch(url + cacheBuster, {
                 headers: {
                     Authorization: `Bearer ${token}`,
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
                 },
+                cache: 'no-store' // Next.js specific
             });
             if (res.ok) {
                 const data = await res.json();
