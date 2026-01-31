@@ -13,7 +13,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 import { CoverLetterItem, GapAnalysisResult } from "@/types";
@@ -80,7 +79,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const [gapAnalysis, setGapAnalysis] = useState<GapAnalysisResult | null>(null);
     const [loading, setLoading] = useState(!isNew);
     const [showRecruitPanel, setShowRecruitPanel] = useState(false);
-    const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+    // const [portfolios, setPortfolios] = useState<Portfolio[]>([]); // Unused
     const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<number[]>([]);
     const [panelTab, setPanelTab] = useState("recruit");
     const [status, setStatus] = useState<'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED' | null>(null);
@@ -239,8 +238,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const updateQuestion = (qId: number, field: 'question' | 'answer', value: string) =>
         setQuestions(questions.map(q => q.id === qId ? { ...q, [field]: value } : q));
 
-    const togglePortfolio = (pfId: number) =>
-        setSelectedPortfolioIds(prev => prev.includes(pfId) ? prev.filter(id => id !== pfId) : [...prev, pfId]);
+    // Unused togglePortfolio removed
 
     // --- AI Studio Logic ---
     const runAiGeneration = async () => {

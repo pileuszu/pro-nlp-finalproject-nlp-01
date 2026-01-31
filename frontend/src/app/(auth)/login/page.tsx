@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const { login } = useAuthStore();
+    // const { login } = useAuthStore(); // Unused
 
     const handleKakaoLogin = () => {
         setLoading(true);
