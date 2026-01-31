@@ -25,9 +25,20 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Initialize Database - Create tables if they don't exist
+from common.database import engine, Base
+from common import models
+import logging
+
+try:
+    logger.info("Syncing database schema...")
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database schema sync complete.")
+except Exception as e:
+    logger.error(f"Failed to sync database schema: {e}")
+
 # CORS configuration
 origins = [
-    "*", 
     "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
     "https://pro-nlp-finalproject-nlp-01.vercel.app",
     "http://localhost:3000",

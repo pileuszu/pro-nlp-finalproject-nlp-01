@@ -7,7 +7,7 @@ from common import models
 from common.config import settings
 from typing import Optional
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token", auto_error=False)
 
 async def get_internal_secret_optional(
     x_internal_secret: Optional[str] = Header(None)
@@ -16,7 +16,7 @@ async def get_internal_secret_optional(
 
 async def get_current_user(
     token: Optional[str] = None,
-    auth_token: str = Depends(oauth2_scheme),
+    auth_token: Optional[str] = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> models.User:
     actual_token = token or auth_token
@@ -25,6 +25,9 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    if not actual_token:
+        raise credentials_exception
+        
     try:
         payload = jwt.decode(actual_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
@@ -47,7 +50,7 @@ async def get_current_user_optional(
     if not actual_token:
         return None
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(actual_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             return None
