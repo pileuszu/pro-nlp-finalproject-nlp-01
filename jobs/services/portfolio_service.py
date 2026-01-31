@@ -89,7 +89,7 @@ class PortfolioService:
             if source.startswith("gs://"):
                 local_file_name = os.path.basename(source)
                 local_path = os.path.join("/tmp/downloads", f"{uuid.uuid4()}_{local_file_name}")
-                source = gcs_utils.download_file(source, local_path)
+                source = await gcs_utils.download_file(source, local_path)
                 logger.info(f"Downloaded GCS file to {source} for processing")
 
             if p_type == "file":
@@ -316,7 +316,7 @@ class PortfolioService:
             if source.startswith("gs://"):
                 local_file_name = os.path.basename(source)
                 local_path = os.path.join("/tmp/downloads", f"analyze_{uuid.uuid4()}_{local_file_name}")
-                source = gcs_utils.download_file(source, local_path)
+                source = await gcs_utils.download_file(source, local_path)
                 logger.info(f"Downloaded GCS file (Analysis) to {source} for processing")
 
             if p_type == "file":
