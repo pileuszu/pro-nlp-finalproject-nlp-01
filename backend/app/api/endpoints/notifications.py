@@ -65,6 +65,20 @@ async def mark_as_read(
     await db.commit()
     return {"status": "ok"}
 
+@router.patch("/read-all")
+async def mark_all_as_read(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    stmt = update(models.Notification).where(
+        models.Notification.user_id == current_user.id,
+        models.Notification.is_read == False
+    ).values(is_read=True)
+    
+    await db.execute(stmt)
+    await db.commit()
+    return {"status": "ok"}
+
 @router.post("/trigger-internal")
 async def trigger_notification_internal(
     payload: dict,

@@ -98,5 +98,5 @@ export function useNotifications() {
         };
     }, [isAuthenticated, token, fetchNotifications, toast]);
 
-    return { notifications, unreadCount, markAsRead, refresh: fetchNotifications };
+    return { notifications, unreadCount, markAsRead, markAllAsRead, refresh: fetchNotifications };
 }

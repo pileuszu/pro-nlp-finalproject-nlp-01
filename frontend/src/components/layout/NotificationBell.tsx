@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell } from "lucide-react";
+import { Bell, CheckCheck } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
     DropdownMenu,
@@ -17,8 +17,11 @@ import { useRouter } from "next/navigation";
 // Assuming standard Radix UI pattern.
 
 export function NotificationBell() {
-    const { notifications, unreadCount, markAsRead } = useNotifications();
+    const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
     const router = useRouter();
+
+    // Filter to show ONLY unread notifications in the overlay
+    const unreadNotifications = notifications.filter(n => !n.is_read);
 
     return (
         <DropdownMenu>
@@ -33,28 +36,44 @@ export function NotificationBell() {
                     )}
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto">
+            <DropdownMenuContent align="end" className="w-80 max-h-[400px] overflow-y-auto scrollbar-hide">
                 <div className="flex items-center justify-between px-4 py-2 border-b border-slate-100">
-                    <span className="text-sm font-semibold">알림</span>
-                    {unreadCount > 0 && <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">새 알림</span>
+                        {unreadCount > 0 && <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                    </div>
+                    {unreadCount > 0 && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-slate-400 hover:text-blue-600"
+                            title="모두 읽음 처리"
+                            onClick={(e) => {
+                                e.preventDefault(); // Prevent closing dropdown
+                                markAllAsRead();
+                            }}
+                        >
+                            <CheckCheck className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
-                {notifications.length === 0 ? (
-                    <div className="py-8 text-center text-sm text-slate-400">새로운 알림이 없습니다.</div>
+                {unreadNotifications.length === 0 ? (
+                    <div className="py-12 flex flex-col items-center justify-center text-slate-400 gap-2">
+                        <Bell className="h-8 w-8 opacity-20" />
+                        <span className="text-xs">새로운 알림이 없습니다.</span>
+                    </div>
                 ) : (
-                    notifications.map((n) => (
+                    unreadNotifications.map((n) => (
                         <DropdownMenuItem
                             key={n.id}
-                            className={cn(
-                                "flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-slate-50 border-b border-slate-50 last:border-0",
-                                !n.is_read && "bg-blue-50/50"
-                            )}
+                            className="flex flex-col items-start gap-1 p-4 cursor-pointer focus:bg-slate-50 border-b border-slate-50 last:border-0 bg-blue-50/30"
                             onClick={() => {
                                 markAsRead(n.id);
                                 if (n.link) router.push(n.link);
                             }}
                         >
                             <div className="flex items-center justify-between w-full">
-                                <span className="text-sm font-medium">{n.title}</span>
+                                <span className={cn("text-sm font-medium", !n.is_read && "text-blue-700")}>{n.title}</span>
                                 <span className="text-[10px] text-slate-400">
                                     {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
@@ -63,9 +82,9 @@ export function NotificationBell() {
                         </DropdownMenuItem>
                     ))
                 )}
-                <div className="p-2 border-t border-slate-100 text-center">
-                    <Link href="/my/notifications" className="text-xs text-slate-400 hover:text-slate-600">
-                        전체 알림 보기
+                <div className="p-2 border-t border-slate-100 text-center sticky bottom-0 bg-white">
+                    <Link href="/my/notifications" className="text-xs text-slate-400 hover:text-slate-600 block w-full py-1">
+                        이전 알림 전체 보기
                     </Link>
                 </div>
             </DropdownMenuContent>
