@@ -44,26 +44,10 @@ jobs:
             K_SECRET="${{ secrets.PROD_KAKAO_CLIENT_SECRET }}"
             NCP_BASE="${{ secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}"
             NCP_KEY="${{ secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}"
+            REDIS_URL="${{ secrets.PROD_REDIS_URL }}"
 
-            # Ensure K_REDIRECT starts with https:// if not empty
-            if [[ -n "$K_REDIRECT" && ! "$K_REDIRECT" =~ ^http ]]; then
-              K_REDIRECT="https://$K_REDIRECT"
-            fi
+            # ... (skip to preview block)
 
-            echo "DB_URL=$DB_URL" >> $GITHUB_OUTPUT
-            echo "SEC_KEY=$SEC_KEY" >> $GITHUB_OUTPUT
-            echo "G_API_KEY=$G_API_KEY" >> $GITHUB_OUTPUT
-            echo "K_REDIRECT=$K_REDIRECT" >> $GITHUB_OUTPUT
-            echo "K_SECRET=$K_SECRET" >> $GITHUB_OUTPUT
-            echo "NCP_BASE=$NCP_BASE" >> $GITHUB_OUTPUT
-            echo "NCP_KEY=$NCP_KEY" >> $GITHUB_OUTPUT
-            echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
-            echo "NO_TOKEN=${{ secrets.NOTION_TOKEN }}" >> $GITHUB_OUTPUT
-          else
-            echo "ENV_TYPE=preview" >> $GITHUB_OUTPUT
-            echo "BACKEND_SERVICE=pro-nlp-backend-preview" >> $GITHUB_OUTPUT
-            echo "JOB_SERVICE=pro-nlp-jobs-preview" >> $GITHUB_OUTPUT
-            echo "IMAGE_TAG=${{ github.sha }}" >> $GITHUB_OUTPUT
             # Secrets Prefixes (Fallback to PROD if PREVIEW is missing)
             DB_URL="${{ secrets.PREVIEW_DATABASE_URL || secrets.PROD_DATABASE_URL }}"
             SEC_KEY="${{ secrets.PREVIEW_SECRET_KEY || secrets.PROD_SECRET_KEY }}"
@@ -72,22 +56,34 @@ jobs:
             K_SECRET="${{ secrets.PREVIEW_KAKAO_CLIENT_SECRET || secrets.PROD_KAKAO_CLIENT_SECRET }}"
             NCP_BASE="${{ secrets.PREVIEW_NCP_CLOVASTUDIO_BASE_URL || secrets.PROD_NCP_CLOVASTUDIO_BASE_URL }}"
             NCP_KEY="${{ secrets.PREVIEW_NCP_CLOVASTUDIO_API_KEY || secrets.PROD_NCP_CLOVASTUDIO_API_KEY }}"
+            REDIS_URL="${{ secrets.PREVIEW_REDIS_URL || secrets.PROD_REDIS_URL }}"
 
-            # Ensure K_REDIRECT starts with https:// if not empty
-            if [[ -n "$K_REDIRECT" && ! "$K_REDIRECT" =~ ^http ]]; then
-              K_REDIRECT="https://$K_REDIRECT"
-            fi
+            # ... (skip to outputs)
+            
+            echo "REDIS_URL=$REDIS_URL" >> $GITHUB_OUTPUT
 
-            echo "DB_URL=$DB_URL" >> $GITHUB_OUTPUT
-            echo "SEC_KEY=$SEC_KEY" >> $GITHUB_OUTPUT
-            echo "G_API_KEY=$G_API_KEY" >> $GITHUB_OUTPUT
-            echo "K_REDIRECT=$K_REDIRECT" >> $GITHUB_OUTPUT
-            echo "K_SECRET=$K_SECRET" >> $GITHUB_OUTPUT
-            echo "NCP_BASE=$NCP_BASE" >> $GITHUB_OUTPUT
-            echo "NCP_KEY=$NCP_KEY" >> $GITHUB_OUTPUT
-            echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
-            echo "NO_TOKEN=${{ secrets.NOTION_TOKEN }}" >> $GITHUB_OUTPUT
-          fi
+      # In 'Deploy Backend Service' step:
+          env_vars: |
+            DATABASE_URL=${{ steps.env-vars.outputs.DB_URL }}
+            SECRET_KEY=${{ steps.env-vars.outputs.SEC_KEY }}
+            ALGORITHM=HS256
+            PYTHONPATH=/app
+            GOOGLE_API_KEY=${{ steps.env-vars.outputs.G_API_KEY }}
+            KAKAO_REST_API_KEY=${{ secrets.KAKAO_REST_API_KEY }}
+            KAKAO_CLIENT_SECRET=${{ steps.env-vars.outputs.K_SECRET }}
+            KAKAO_REDIRECT_URI=${{ steps.env-vars.outputs.K_REDIRECT }}
+            NCP_CLOVASTUDIO_API_KEY=${{ steps.env-vars.outputs.NCP_KEY }}
+            NCP_CLOVASTUDIO_BASE_URL=${{ steps.env-vars.outputs.NCP_BASE }}
+            REDIS_URL=${{ steps.env-vars.outputs.REDIS_URL }}
+            ENV=${{ steps.env-vars.outputs.ENV_TYPE }}
+            GCP_PROJECT_ID=${{ env.PROJECT_ID }}
+            GCP_REGION=${{ env.REGION }}
+            CLOUD_RUN_JOB_NAME=${{ steps.env-vars.outputs.JOB_SERVICE }}
+            INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}
+            GITHUB_TOKEN=${{ steps.env-vars.outputs.GH_TOKEN }}
+            NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}
+            GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
+            BACKEND_URL=${{ steps.env-vars.outputs.BACKEND_URL }}
 
       - name: Google Auth
         uses: google-github-actions/auth@v2
@@ -128,6 +124,7 @@ jobs:
             KAKAO_REDIRECT_URI=${{ steps.env-vars.outputs.K_REDIRECT }}
             NCP_CLOVASTUDIO_API_KEY=${{ steps.env-vars.outputs.NCP_KEY }}
             NCP_CLOVASTUDIO_BASE_URL=${{ steps.env-vars.outputs.NCP_BASE }}
+            REDIS_URL=${{ steps.env-vars.outputs.REDIS_URL }}
             ENV=${{ steps.env-vars.outputs.ENV_TYPE }}
             GCP_PROJECT_ID=${{ env.PROJECT_ID }}
             GCP_REGION=${{ env.REGION }}
