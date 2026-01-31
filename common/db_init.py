@@ -18,6 +18,12 @@ def init_db():
         Base.metadata.create_all(bind=engine)
         logger.info("Table sync complete.")
 
+        # 2. Ensure Extensions (vector for recruitment/portfolio embeddings)
+        with engine.connect() as conn:
+            conn = conn.execution_options(isolation_level="AUTOCOMMIT")
+            conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+            logger.info("Ensured 'vector' extension exists.")
+
         # 2. Heal Enum: 'processingstatus'
         # Note: PostgreSQL's ALTER TYPE ... ADD VALUE cannot be executed in a transaction block.
         # We use isolation_level="AUTOCOMMIT" to handle this.
@@ -43,6 +49,42 @@ def init_db():
                         logger.warning(f"Could not add value '{val}' (it may already exist): {e}")
             else:
                 logger.info("'processingstatus' type not found. It will be created when tables using it are created.")
+
+        # 4. Heal Columns for existing tables
+        # This handles cases where tables were created with an older version of the schema
+        with engine.connect() as conn:
+            # Helper to check and add columns
+            def heal_table(table_name, columns_to_add):
+                # columns_to_add: dict of {column_name: sql_type_and_constraints}
+                res = conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}'"))
+                existing_cols = [r[0] for r in res.fetchall()]
+                
+                if existing_cols: # Table must exist to heal it
+                    for col_name, sql_type in columns_to_add.items():
+                        if col_name not in existing_cols:
+                            logger.info(f"Healing: Adding column '{col_name}' to '{table_name}'...")
+                            conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {sql_type}"))
+                    conn.commit()
+
+            # Heal 'cover_letters'
+            heal_table("cover_letters", {
+                "processing_status": "processingstatus DEFAULT 'PENDING'",
+                "gap_analysis": "JSON",
+                "job_analysis": "JSON"
+            })
+            
+            # Heal 'portfolios'
+            heal_table("portfolios", {
+                "processing_status": "processingstatus DEFAULT 'PENDING'",
+                "embedding": "vector(1024)"
+            })
+
+            # Heal 'recruitments'
+            heal_table("recruitments", {
+                "view_count": "INTEGER DEFAULT 0",
+                "embedding": "vector(1024)",
+                "tags": "JSON"
+            })
 
         logger.info("Database initialization finished successfully.")
     except Exception as e:
