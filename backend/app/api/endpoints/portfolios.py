@@ -137,3 +137,22 @@ async def analyze_portfolio_file(
     """Real AI analysis of an uploaded file for preview."""
     service = PortfolioService(db)
     return await service.analyze_portfolio_file(current_user.id, file)
+
+@router.patch("/{portfolio_id}/confirm", response_model=schemas.PortfolioDetail)
+async def confirm_portfolio(
+    portfolio_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Confirms AI analysis results and marks as COMPLETED."""
+    service = PortfolioService(db)
+    portfolio = await service.get_portfolio(portfolio_id, current_user.id)
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    
+    # Update status to COMPLETED
+    portfolio.processing_status = models.ProcessingStatus.COMPLETED
+    await db.commit()
+    await db.refresh(portfolio)
+    
+    return portfolio

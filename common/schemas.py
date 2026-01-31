@@ -182,3 +182,21 @@ class CoverLetterGenerateRequest(BaseModel):
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view
     pass
+
+# Notification Schemas
+class NotificationBase(BaseModel):
+    title: str
+    message: str
+    is_read: bool = False
+    link: Optional[str] = None
+
+class Notification(NotificationBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class NotificationListResponse(BaseModel):
+    items: List[Notification]
+    unread_count: int
+    model_config = ConfigDict(from_attributes=True)

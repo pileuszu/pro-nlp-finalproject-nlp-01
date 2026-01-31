@@ -71,6 +71,23 @@ async def delete_cover_letter(
         raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
     return {"success": True, "message": "Cover letter deleted"}
 
+@router.patch("/{cl_id}/confirm", response_model=schemas.CoverLetterDetail)
+async def confirm_cover_letter(
+    cl_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Marks a cover letter as COMPLETED after user review."""
+    service = CoverLetterService(db)
+    cl = await service.get_cover_letter(cl_id, current_user.id)
+    if not cl:
+        raise HTTPException(status_code=404, detail="Cover letter not found")
+    
+    cl.processing_status = models.ProcessingStatus.COMPLETED
+    await db.commit()
+    await db.refresh(cl)
+    return cl
+
 @router.post("/generate", response_model=schemas.CoverLetterDetail)
 async def generate_cover_letter(
     req: schemas.CoverLetterGenerateRequest,

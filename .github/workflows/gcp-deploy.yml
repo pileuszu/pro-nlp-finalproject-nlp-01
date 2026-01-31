@@ -132,6 +132,7 @@ jobs:
             GCP_PROJECT_ID=${{ env.PROJECT_ID }}
             GCP_REGION=${{ env.REGION }}
             CLOUD_RUN_JOB_NAME=${{ steps.env-vars.outputs.JOB_SERVICE }}
+            INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}
             GITHUB_TOKEN=${{ steps.env-vars.outputs.GH_TOKEN }}
             NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}
           flags: '--min-instances=0 --max-instances=5 --memory=1Gi --cpu=1 --timeout=300s --allow-unauthenticated'
@@ -149,6 +150,7 @@ jobs:
             --set-env-vars "NCP_CLOVASTUDIO_API_KEY=${{ steps.env-vars.outputs.NCP_KEY }}" \
             --set-env-vars "NCP_CLOVASTUDIO_BASE_URL=${{ steps.env-vars.outputs.NCP_BASE }}" \
             --set-env-vars "ENV=${{ steps.env-vars.outputs.ENV_TYPE }}" \
+            --set-env-vars "INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}" \
             --set-env-vars "GITHUB_TOKEN=${{ steps.env-vars.outputs.GH_TOKEN }}" \
             --set-env-vars "NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}" \
             || gcloud run jobs create ${{ steps.env-vars.outputs.JOB_SERVICE }} \
@@ -161,5 +163,6 @@ jobs:
             --set-env-vars "GOOGLE_API_KEY=${{ steps.env-vars.outputs.G_API_KEY }}" \
             --set-env-vars "NCP_CLOVASTUDIO_BASE_URL=${{ steps.env-vars.outputs.NCP_BASE }}" \
             --set-env-vars "ENV=${{ steps.env-vars.outputs.ENV_TYPE }}" \
+            --set-env-vars "INTERNAL_API_SECRET=${{ secrets.INTERNAL_API_SECRET }}" \
             --set-env-vars "GITHUB_TOKEN=${{ steps.env-vars.outputs.GH_TOKEN }}" \
             --set-env-vars "NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}"

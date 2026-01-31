@@ -1,11 +1,14 @@
 import logging
 import os
 import json
+import json
+import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from common import models
+from common import models, config
 from jobs.core.cover_letter.retriever import PGHybridRetriever
 from jobs.core.cover_letter.generator import CoverLetterGenerator
+from jobs.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -91,12 +94,24 @@ class AICoverLetterService:
             db.add(item)
 
             # Update Main Status
-            cl.processing_status = "COMPLETED"
+            cl.processing_status = models.ProcessingStatus.REVIEW_REQUIRED
             content = answer_data.get("content", "")
             if content:
                 content = content.replace("\x00", "")
             cl.content = content
             await db.commit()
+            
+            # 8. Create Notification
+            await NotificationService.create_and_notify(
+                db=db,
+                user_id=cl.user_id,
+                title="자기소개서 생성 완료",
+                message=f"[{recruitment.company} - {recruitment.title}] 자기소개서가 생성되었습니다. 내용을 검토해 주세요.",
+                link=f"/my/cover-letters/{cl.id}",
+                notification_type="COVER_LETTER_READY"
+            )
+            
+            await db.commit() # Final commit
             
             logger.info(f"Successfully generated cover letter {cl_id}")
 
@@ -105,6 +120,7 @@ class AICoverLetterService:
             cl.processing_status = "FAILED"
             await db.commit()
             raise
+
 
 # Singleton instance
 ai_cover_letter_service = AICoverLetterService()

@@ -47,7 +47,8 @@ gcloud run deploy pro-nlp-backend \
   --set-env-vars "SECRET_KEY=[KEY]" \
   --set-env-vars "ALGORITHM=HS256" \
   --set-env-vars "NCP_CLOVASTUDIO_API_KEY=[KEY]" \
-  --set-env-vars "NCP_CLOVASTUDIO_BASE_URL=[KEY]"
+  --set-env-vars "NCP_CLOVASTUDIO_BASE_URL=[KEY]" \
+  --set-env-vars "INTERNAL_API_SECRET=[YOUR_INTERNAL_SECRET]"
 ```
 
 ## 5. Deploy Worker (Cloud Run Job)
@@ -68,7 +69,8 @@ gcloud run jobs create pro-nlp-jobs \
   --set-env-vars "GOOGLE_API_KEY=[KEY]" \
   --set-env-vars "NCP_CLOVASTUDIO_API_KEY=[KEY]" \
   --set-env-vars "GITHUB_TOKEN=[KEY]" \
-  --set-env-vars "NOTION_TOKEN=[KEY]"
+  --set-env-vars "NOTION_TOKEN=[KEY]" \
+  --set-env-vars "INTERNAL_API_SECRET=[YOUR_INTERNAL_SECRET]"
 ```
 
 ### Triggering a Job
@@ -129,6 +131,7 @@ Workflows require the following Secrets to be set in your GitHub repository:
 | `PROD_KAKAO_REDIRECT_URI` | Production Kakao Redirect URI | Yes |
 | `PROD_NCP_CLOVASTUDIO_BASE_URL` | Production NCP Base URL | Yes |
 | `PROD_NCP_CLOVASTUDIO_API_KEY` | Production NCP API Key | Yes |
+| `INTERNAL_API_SECRET` | Secret for Internal API communication (Backend <-> Jobs) | Yes |
 | **Preview Environment** | | |
 | `PREVIEW_BACKEND_URL` | Preview Backend URL | No (Fallback to PROD) |
 | `PREVIEW_DATABASE_URL` | Preview Database URL | No (Fallback to PROD) |

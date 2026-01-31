@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { CoverLetter } from "@/types";
-import { PenTool, FileText, Calendar, Trash2, X, LayoutList, Check, LayoutGrid, List, ArrowRight } from "lucide-react";
+import { PenTool, FileText, Calendar, Trash2, X, LayoutList, Check, LayoutGrid, List, ArrowRight, Plus, Github, Brain, CheckCircle, Search } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
@@ -178,12 +179,16 @@ export default function CoverLettersPage() {
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1.5 pt-1">
                                                     {!isSelectionMode && (
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-[10px] font-black uppercase tracking-[0.1em] px-2 py-0.5",
-                                                            expired ? "bg-slate-200 text-slate-500 border-slate-300" : "bg-blue-50 text-blue-600 border-blue-200"
-                                                        )}>
-                                                            {expired ? "마감됨" : "작성 중"}
-                                                        </Badge>
+                                                        <div className="flex flex-col items-end gap-1">
+                                                            <StatusBadge
+                                                                status={cl.processing_status || cl.processingStatus || cl.status || 'COMPLETED'}
+                                                            />
+                                                            {expired && (
+                                                                <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[10px] font-black py-0.5">
+                                                                    마감됨
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     )}
                                                     {cl.recruitDeadline && !expired && !isSelectionMode && (
                                                         <span className="text-[10px] font-black text-red-500 animate-pulse bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
@@ -304,12 +309,16 @@ export default function CoverLettersPage() {
                                                     <h3 className={cn("text-lg font-bold truncate group-hover:text-blue-600 transition-colors duration-300", expired ? "text-slate-500" : "text-slate-900")}>
                                                         {cl.title}
                                                     </h3>
-                                                    <Badge variant="outline" className={cn(
-                                                        "text-[9px] font-black uppercase px-2 py-0 border-none",
-                                                        expired ? "bg-slate-200 text-slate-500" : "bg-blue-50 text-blue-600"
-                                                    )}>
-                                                        {expired ? "마감됨" : "작성 중"}
-                                                    </Badge>
+                                                    <div className="flex gap-1">
+                                                        <StatusBadge
+                                                            status={cl.processing_status || cl.processingStatus || cl.status || 'COMPLETED'}
+                                                        />
+                                                        {expired && (
+                                                            <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[9px] font-black uppercase py-0 px-2">
+                                                                Expired
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                     {cl.recruitDeadline && !expired && !isSelectionMode && (
                                                         <span className="text-[9px] font-black text-red-500 animate-pulse bg-red-50 px-1.5 py-0 rounded border border-red-100">
                                                             D-DAY 임박

@@ -7,6 +7,7 @@ import { Portfolio } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
 import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -114,16 +115,9 @@ export default function PortfoliosPage() {
                                                 <span className="text-slate-200">•</span>
                                                 <span>{formatDate(portfolio.createdAt)}</span>
                                             </div>
-                                            {portfolio.processingStatus === 'PENDING' && (
-                                                <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[10px] gap-1 font-black animate-pulse py-0.5">
-                                                    ANALYZING...
-                                                </Badge>
-                                            )}
-                                            {portfolio.processingStatus === 'COMPLETED' && (
-                                                <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-600 text-[10px] gap-1 font-black py-0.5">
-                                                    <Sparkles className="h-2.5 w-2.5 fill-blue-500" /> AI READY
-                                                </Badge>
-                                            )}
+                                            <StatusBadge
+                                                status={portfolio.processingStatus || 'COMPLETED'}
+                                            />
                                         </div>
                                     </CardHeader>
                                     <CardContent className="flex-1 pb-6 space-y-4">
@@ -183,11 +177,16 @@ export default function PortfoliosPage() {
                                                         {portfolio.project_name || "프로젝트"}
                                                     </h3>
                                                     {portfolio.processingStatus === 'COMPLETED' && (
-                                                        <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
-                                                            AI Ready
+                                                        <Badge variant="outline" className="bg-emerald-50 border-emerald-100 text-emerald-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
+                                                            Confirmed
                                                         </Badge>
                                                     )}
-                                                    {portfolio.processingStatus === 'PENDING' && (
+                                                    {portfolio.processingStatus === 'REVIEW_REQUIRED' && (
+                                                        <Badge variant="outline" className="bg-amber-500 border-amber-600 text-white text-[9px] font-black uppercase py-0 px-2 shrink-0">
+                                                            Review Required
+                                                        </Badge>
+                                                    )}
+                                                    {(portfolio.processingStatus === 'PENDING' || portfolio.processingStatus === 'PROCESSING') && (
                                                         <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[9px] font-black uppercase py-0 px-2 shrink-0 animate-pulse">
                                                             Processing
                                                         </Badge>

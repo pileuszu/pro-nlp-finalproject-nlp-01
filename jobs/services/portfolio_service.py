@@ -1,12 +1,14 @@
 import os
 import logging
-from typing import Optional, List
+import httpx
+from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from common.models import Portfolio, PortfolioJobQuery, ProcessingStatus
 from common import schemas
+from jobs.services.notification_service import NotificationService
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +111,13 @@ class PortfolioService:
             if not projects:
                 portfolio.extracted_summary = user_data.profile.summary
                 portfolio.extracted_job_title = user_data.profile.job_title
-                portfolio.processing_status = ProcessingStatus.COMPLETED
+                portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
+                await self._create_notification(
+                    user_id=portfolio.user_id,
+                    title="포트폴리오 분석 완료",
+                    message=f"[{portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
+                    link=f"/my/portfolios/{portfolio.id}"
+                )
                 await self.db.commit()
             else:
                 base_title = portfolio.title
@@ -134,8 +142,19 @@ class PortfolioService:
                 portfolio.tech_stack = p0.tech_stack
                 portfolio.extracted_summary = user_data.profile.summary
                 portfolio.extracted_job_title = user_data.profile.job_title
-                portfolio.processing_status = ProcessingStatus.COMPLETED
+                portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 portfolio.embedding = embedding0
+
+                # 4. Save Portfolios
+                # p0: Main Portfolio (the one which was analyzing)
+                await NotificationService.create_and_notify(
+                    db=self.db,
+                    user_id=portfolio.user_id,
+                    title=f"포트폴리오 분석 완료",
+                    message=f"[{portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
+                    link=f"/my/portfolios/{portfolio.id}",
+                    notification_type="PORTFOLIO_READY"
+                )
                 
                 # Add Job Queries for p0 to main portfolio
                 # Note: This appends. Since it's a new extraction, effectively we might want to clear old ones if re-running.
@@ -178,7 +197,7 @@ class PortfolioService:
                         user_id=portfolio.user_id,
                         extracted_summary=user_data.profile.summary,
                         extracted_job_title=user_data.profile.job_title,
-                        processing_status=ProcessingStatus.COMPLETED,
+                        processing_status=ProcessingStatus.REVIEW_REQUIRED,
                         project_name=proj.project_name,
                         period=proj.period,
                         role=proj.role,
@@ -341,7 +360,14 @@ class PortfolioService:
             portfolio.extracted_summary = user_data.profile.summary
             portfolio.extracted_job_title = user_data.profile.job_title
             
-            portfolio.processing_status = ProcessingStatus.COMPLETED
+            portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
+            
+            await self._create_notification(
+                user_id=portfolio.user_id,
+                title="포트폴리오 분석 완료",
+                message=f"[{portfolio.project_name or '새 포트폴리오'}] 분석이 완료되었습니다. 검토를 진행해 주세요.",
+                link=f"/my/portfolios/{portfolio.id}"
+            )
             await self.db.commit()
             logger.info(f"Analysis (Extraction + Refinement) completed for Portfolio {portfolio_id}")
 
@@ -355,3 +381,4 @@ class PortfolioService:
                 portfolio.processing_status = ProcessingStatus.FAILED
                 await self.db.commit()
             raise
+

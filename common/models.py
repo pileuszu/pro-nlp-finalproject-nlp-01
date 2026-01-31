@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Date, JSON, Float, Table, Enum as SqEnum
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Date, JSON, Float, Table, Enum as SqEnum, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
@@ -8,6 +8,7 @@ import enum
 class ProcessingStatus(str, enum.Enum):
     PENDING = "PENDING"
     PROCESSING = "PROCESSING"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
@@ -142,3 +143,16 @@ class Recommendation(Base):
 
     portfolio = relationship("Portfolio", back_populates="recommendations")
     recruitment = relationship("Recruitment", back_populates="recommendations")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    link = Column(String, nullable=True) # Deep link to Portfolio/CoverLetter
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")

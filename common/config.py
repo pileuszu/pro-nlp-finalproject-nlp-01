@@ -33,6 +33,10 @@ class Settings(BaseSettings):
 
     # Admin Config
     ADMIN_SECRET: str = os.getenv("ADMIN_SECRET", "nlp-final-admin-secret")
+    
+    # Internal Backend URL (for Job -> Backend communication)
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
+    INTERNAL_API_SECRET: str = os.getenv("INTERNAL_API_SECRET", "pro-nlp-internal-secret-change-me")
 
     class Config:
         case_sensitive = True

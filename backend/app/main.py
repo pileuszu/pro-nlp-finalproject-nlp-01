@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 logger.info("Importing endpoints...")
-from app.api.endpoints import auth, recruits, portfolios, cover_letters, health
+from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications
 
 logger.info("Initializing FastAPI app...")
 app = FastAPI(
@@ -69,4 +69,5 @@ app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
 app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
 app.include_router(cover_letters.router, prefix="/api/cover-letters", tags=["Cover Letters"])
+app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
 

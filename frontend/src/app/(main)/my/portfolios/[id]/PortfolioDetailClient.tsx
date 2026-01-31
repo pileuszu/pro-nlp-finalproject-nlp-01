@@ -6,6 +6,7 @@ import { usePolling } from "@/hooks/usePolling";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit, Sparkles, User, Code } from "lucide-react";
 import Link from "next/link";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
@@ -22,9 +23,9 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
 
     // Polling logic
     const { data: polledData } = usePolling<Portfolio>(
-        portfolio?.processingStatus === 'PENDING' ? `/portfolios/${id}` : '',
+        portfolio?.processingStatus === 'PENDING' || portfolio?.processingStatus === 'PROCESSING' ? `/portfolios/${id}` : '',
         3000,
-        (data) => data.processingStatus !== 'PENDING'
+        (data) => data.processingStatus === 'REVIEW_REQUIRED' || data.processingStatus === 'COMPLETED' || data.processingStatus === 'FAILED'
     );
 
     // Use polledData as the source of truth when available, otherwise fall back to initial fetch state
@@ -66,6 +67,24 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
         }
     };
 
+    const handleConfirm = async () => {
+        try {
+            const res = await fetchWithAuth(getApiUrl(`/portfolios/${id}/confirm`), {
+                method: 'PATCH',
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setPortfolio(updated);
+                toast("포트폴리오가 최종 확정되었습니다!", "success");
+            } else {
+                toast("확정에 실패했습니다.", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            toast("처리 중 오류가 발생했습니다.", "error");
+        }
+    };
+
     if (loading) return <div className="flex h-[50vh] items-center justify-center">Loading...</div>;
     if (!displayPortfolio) return <div className="flex h-[50vh] items-center justify-center text-slate-500">포트폴리오를 찾을 수 없습니다.</div>;
 
@@ -90,16 +109,9 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                             <Badge variant="secondary" className="bg-white border-slate-200 text-slate-600 px-3 py-1 text-sm font-medium shadow-sm">
                                 {displayPortfolio.type === 'link' ? '웹사이트 / 링크' : displayPortfolio.type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
                             </Badge>
-                            {displayPortfolio.processingStatus === 'PENDING' && (
-                                <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-xs font-bold animate-pulse">
-                                    분석 중...
-                                </Badge>
-                            )}
-                            {displayPortfolio.processingStatus === 'COMPLETED' && (
-                                <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-xs font-bold gap-1">
-                                    <Sparkles className="h-3 w-3 fill-blue-500" /> AI 분석 완료
-                                </Badge>
-                            )}
+                            <StatusBadge
+                                status={displayPortfolio.processingStatus || 'COMPLETED'}
+                            />
                         </div>
                         <span className="text-slate-400 text-sm flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
@@ -253,6 +265,11 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                 </CardContent>
 
                 <CardFooter className="bg-slate-50/30 border-t border-slate-100 p-6 flex justify-end gap-3">
+                    {displayPortfolio.processingStatus === 'REVIEW_REQUIRED' && (
+                        <Button variant="brand" className="px-8 font-bold shadow-lg shadow-blue-500/20" onClick={handleConfirm}>
+                            <Sparkles className="h-4 w-4 mr-2" /> 이 내용으로 최종 확정
+                        </Button>
+                    )}
                     <Link href={`/my/portfolios/${displayPortfolio.id}/edit`}>
                         <Button variant="outline" className="border-slate-200 hover:bg-slate-50 text-slate-600">
                             <Edit className="h-4 w-4 mr-2" /> 수정

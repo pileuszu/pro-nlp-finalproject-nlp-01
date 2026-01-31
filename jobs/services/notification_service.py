@@ -1,0 +1,59 @@
+import logging
+import httpx
+from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from common.models import Notification
+from common.config import settings
+
+logger = logging.getLogger(__name__)
+
+class NotificationService:
+    @staticmethod
+    async def create_and_notify(
+        db: AsyncSession,
+        user_id: int,
+        title: str,
+        message: str,
+        link: Optional[str] = None,
+        notification_type: str = "GENERAL"
+    ):
+        """
+        Consolidated helper to:
+        1. Persist notification in DB.
+        2. Trigger real-time broadcast via Backend internal API.
+        """
+        try:
+            # 1. Persist to DB
+            notification = Notification(
+                user_id=user_id,
+                title=title,
+                message=message,
+                link=link
+            )
+            db.add(notification)
+            # We assume the caller commits later or we rely on session flush
+            
+            # 2. Trigger Real-time Event
+            async with httpx.AsyncClient() as client:
+                try:
+                    await client.post(
+                        f"{settings.BACKEND_URL}/api/notifications/trigger-internal",
+                        json={
+                            "user_id": user_id,
+                            "type": notification_type,
+                            "title": title,
+                            "message": message,
+                            "link": link
+                        },
+                        headers={
+                            "X-Internal-Secret": settings.INTERNAL_API_SECRET
+                        },
+                        timeout=5.0
+                    )
+                except Exception as ex:
+                    logger.warning(f"Failed to trigger real-time notification: {ex}")
+            
+            logger.info(f"Notification created and dispatched for User {user_id}: {title}")
+            
+        except Exception as e:
+            logger.error(f"Error in NotificationService: {e}")

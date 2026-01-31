@@ -40,8 +40,8 @@ export interface Portfolio {
     content?: string;
 
     // Status
-    processing_status?: 'PENDING' | 'COMPLETED' | 'FAILED';
-    processingStatus?: 'PENDING' | 'COMPLETED' | 'FAILED';
+    processing_status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
+    processingStatus?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
 
     // Flattened Project Data
     period?: string;
@@ -78,7 +78,9 @@ export interface CoverLetter {
     updatedAt: string;
 
     // AI Analysis
-    status?: 'PENDING' | 'COMPLETED' | 'FAILED';
+    status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
+    processingStatus?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
+    processing_status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
     gap_analysis?: GapAnalysisResult;
     items?: CoverLetterItem[];
 }

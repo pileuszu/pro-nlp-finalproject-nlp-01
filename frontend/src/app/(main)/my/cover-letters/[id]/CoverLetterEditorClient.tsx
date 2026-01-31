@@ -14,6 +14,7 @@ import {
     GraduationCap, Coins, AlertCircle, Search
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { motion, AnimatePresence } from "framer-motion";
@@ -79,6 +80,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
     const [selectedPortfolioIds, setSelectedPortfolioIds] = useState<number[]>([]);
     const [panelTab, setPanelTab] = useState("recruit");
+    const [status, setStatus] = useState<'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED' | null>(null);
 
     // --- AI Studio State ---
     const [activeAiQuestionId, setActiveAiQuestionId] = useState<number | null>(null);
@@ -93,51 +95,65 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const { data: polledResult } = usePolling<any>(
         pollingTarget,
         3000,
-        (data) => data.processingStatus === 'COMPLETED' || data.processingStatus === 'FAILED'
+        (data) => (data.processingStatus || data.processing_status || data.status) === 'REVIEW_REQUIRED' ||
+            (data.processingStatus || data.processing_status || data.status) === 'COMPLETED' ||
+            (data.processingStatus || data.processing_status || data.status) === 'FAILED'
     );
+
+    const handleConfirm = async () => {
+        try {
+            const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}/confirm`), {
+                method: 'PATCH',
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setStatus(updated.processing_status || updated.processingStatus || updated.status);
+                alert("자기소개서가 최종 확정되었습니다!");
+            } else {
+                alert("확정에 실패했습니다.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("처리 중 오류가 발생했습니다.");
+        }
+    };
 
     // Effect to handle polled data updates
     useEffect(() => {
         if (!polledResult || !activeAiQuestionId) return;
 
-        if (polledResult.processingStatus === 'COMPLETED') {
+        if (polledResult.processingStatus === 'REVIEW_REQUIRED' || polledResult.processing_status === 'REVIEW_REQUIRED' || polledResult.status === 'REVIEW_REQUIRED' || polledResult.processingStatus === 'COMPLETED') {
+            setStatus(polledResult.processing_status || polledResult.processingStatus || polledResult.status);
+
             // Backend returns full CoverLetter object
             if (polledResult.gap_analysis) {
                 setGapAnalysis(prev => ({ ...prev, ...polledResult.gap_analysis }));
             }
 
-            // Find the updated question text to match
-            const targetQuestion = questions.find(q => q.id === activeAiQuestionId);
-            const activeQuestionContent = targetQuestion?.question || "";
-            const generatedItem = polledResult.items?.find((i: CoverLetterItem) => i.question === activeQuestionContent);
-
-            if (generatedItem) {
-                setQuestions(prev => prev.map(q => q.id === activeAiQuestionId ? {
-                    ...q,
-                    answer: generatedItem.content || "",
-                    key_points: generatedItem.key_points,
-                    suggested_improvements: generatedItem.suggested_improvements
-                } : q));
-
-                // Clear polling and loading state
-                setPollingTarget("");
-                setIsGenerating(false);
-                setActiveAiQuestionId(null);
-
-            } else if (polledResult.content && polledResult.items?.length === 0) {
-                // Fallback if no items (legacy or simple update)
+            // ... (rest of logic to map items to questions)
+            if (polledResult.items?.length > 0) {
+                setQuestions(polledResult.items.map((item: any) => ({
+                    id: item.id || Date.now() + Math.random(),
+                    question: item.question,
+                    answer: item.content,
+                    key_points: item.key_points,
+                    suggested_improvements: item.suggested_improvements
+                })));
+            } else if (polledResult.content) {
                 setQuestions(prev => prev.map(q => q.id === activeAiQuestionId ? { ...q, answer: polledResult.content } : q));
-                setPollingTarget("");
-                setIsGenerating(false);
-                setActiveAiQuestionId(null);
             }
+
+            // Clear polling and loading state
+            setPollingTarget("");
+            setIsGenerating(false);
+            setActiveAiQuestionId(null);
         } else if (polledResult.processingStatus === 'FAILED') {
             alert("AI 생성에 실패했습니다.");
             setPollingTarget("");
             setIsGenerating(false);
             setActiveAiQuestionId(null);
         }
-    }, [polledResult, activeAiQuestionId, questions]);
+    }, [polledResult, activeAiQuestionId]);
 
 
 
@@ -169,6 +185,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     }
 
                     if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
+                    setStatus(data.processing_status || data.processingStatus || data.status);
 
                     if (data.recruitment_id || data.recruitId) {
                         const rId = data.recruitment_id || data.recruitId;
@@ -285,6 +302,9 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                         <Building className="h-3 w-3" /> {linkedRecruit.company}
                                     </Badge>
                                 )}
+                                <StatusBadge
+                                    status={status || 'COMPLETED'}
+                                />
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -313,6 +333,11 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     className="text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors h-10 px-4"
                                 >
                                     <Trash2 className="h-4 w-4 mr-2" /> 삭제
+                                </Button>
+                            )}
+                            {status === 'REVIEW_REQUIRED' && (
+                                <Button variant="brand" onClick={handleConfirm} className="rounded-md h-10 px-8 font-black shadow-lg shadow-blue-500/20 animate-bounce">
+                                    <Sparkles className="mr-2 h-4 w-4 fill-white" /> 이 내용으로 최종 확정
                                 </Button>
                             )}
                             <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
