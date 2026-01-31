@@ -132,7 +132,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             // ... (rest of logic to map items to questions)
             if (polledResult.items?.length > 0) {
-                setQuestions(polledResult.items.map((item: any) => ({
+                setQuestions(polledResult.items.map((item: CoverLetterItem) => ({
                     id: item.id || Date.now() + Math.random(),
                     question: item.question,
                     answer: item.content,

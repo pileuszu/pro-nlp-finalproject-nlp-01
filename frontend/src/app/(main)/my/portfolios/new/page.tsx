@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Github, Sparkles, Loader2, Save, Upload } from "lucide-react";
+import { ArrowLeft, Github, Upload, Loader2 } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
 import { Portfolio } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
@@ -17,14 +16,11 @@ import { useToast } from "@/components/ui/toast-context";
 export default function NewPortfolioPage() {
     const router = useRouter();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
 
     // Form States
     const [githubUrl, setGithubUrl] = useState("");
 
-    // Preview State
-    const [previewData, setPreviewData] = useState<Partial<Portfolio> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleGithubAnalyze = async (url: string) => {
@@ -110,7 +106,12 @@ export default function NewPortfolioPage() {
                                             value={githubUrl}
                                             onChange={(e) => setGithubUrl(e.target.value)}
                                         />
-                                        <Button onClick={() => handleGithubAnalyze(githubUrl)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl transition-all">
+                                        <Button
+                                            onClick={() => handleGithubAnalyze(githubUrl)}
+                                            disabled={isAnalyzing}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl transition-all"
+                                        >
+                                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                             연동 및 분석
                                         </Button>
                                     </div>

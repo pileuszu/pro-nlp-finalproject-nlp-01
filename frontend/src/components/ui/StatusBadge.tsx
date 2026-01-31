@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Sparkles, Loader2, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 
 export type ProcessingStatus = 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
 

@@ -57,7 +57,11 @@ export function useNotifications() {
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        fetchNotifications();
+        // Initialize
+        const init = async () => {
+            await fetchNotifications();
+        };
+        init();
 
         // SSE Setup
         const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/api/notifications/events?token=${token}`;
@@ -82,7 +86,7 @@ export function useNotifications() {
         return () => {
             eventSource.close();
         };
-    }, [isAuthenticated, token, fetchNotifications]);
+    }, [isAuthenticated, token, fetchNotifications, toast]);
 
     return { notifications, unreadCount, markAsRead, refresh: fetchNotifications };
 }
