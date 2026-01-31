@@ -25,12 +25,20 @@ jest.mock('framer-motion', () => {
     };
 });
 
-// Mock useAuthStore
-jest.mock('@/stores/useAuthStore', () => ({
-    useAuthStore: () => ({
+jest.mock('@/stores/useAuthStore', () => {
+    const mockStore = {
         isAuthenticated: false,
-    }),
-}));
+        token: null,
+        getState: () => ({
+            isAuthenticated: false,
+            token: null,
+            logout: jest.fn(),
+        }),
+    };
+    return {
+        useAuthStore: Object.assign(() => mockStore, mockStore),
+    };
+});
 
 // Mock Tooltip component to avoid Radix UI dependency issues in tests
 jest.mock('@/components/ui/tooltip', () => ({
