@@ -9,17 +9,17 @@ interface MockRecruit extends Recruit {
 
 // Mock Data 정의 - 모든 공고의 Master List
 const ALL_RECRUITS: MockRecruit[] = [
-    { id: 1, title: 'Frontend Developer', company: 'Google', startDate: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'], isPopular: true },
-    { id: 2, title: 'Backend Engineer', company: 'Amazon', startDate: '2026-01-15', deadline: '2026-02-15', tags: ['Java', 'Spring Boot', 'AWS'], isPopular: true },
-    { id: 3, title: 'AI Researcher', company: 'OpenAI', startDate: '2026-03-10', deadline: '2026-04-10', tags: ['Python', 'PyTorch', 'LLM'], isRecommended: true, isPopular: true },
-    { id: 4, title: 'Product Manager', company: 'Toss', startDate: '2026-01-28', deadline: '2026-02-28', tags: ['Agile', 'Jira', 'Data Analysis'] },
-    { id: 5, title: 'DevOps Engineer', company: 'Netflix', startDate: '2026-02-20', deadline: '2026-03-20', tags: ['Kubernetes', 'Terraform', 'Go'], isRecommended: true },
-    { id: 6, title: 'Data Scientist', company: 'Kakao', startDate: '2026-02-05', deadline: '2026-03-05', tags: ['Python', 'SQL', 'Hadoop'] },
-    { id: 7, title: 'Mobile Developer (iOS)', company: 'Apple', startDate: '2026-02-12', deadline: '2026-03-12', tags: ['Swift', 'SwiftUI', 'Objective-C'] },
-    { id: 8, title: 'Security Engineer', company: 'Samsung SDS', startDate: '2026-02-25', deadline: '2026-03-25', tags: ['Network', 'C++', 'Security'] },
-    { id: 9, title: 'NLP Research Engineer', company: 'Naver Clova', startDate: '2026-02-15', deadline: '2026-03-15', tags: ['NLP', 'Python', 'HyperCLOVA'], isRecommended: true },
-    { id: 10, title: 'LLM Service Developer', company: 'Upstage', startDate: '2026-03-01', deadline: '2026-03-30', tags: ['LangChain', 'Python'], isRecommended: true, isPopular: true },
-    { id: 11, title: 'UI/UX Designer', company: 'Line', startDate: '2024-12-01', deadline: '2024-12-31', tags: ['Figma', 'Prototyping'], isPopular: false },
+    { id: 1, title: 'Frontend Developer', company: 'Google', start_date: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'], isPopular: true },
+    { id: 2, title: 'Backend Engineer', company: 'Amazon', start_date: '2026-01-15', deadline: '2026-02-15', tags: ['Java', 'Spring Boot', 'AWS'], isPopular: true },
+    { id: 3, title: 'AI Researcher', company: 'OpenAI', start_date: '2026-03-10', deadline: '2026-04-10', tags: ['Python', 'PyTorch', 'LLM'], isRecommended: true, isPopular: true },
+    { id: 4, title: 'Product Manager', company: 'Toss', start_date: '2026-01-28', deadline: '2026-02-28', tags: ['Agile', 'Jira', 'Data Analysis'] },
+    { id: 5, title: 'DevOps Engineer', company: 'Netflix', start_date: '2026-02-20', deadline: '2026-03-20', tags: ['Kubernetes', 'Terraform', 'Go'], isRecommended: true },
+    { id: 6, title: 'Data Scientist', company: 'Kakao', start_date: '2026-02-05', deadline: '2026-03-05', tags: ['Python', 'SQL', 'Hadoop'] },
+    { id: 7, title: 'Mobile Developer (iOS)', company: 'Apple', start_date: '2026-02-12', deadline: '2026-03-12', tags: ['Swift', 'SwiftUI', 'Objective-C'] },
+    { id: 8, title: 'Security Engineer', company: 'Samsung SDS', start_date: '2026-02-25', deadline: '2026-03-25', tags: ['Network', 'C++', 'Security'] },
+    { id: 9, title: 'NLP Research Engineer', company: 'Naver Clova', start_date: '2026-02-15', deadline: '2026-03-15', tags: ['NLP', 'Python', 'HyperCLOVA'], isRecommended: true },
+    { id: 10, title: 'LLM Service Developer', company: 'Upstage', start_date: '2026-03-01', deadline: '2026-03-30', tags: ['LangChain', 'Python'], isRecommended: true, isPopular: true },
+    { id: 11, title: 'UI/UX Designer', company: 'Line', start_date: '2024-12-01', deadline: '2024-12-31', tags: ['Figma', 'Prototyping'], isPopular: false },
 ];
 
 const PORTFOLIOS = [
@@ -28,9 +28,9 @@ const PORTFOLIOS = [
         project_name: '나만의 기술 블로그',
         type: 'link',
         url: 'https://velog.io/@test',
-        createdAt: '2025-12-01',
+        created_at: '2025-12-01',
         description: '매주 학습한 내용을 기록한 기술 블로그입니다.',
-        processingStatus: 'COMPLETED',
+        processing_status: 'COMPLETED',
         content: `[주요 포스팅 요약]
 - React 렌더링 최적화 전략 (useMemo, useCallback 활용)
 - Next.js App Router 전환기: Pages vs App 구조 분석
@@ -41,9 +41,9 @@ const PORTFOLIOS = [
         id: 2,
         project_name: '졸업 프로젝트',
         type: 'file',
-        createdAt: '2026-01-10',
+        created_at: '2026-01-10',
         description: '학부 졸업 프로젝트 최종 보고서입니다.',
-        processingStatus: 'COMPLETED',
+        processing_status: 'COMPLETED',
         content: `[멀티 모달 AI 감정 분석 플랫폼]
 - 역할: 팀장 및 백엔드 인프라 설계
 - 기술: Python, FastAPI, Docker, PyTorch
@@ -55,9 +55,9 @@ const PORTFOLIOS = [
         project_name: '오픈소스 기여 내역',
         type: 'github',
         url: 'https://github.com/facebook/react',
-        createdAt: '2026-01-05',
+        created_at: '2026-01-05',
         description: 'React 리포지토리에 PR을 보낸 내역입니다.',
-        processingStatus: 'COMPLETED',
+        processing_status: 'COMPLETED',
         content: `[React 공식 레포지토리 기여]
 - PR 제목: Fix memory leak in useEffect cleanup (merged)
 - 내용: 특정 Edge case에서 cleanup 함수가 누락되어 메모리 릭이 발생하는 버그 수정
@@ -75,7 +75,7 @@ let COVER_LETTERS = [
             { id: 2, question: "성장과정", answer: "어릴 때부터..." }
         ],
         recruitId: 1,
-        updatedAt: '2026-01-15'
+        updated_at: '2026-01-15'
     },
     {
         id: 3,
@@ -85,7 +85,7 @@ let COVER_LETTERS = [
             { id: 1, question: "자기소개", answer: "AWS 클라우드 경험을 바탕으로..." }
         ],
         recruitId: 2,
-        updatedAt: '2026-01-16'
+        updated_at: '2026-01-16'
     },
     {
         id: 4,
@@ -95,7 +95,7 @@ let COVER_LETTERS = [
             { id: 1, question: "지원동기", answer: "토스의 금융 혁신에..." }
         ],
         recruitId: 4,
-        updatedAt: '2026-01-14'
+        updated_at: '2026-01-14'
     },
     {
         id: 5,
@@ -105,7 +105,7 @@ let COVER_LETTERS = [
             { id: 1, question: "지원동기", answer: "사용자 경험을 최우선으로..." }
         ],
         recruitId: 11,
-        updatedAt: '2024-12-25'
+        updated_at: '2024-12-25'
     },
 ];
 
@@ -133,7 +133,7 @@ export const handlers = [
                 type: 'link',
                 description: 'AI가 추출한 프로젝트의 핵심 설명입니다.',
                 content: '- 주요 성과: 성능 20% 개선\n- 활용 기술: React, Node.js',
-                createdAt: new Date().toISOString().split('T')[0]
+                created_at: new Date().toISOString().split('T')[0]
             }
         ];
         return HttpResponse.json({ items: generated });
@@ -281,7 +281,7 @@ export const handlers = [
         const newPortfolio = {
             ...data,
             id: Date.now(),
-            createdAt: new Date().toISOString().split('T')[0]
+            created_at: new Date().toISOString().split('T')[0]
         };
         PORTFOLIOS.push(newPortfolio as typeof PORTFOLIOS[0]);
         return HttpResponse.json(newPortfolio);
@@ -366,7 +366,7 @@ export const handlers = [
                 content: '',
                 questions: [],
                 recruitId: 0,
-                updatedAt: '2026-01-01'
+                updated_at: '2026-01-01'
             })
         }
         return HttpResponse.json(cl)
@@ -378,7 +378,7 @@ export const handlers = [
         const newLetter = {
             ...data,
             id: Date.now(),
-            updatedAt: new Date().toISOString().split('T')[0]
+            updated_at: new Date().toISOString().split('T')[0]
         };
         COVER_LETTERS.push(newLetter as typeof COVER_LETTERS[0]);
         return HttpResponse.json(newLetter);

@@ -64,7 +64,7 @@ describe('RecruitPage', () => {
             http.get('/api/recruits', () => {
                 return HttpResponse.json({
                     items: [
-                        { id: 1, title: 'Frontend Developer', company: 'Google', startDate: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'] }
+                        { id: 1, title: 'Frontend Developer', company: 'Google', start_date: '2026-02-01', deadline: '2026-03-01', tags: ['React', 'Next.js', 'TypeScript'] }
                     ],
                     meta: { total: 1, page: 1, limit: 10, totalPages: 1 }
                 });
