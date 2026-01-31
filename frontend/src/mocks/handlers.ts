@@ -74,7 +74,7 @@ let COVER_LETTERS = [
             { id: 1, question: "지원동기", answer: "구글의 비전에 깊이 공감하며..." },
             { id: 2, question: "성장과정", answer: "어릴 때부터..." }
         ],
-        recruitId: 1,
+        recruit_id: 1,
         updated_at: '2026-01-15'
     },
     {
@@ -84,7 +84,7 @@ let COVER_LETTERS = [
         questions: [
             { id: 1, question: "자기소개", answer: "AWS 클라우드 경험을 바탕으로..." }
         ],
-        recruitId: 2,
+        recruit_id: 2,
         updated_at: '2026-01-16'
     },
     {
@@ -94,7 +94,7 @@ let COVER_LETTERS = [
         questions: [
             { id: 1, question: "지원동기", answer: "토스의 금융 혁신에..." }
         ],
-        recruitId: 4,
+        recruit_id: 4,
         updated_at: '2026-01-14'
     },
     {
@@ -104,7 +104,7 @@ let COVER_LETTERS = [
         questions: [
             { id: 1, question: "지원동기", answer: "사용자 경험을 최우선으로..." }
         ],
-        recruitId: 11,
+        recruit_id: 11,
         updated_at: '2024-12-25'
     },
 ];
@@ -331,18 +331,18 @@ export const handlers = [
 
         // 데이터 매핑 (Join)
         const enrichedCoverLetters = COVER_LETTERS.map(cl => {
-            const recruit = ALL_RECRUITS.find(r => r.id === cl.recruitId);
+            const recruit = ALL_RECRUITS.find(r => r.id === cl.recruit_id);
             return {
                 ...cl,
-                recruitTitle: recruit?.title,
-                recruitCompany: recruit?.company,
-                recruitDeadline: recruit?.deadline
+                recruit_title: recruit?.title,
+                recruit_company: recruit?.company,
+                recruit_deadline: recruit?.deadline
             };
         });
 
         let filtered = enrichedCoverLetters;
         if (recruitId) {
-            filtered = filtered.filter(cl => cl.recruitId === Number(recruitId));
+            filtered = filtered.filter(cl => cl.recruit_id === Number(recruitId));
         }
 
         const total = filtered.length;

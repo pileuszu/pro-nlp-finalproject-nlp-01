@@ -66,10 +66,10 @@ export interface CoverLetter {
     id: number;
     title: string;
     content?: string;
-    recruitId?: number;
-    recruitTitle?: string;
-    recruitCompany?: string;
-    recruitDeadline?: string;
+    recruit_id?: number;
+    recruit_title?: string;
+    recruit_company?: string;
+    recruit_deadline?: string;
     created_at: string;
     updated_at?: string;
 

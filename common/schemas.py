@@ -117,7 +117,7 @@ class PortfolioUpdateRequest(BaseModel):
 class CoverLetterBase(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
-    recruitment_id: Optional[int] = Field(None, alias="recruitId")
+    recruitment_id: Optional[int] = Field(None, alias="recruit_id")
     processing_status: Optional[str] = "PENDING"
 
 class CoverLetterItemBase(BaseModel):
@@ -174,7 +174,7 @@ class PortfolioAnalyzeRequest(BaseModel):
     type: str  # github, link, file, notion
 
 class CoverLetterGenerateRequest(BaseModel):
-    recruitId: int
+    recruit_id: int
     questions: List[str]
     tone: str = "professional"
 
