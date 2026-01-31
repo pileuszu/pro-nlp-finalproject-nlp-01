@@ -42,24 +42,20 @@ def init_db():
 
         # 2. Ensure Extensions (vector for recruitment/portfolio embeddings)
         try:
-            with ddl_engine.connect() as conn:
-                conn = conn.execution_options(isolation_level="AUTOCOMMIT")
+            with ddl_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
                 conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
                 logger.info("Ensured 'vector' extension exists.")
         except Exception as e:
-            logger.warning(f"Could not ensure 'vector' extension (may require superuser or dashboard activation): {e}")
+            logger.warning(f"Could not ensure 'vector' extension: {e}")
 
         # 3. Heal Enum: 'processingstatus'
         try:
-            with ddl_engine.connect() as conn:
+            with ddl_engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
                 # Check if the type exists first
                 exists = conn.execute(text("SELECT 1 FROM pg_type WHERE typname = 'processingstatus'")).fetchone()
                 
                 if exists:
                     logger.info("Healing 'processingstatus' enum values...")
-                    # ALTER TYPE cannot run in a transaction
-                    conn = conn.execution_options(isolation_level="AUTOCOMMIT")
-                    
                     # These are the values defined in common/models.py
                     expected_values = ["PENDING", "PROCESSING", "REVIEW_REQUIRED", "COMPLETED", "FAILED"]
                     
@@ -67,13 +63,14 @@ def init_db():
                         try:
                             # Using IF NOT EXISTS (PG 9.4+)
                             conn.execute(text(f"ALTER TYPE processingstatus ADD VALUE IF NOT EXISTS '{val}'"))
-                            logger.debug(f"Ensured '{val}' exists in processingstatus.")
+                            logger.info(f"Successfully checked/added value '{val}' to processingstatus.")
                         except Exception as inner_e:
                             logger.debug(f"Info: Could not add value '{val}' to enum: {inner_e}")
                 else:
                     logger.info("'processingstatus' type not found. It will be created when tables using it are created.")
         except Exception as e:
-            logger.warning(f"Enum healing failed (may be due to pooler restrictions): {e}")
+            logger.warning(f"Enum healing failed: {e}")
+            logger.debug(traceback.format_exc())
 
         # 4. Heal Columns for existing tables
         try:
