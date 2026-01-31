@@ -173,14 +173,21 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
                     setStatus(data.processing_status || data.status);
 
+                    console.log("[CoverLetterEditor] Loaded data:", data); // Debug Log
+
                     if (data.recruitment_id || data.recruit_id) {
                         const rId = data.recruitment_id || data.recruit_id;
+                        console.log("[CoverLetterEditor] Fetching recruit info for:", rId); // Debug Log
                         const rRes = await fetchWithAuth(getApiUrl(`/recruits/${rId}`));
                         if (rRes.ok) {
                             const rData = await rRes.json();
                             setLinkedRecruit(rData);
                             setShowRecruitPanel(true);
+                        } else {
+                            console.error("[CoverLetterEditor] Failed to fetch recruit info");
                         }
+                    } else {
+                        console.warn("[CoverLetterEditor] No recruit_id found in cover letter data");
                     }
                 } catch (e) { console.error(e); }
             } else if (jobId) {
@@ -237,7 +244,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     // mode: aiMode, // Removed to fix 422 Error (Backend schema doesn't support 'mode')
                     tone: aiTone,
                     recruit_id: linkedRecruit?.id,
-                    // portfolio_ids: selectedPortfolioIds, // Unused
+                    portfolio_ids: [],
                     questions: allQuestions
                 })
             });
