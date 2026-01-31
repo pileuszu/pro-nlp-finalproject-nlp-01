@@ -115,8 +115,9 @@ export function useNotifications() {
         };
 
         eventSource.onerror = (err) => {
-            console.error("SSE Error:", err);
-            eventSource.close();
+            // Do not close connection on error, let EventSource retry automatically
+            console.warn("SSE Connection lost, retrying...", err);
+            // eventSource.close(); 
         };
 
         // Fallback Polling (every 30 seconds)

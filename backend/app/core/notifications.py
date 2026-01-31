@@ -40,10 +40,16 @@ class NotificationBroadcaster:
             await pubsub.subscribe(channel)
             logger.info(f"Subscribed to Redis channel: {channel}")
             
-            async for message in pubsub.listen():
-                if message["type"] == "message":
-                    # SSE format requires "data: " prefix and double newline
-                    yield f"data: {message['data']}\n\n"
+            iterator = pubsub.listen()
+            while True:
+                try:
+                    # Wait for message with a timeout to send heartbeats
+                    message = await asyncio.wait_for(iterator.__anext__(), timeout=15.0)
+                    if message["type"] == "message":
+                        yield f"data: {message['data']}\n\n"
+                except asyncio.TimeoutError:
+                    # Send heartbeat (comment) to keep connection alive
+                    yield ": keepalive\n\n"
         except Exception as e:
             logger.error(f"Redis subscription error for user {user_id}: {e}")
         finally:
