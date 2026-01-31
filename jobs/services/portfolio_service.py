@@ -255,13 +255,19 @@ class PortfolioService:
 
         except Exception as e:
             logger.error(f"Processing Failed for Portfolio {portfolio_id}: {e}")
-            # Re-fetch to fail status
-            stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
-            result = await self.db.execute(stmt)
-            portfolio = result.scalar_one_or_none()
-            if portfolio:
-                portfolio.processing_status = ProcessingStatus.FAILED
-                await self.db.commit()
+            # Ensure session is usable by rolling back the failed transaction
+            await self.db.rollback()
+            
+            # Re-fetch to fail status in a fresh transaction state
+            try:
+                stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
+                result = await self.db.execute(stmt)
+                portfolio = result.scalar_one_or_none()
+                if portfolio:
+                    portfolio.processing_status = ProcessingStatus.FAILED
+                    await self.db.commit()
+            except Exception as final_e:
+                logger.error(f"Final failure state update failed: {final_e}")
             raise
 
     async def _update_user_global_profile(self, user_id: int, project_name: str, role: str, tech_stack: str, description: str):
@@ -373,12 +379,18 @@ class PortfolioService:
 
         except Exception as e:
             logger.error(f"Analysis extraction failed for Portfolio {portfolio_id}: {e}")
-            # Mark as failed
-            stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
-            result = await self.db.execute(stmt)
-            portfolio = result.scalar_one_or_none()
-            if portfolio:
-                portfolio.processing_status = ProcessingStatus.FAILED
-                await self.db.commit()
+            # Ensure session is usable by rolling back
+            await self.db.rollback()
+            
+            try:
+                # Mark as failed in a fresh state
+                stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
+                result = await self.db.execute(stmt)
+                portfolio = result.scalar_one_or_none()
+                if portfolio:
+                    portfolio.processing_status = ProcessingStatus.FAILED
+                    await self.db.commit()
+            except Exception as final_e:
+                logger.error(f"Final failure state update failed (Analysis): {final_e}")
             raise
 

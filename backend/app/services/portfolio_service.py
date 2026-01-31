@@ -60,6 +60,7 @@ class PortfolioService:
             
         except Exception as e:
             logger.error(f"Portfolio creation failed: {e}")
+            await self.db.rollback()
             if file_path.exists():
                 file_path.unlink()
             raise
@@ -86,6 +87,7 @@ class PortfolioService:
             return portfolio
         except Exception as e:
             logger.error(f"GitHub portfolio creation failed: {e}")
+            await self.db.rollback()
             raise
 
     async def create_portfolio_from_notion(self, user_id: int, title: str, notion_url: str) -> Portfolio:
@@ -110,6 +112,7 @@ class PortfolioService:
             return portfolio
         except Exception as e:
             logger.error(f"Notion portfolio creation failed: {e}")
+            await self.db.rollback()
             raise
 
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
@@ -205,6 +208,7 @@ class PortfolioService:
             return {"portfolio_id": portfolio.id, "status": "PENDING", "success": True}
         except Exception as e:
             logger.error(f"Async analysis trigger failed: {e}")
+            await self.db.rollback()
             return {"error": str(e), "success": False}
 
     async def analyze_portfolio_file(self, user_id: int, file: UploadFile):
@@ -245,6 +249,7 @@ class PortfolioService:
             return {"portfolio_id": portfolio.id, "status": "PENDING", "success": True}
         except Exception as e:
              logger.error(f"Async file analysis trigger failed: {e}")
+             await self.db.rollback()
              if file_path.exists():
                  file_path.unlink()
              return {"error": str(e), "success": False}
