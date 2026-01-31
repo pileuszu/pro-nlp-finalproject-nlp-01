@@ -16,7 +16,7 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
     """
     from jobs.core.recruit.matcher import RecruitMatcher
     from jobs.core.recruit.indexer import RecruitIndexer
-    from jobs.infra.models import Portfolio, Recommendation, Recruitment, User, PortfolioJobQuery
+    from common.models import Portfolio, Recommendation, Recruitment, User, PortfolioJobQuery
     
     logger.info(f"Starting recommendation pre-computation for Portfolio {portfolio_id}")
 
@@ -129,7 +129,7 @@ async def bulk_precompute_recommendations(db: AsyncSession):
     Triggers pre-computation for all active portfolios in the database.
     Useful for background batch processing.
     """
-    from jobs.infra.models import Portfolio
+    from common.models import Portfolio
     stmt = select(Portfolio.id)
     result = await db.execute(stmt)
     portfolio_ids = result.scalars().all()
@@ -150,7 +150,7 @@ async def global_rerank_recommendations(db: AsyncSession, user_id: int):
     This provides a unified Top-N list of jobs relevant to the user's overall profile.
     """
     from jobs.core.recruit.matcher import RecruitMatcher
-    from jobs.infra.models import User, Portfolio, Recommendation, Recruitment
+    from common.models import User, Portfolio, Recommendation, Recruitment
     
     logger.info(f"Starting global reranking for User {user_id}")
     
