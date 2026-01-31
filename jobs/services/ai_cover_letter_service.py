@@ -1,7 +1,6 @@
 import logging
 import os
 import json
-import json
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select

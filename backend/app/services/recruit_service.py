@@ -52,7 +52,8 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     
     count_stmt = select(func.count(models.Recruitment.id))
     if category and category != 'all':
-        count_stmt = count_stmt.where(models.Recruitment.category == category)
+        mapped_category = CATEGORY_MAP.get(category, category)
+        count_stmt = count_stmt.where(models.Recruitment.category == mapped_category)
     if keyword:
         count_stmt = count_stmt.where(
             models.Recruitment.title.ilike(f"%{keyword}%") | 

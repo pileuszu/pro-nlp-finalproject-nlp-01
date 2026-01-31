@@ -103,6 +103,10 @@ export default function PortfoliosPage() {
                             >
                                 <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-hidden rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
                                     <CardHeader className="pb-4 relative">
+                                        <StatusBadge
+                                            status={portfolio.processingStatus || portfolio.processing_status || 'PENDING'}
+                                            variant="card-tag"
+                                        />
                                         <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800 group-hover:text-blue-700 transition-colors duration-300">
                                             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors duration-300">
                                                 {getIcon(portfolio.type)}
@@ -115,9 +119,6 @@ export default function PortfoliosPage() {
                                                 <span className="text-slate-200">•</span>
                                                 <span>{formatDate(portfolio.createdAt)}</span>
                                             </div>
-                                            <StatusBadge
-                                                status={portfolio.processingStatus || 'COMPLETED'}
-                                            />
                                         </div>
                                     </CardHeader>
                                     <CardContent className="flex-1 pb-6 space-y-4">

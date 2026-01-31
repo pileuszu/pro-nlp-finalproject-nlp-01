@@ -26,9 +26,16 @@ app = FastAPI(
 )
 
 # CORS configuration
+origins = [
+    "*", 
+    "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
+    "https://pro-nlp-finalproject-nlp-01.vercel.app",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

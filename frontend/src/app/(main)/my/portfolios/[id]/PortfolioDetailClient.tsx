@@ -110,7 +110,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 {displayPortfolio.type === 'link' ? '웹사이트 / 링크' : displayPortfolio.type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
                             </Badge>
                             <StatusBadge
-                                status={displayPortfolio.processingStatus || 'COMPLETED'}
+                                status={displayPortfolio.processingStatus || displayPortfolio.processing_status || 'PENDING'}
                             />
                         </div>
                         <span className="text-slate-400 text-sm flex items-center gap-2">

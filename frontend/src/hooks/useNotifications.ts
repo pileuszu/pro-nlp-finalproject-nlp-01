@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { getApiUrl } from "@/lib/apiUtils";
 
 export interface Notification {
     id: number;
@@ -22,7 +23,8 @@ export function useNotifications() {
     const fetchNotifications = useCallback(async () => {
         if (!isAuthenticated) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/notifications`, {
+            const url = getApiUrl("/api/notifications");
+            const res = await fetch(url, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -64,9 +66,12 @@ export function useNotifications() {
         init();
 
         // SSE Setup
-        const url = `${process.env.NEXT_PUBLIC_API_URL || ""}/api/notifications/events?token=${token}`;
+        // Construction using getApiUrl to avoid path issues
+        const ssePath = `/api/notifications/events?token=${token}`;
+        const sseUrl = getApiUrl(ssePath);
+
         // Note: EventSource doesn't support headers natively, so we pass token as query param
-        const eventSource = new EventSource(url);
+        const eventSource = new EventSource(sseUrl);
 
         eventSource.onmessage = (event) => {
             const data = JSON.parse(event.data);

@@ -178,17 +178,10 @@ export default function CoverLettersPage() {
                                                     <FileText className={cn("h-5 w-5", expired ? "text-slate-400" : (isSelected ? "text-white" : "text-orange-500"))} />
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1.5 pt-1">
-                                                    {!isSelectionMode && (
-                                                        <div className="flex flex-col items-end gap-1">
-                                                            <StatusBadge
-                                                                status={cl.processing_status || cl.processingStatus || cl.status || 'COMPLETED'}
-                                                            />
-                                                            {expired && (
-                                                                <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[10px] font-black py-0.5">
-                                                                    마감됨
-                                                                </Badge>
-                                                            )}
-                                                        </div>
+                                                    {expired && (
+                                                        <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[10px] font-black py-0.5">
+                                                            마감됨
+                                                        </Badge>
                                                     )}
                                                     {cl.recruitDeadline && !expired && !isSelectionMode && (
                                                         <span className="text-[10px] font-black text-red-500 animate-pulse bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
@@ -311,7 +304,8 @@ export default function CoverLettersPage() {
                                                     </h3>
                                                     <div className="flex gap-1">
                                                         <StatusBadge
-                                                            status={cl.processing_status || cl.processingStatus || cl.status || 'COMPLETED'}
+                                                            status={cl.processing_status || cl.processingStatus || cl.status || 'PENDING'}
+                                                            variant="card-tag"
                                                         />
                                                         {expired && (
                                                             <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[9px] font-black uppercase py-0 px-2">
