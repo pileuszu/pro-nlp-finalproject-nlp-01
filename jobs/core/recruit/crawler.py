@@ -173,21 +173,50 @@ class RecruitmentCrawler:
             }
         }
         
-        try:
-            resp = requests.post(url, headers=headers, json=payload, timeout=120)
-            if resp.status_code == 200:
-                result = resp.json()
-                if result.get("status", {}).get("code") == "20000":
-                    content = result.get("result", {}).get("message", {}).get("content", "")
-                    # Parse with Pydantic for validation
-                    recruitment_list = RecruitmentList.model_validate_json(content)
-                    # Convert to dict list
-                    return [item.model_dump() for item in recruitment_list.items]
-            logger.error(f"NCP Error: {resp.text}")
-            return []
-        except Exception as e:
-            logger.error(f"NCP Call Error: {e}")
-            return []
+        
+        api_retries = 3
+        
+        for attempt in range(api_retries):
+            try:
+                resp = requests.post(url, headers=headers, json=payload, timeout=120)
+                
+                if resp.status_code == 200:
+                    result = resp.json()
+                    status_code = result.get("status", {}).get("code")
+                    
+                    if status_code == "20000":
+                        content = result.get("result", {}).get("message", {}).get("content", "")
+                        # Parse with Pydantic for validation
+                        try:
+                            recruitment_list = RecruitmentList.model_validate_json(content)
+                            # Convert to dict list
+                            return [item.model_dump() for item in recruitment_list.items]
+                        except Exception as parse_err:
+                            logger.error(f"JSON Parsing Error: {parse_err}")
+                            return []
+
+                    elif status_code == "42901":
+                        logger.warning(f"NCP Rate Limit (42901) - Attempt {attempt+1}/{api_retries}")
+                        time.sleep(5 * (attempt + 1)) # Exponential backoff: 5s, 10s, 15s
+                        continue
+                    else:
+                        logger.error(f"NCP Error Status {status_code}: {result}")
+                        return []
+                        
+                elif resp.status_code == 429:
+                    logger.warning(f"HTTP 429 Too Many Requests - Attempt {attempt+1}/{api_retries}")
+                    time.sleep(5 * (attempt + 1))
+                    continue
+                else:
+                    logger.error(f"NCP HTTP Error {resp.status_code}: {resp.text}")
+                    return []
+                    
+            except Exception as e:
+                logger.error(f"NCP Call Exception: {e}")
+                time.sleep(2) # Brief pause on network error
+        
+        logger.error("Max retries reached for NCP Analysis")
+        return []
     
     def get_job_list(self) -> List[Dict]:
         """Crawl job list from inthiswork.com."""
@@ -304,6 +333,9 @@ class RecruitmentCrawler:
             # items = self._analyze_job_with_ncp(row)
             items = await loop.run_in_executor(None, self._analyze_job_with_ncp, row)
             final_json_results.extend(items)
+            
+            # Rate limiting delay
+            time.sleep(2)
         
         logger.info(f"\n[Complete] Parsed {len(final_json_results)} recruitment items")
         return final_json_results
