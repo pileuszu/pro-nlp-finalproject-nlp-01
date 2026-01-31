@@ -47,9 +47,15 @@ async_connect_args = {"statement_cache_size": 0}
 if "supabase.com" in (async_url.host or "") or "supabase.co" in (async_url.host or ""):
     async_connect_args["ssl"] = "require"
 
+# Switch to standard pooling for better stability, but with aggressive recycling
+# Supabase/PgBouncer often closes idle connections, so pre_ping is essential.
 async_engine = create_async_engine(
     async_url,
-    poolclass=NullPool,
+    echo=False,
+    pool_pre_ping=True,       # Check connection health before use
+    pool_recycle=300,         # Recycle connections every 5 minutes
+    pool_size=5,              # Keep a small pool
+    max_overflow=10,          # Allow some burst
     connect_args=async_connect_args
 )
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
