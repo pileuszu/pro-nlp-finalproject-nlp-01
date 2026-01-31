@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     # Internal Backend URL (for Job -> Backend communication)
     BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
     INTERNAL_API_SECRET: str = os.getenv("INTERNAL_API_SECRET", "pro-nlp-internal-secret-change-me")
+    
+    # Redis (Upstash)
+    REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
 
     class Config:
         case_sensitive = True

@@ -119,8 +119,16 @@ export function useNotifications() {
             eventSource.close();
         };
 
+        // Fallback Polling (every 30 seconds)
+        // This ensures that even if SSE misses (e.g. initial connection issues),
+        // the user eventually gets the notification red dot.
+        const intervalId = setInterval(() => {
+            fetchNotifications();
+        }, 30000);
+
         return () => {
             eventSource.close();
+            clearInterval(intervalId);
         };
     }, [isAuthenticated, token, fetchNotifications, toast]);
 
