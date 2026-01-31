@@ -18,12 +18,12 @@ router = APIRouter()
     description="로그인한 사용자의 모든 자기소개서 목록을 조회합니다. 특정 채용 공고 ID로 필터링이 가능합니다."
 )
 async def list_cover_letters(
-    recruitId: Optional[int] = Query(None, description="필터링할 채용 공고 ID"),
+    recruit_id: Optional[int] = Query(None, description="필터링할 채용 공고 ID"),
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     service = CoverLetterService(db)
-    items = await service.get_cover_letters(user_id=current_user.id, recruitment_id=recruitId)
+    items = await service.get_cover_letters(user_id=current_user.id, recruitment_id=recruit_id)
     return {"items": items}
 
 @router.post("", response_model=schemas.CoverLetterDetail, status_code=201)

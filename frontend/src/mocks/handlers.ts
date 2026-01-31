@@ -325,7 +325,7 @@ export const handlers = [
     // 자소서 리스트 (필터링 및 페이지네이션)
     http.get('/api/cover-letters', ({ request }) => {
         const url = new URL(request.url);
-        const recruitId = url.searchParams.get('recruitId');
+        const recruit_id = url.searchParams.get('recruit_id');
         const page = parseInt(url.searchParams.get('page') || '1');
         const limit = parseInt(url.searchParams.get('limit') || '10');
 
@@ -341,8 +341,8 @@ export const handlers = [
         });
 
         let filtered = enrichedCoverLetters;
-        if (recruitId) {
-            filtered = filtered.filter(cl => cl.recruit_id === Number(recruitId));
+        if (recruit_id) {
+            filtered = filtered.filter(cl => cl.recruit_id === Number(recruit_id));
         }
 
         const total = filtered.length;
@@ -365,8 +365,8 @@ export const handlers = [
                 title: '제목 없음',
                 content: '',
                 questions: [],
-                recruitId: 0,
-                updated_at: '2026-01-01'
+                recruit_id: 0,
+                updated_at: '2026-01-11'
             })
         }
         return HttpResponse.json(cl)

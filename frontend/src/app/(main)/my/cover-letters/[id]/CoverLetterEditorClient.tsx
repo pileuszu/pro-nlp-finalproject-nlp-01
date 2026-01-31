@@ -129,7 +129,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     useEffect(() => {
         if (!polledResult) return;
 
-        const currentStatus = polledResult.processing_status || polledResult.processingStatus || polledResult.status;
+        const currentStatus = polledResult.processing_status || polledResult.status;
         const isDone = ['REVIEW_REQUIRED', 'COMPLETED', 'FAILED'].includes(currentStatus);
 
         if (isDone) {
@@ -191,8 +191,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     if (data.gap_analysis) setGapAnalysis(data.gap_analysis);
                     setStatus(data.processing_status || data.status);
 
-                    if (data.recruitment_id || data.recruitId) {
-                        const rId = data.recruitment_id || data.recruitId;
+                    if (data.recruitment_id || data.recruit_id) {
+                        const rId = data.recruitment_id || data.recruit_id;
                         const rRes = await fetchWithAuth(getApiUrl(`/recruits/${rId}`));
                         if (rRes.ok) {
                             const rData = await rRes.json();
@@ -222,7 +222,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             const body = {
                 title,
                 questions: questions.map(q => ({ question: q.question, content: q.answer })),
-                recruitId: linkedRecruit?.id
+                recruit_id: linkedRecruit?.id
             };
             const res = await fetchWithAuth(isNew ? getApiUrl('/cover-letters') : getApiUrl(`/cover-letters/${id}`), {
                 method: isNew ? 'POST' : 'PATCH',
@@ -255,7 +255,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 body: JSON.stringify({
                     mode: aiMode,
                     tone: aiTone,
-                    recruitId: linkedRecruit?.id,
+                    recruit_id: linkedRecruit?.id,
                     questions: allQuestions
                 })
             });
