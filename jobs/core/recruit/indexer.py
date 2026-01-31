@@ -9,6 +9,12 @@ from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStor
 
 logger = logging.getLogger(__name__)
 
+
+def sanitize_text(text: str) -> str:
+    if not text:
+        return ""
+    return text.replace("\x00", "")
+
 class RecruitIndexer:
     """
     Handles indexing of recruitment data into the Supabase Vector Store.
@@ -39,6 +45,7 @@ class RecruitIndexer:
             f"자격 요건: {data.get('required_qualifications', '')}",
             f"우대 사항: {data.get('preferred_qualifications', '')}",
         ]
+        content_parts = [sanitize_text(p) for p in content_parts]
         page_content = " ".join([p for p in content_parts if p.split(": ")[1]])
         
         # 2. Metadata (All fields)
@@ -109,9 +116,9 @@ class RecruitIndexer:
                     employment_type=item.get('employment_type'),
                     salary=item.get('salary'),
                     category=item.get('category'),
-                    key_responsibilities=item.get('key_responsibilities'),
-                    required_qualifications=item.get('required_qualifications'),
-                    preferred_qualifications=item.get('preferred_qualifications'),
+                    key_responsibilities=sanitize_text(item.get('key_responsibilities')),
+                    required_qualifications=sanitize_text(item.get('required_qualifications')),
+                    preferred_qualifications=sanitize_text(item.get('preferred_qualifications')),
                     tags=item.get('tags', [])
                 )
                 db.add(db_recruit)

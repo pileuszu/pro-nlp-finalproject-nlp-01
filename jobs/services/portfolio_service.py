@@ -18,6 +18,12 @@ class PortfolioService:
         self._github_extractor = None
         self._llm_refiner = None
         self._vector_store = None
+        
+    def _sanitize_text(self, text: str) -> str:
+        """Removes null bytes and other characters that cause DB storage issues."""
+        if not text:
+            return ""
+        return text.replace("\x00", "")
 
     @property
     def file_extractor(self):
@@ -92,7 +98,7 @@ class PortfolioService:
             if not text or text.startswith("[Error]") or "Error" in text[:20]:
                 raise ValueError(f"Extraction failed: {text}")
 
-            portfolio.content = text
+            portfolio.content = self._sanitize_text(text)
             await self.db.commit()
 
             # 2. Refine (AI Pipeline)
