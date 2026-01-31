@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class GCSUtils:
     def __init__(self):
         self.bucket_name = settings.GCS_BUCKET_NAME
-        self.client = storage.Client() if self.bucket_name else None
+        self.client = storage.Client(project=settings.GCP_PROJECT_ID) if self.bucket_name else None
         self.bucket = self.client.bucket(self.bucket_name) if self.client else None
 
     def upload_file(self, local_path: str, remote_path: str) -> str:
@@ -17,18 +17,24 @@ class GCSUtils:
         Uploads a local file to GCS and returns the gs:// URI.
         If bucket is not configured, returns the local path as is (fallback for local dev).
         """
+        if not self.bucket_name:
+            logger.warning("GCS_BUCKET_NAME is not set. Falling back to local path.")
+            return local_path
+
         if not self.bucket:
-            logger.warning("GCS_BUCKET_NAME not configured. Using local path.")
+            logger.error(f"GCS Bucket '{self.bucket_name}' could not be initialized. Check project/credentials.")
             return local_path
 
         try:
             blob = self.bucket.blob(remote_path)
             blob.upload_from_filename(local_path)
             gs_uri = f"gs://{self.bucket_name}/{remote_path}"
-            logger.info(f"Uploaded {local_path} to {gs_uri}")
+            logger.info(f"Successfully uploaded {local_path} to {gs_uri}")
             return gs_uri
         except Exception as e:
-            logger.error(f"Failed to upload to GCS: {e}")
+            logger.error(f"GCS Upload Error (Path: {remote_path}): {e}")
+            # Do NOT return local path if we expect GCS to work in production
+            # But for safety in current transition, we keep returning local_path
             return local_path
 
     def download_file(self, remote_uri: str, local_path: str) -> str:
