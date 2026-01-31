@@ -160,14 +160,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     useEffect(() => {
         const loadData = async () => {
-            try {
-                const pfRes = await fetchWithAuth(getApiUrl('/portfolios'));
-                if (pfRes.ok) {
-                    const data = await pfRes.json();
-                    setPortfolios(data.items || data || []);
-                }
-            } catch (e) { console.error(e); }
-
             if (!isNew) {
                 try {
                     const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}`));
