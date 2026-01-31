@@ -92,7 +92,10 @@ class AICoverLetterService:
 
             # Update Main Status
             cl.processing_status = "COMPLETED"
-            cl.content = answer_data.get("content")
+            content = answer_data.get("content", "")
+            if content:
+                content = content.replace("\x00", "")
+            cl.content = content
             await db.commit()
             
             logger.info(f"Successfully generated cover letter {cl_id}")
