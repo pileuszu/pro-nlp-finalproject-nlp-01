@@ -117,7 +117,7 @@ class PortfolioUpdateRequest(BaseModel):
 class CoverLetterBase(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
-    recruitment_id: Optional[int] = Field(None, alias="recruit_id")
+    recruitment_id: Optional[int] = None
     processing_status: Optional[str] = "PENDING"
 
 class CoverLetterItemBase(BaseModel):
