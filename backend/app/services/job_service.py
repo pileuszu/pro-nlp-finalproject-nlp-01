@@ -24,7 +24,7 @@ class JobService:
 
     def _trigger_cloud_run_job(self, task: str, target_id: Optional[int] = None, **kwargs):
         """
-        Triggers a Google Cloud Run Job using the official SDK.
+        Triggers a Google Cloud Run Job using the official SDK with retry logic.
         """
         logger.info(f"Triggering Cloud Run Job '{self.job_name}': task={task}, id={target_id}")
         
@@ -32,38 +32,44 @@ class JobService:
             logger.error("GCP_PROJECT_ID is not set. Cannot trigger Cloud Run Job.")
             return False
 
-        try:
-            from google.cloud import run_v2
-            
-            client = run_v2.JobsClient()
-            
-            # Prepare arguments for the container
-            args = [f"--task={task}"]
-            if target_id:
-                args.append(f"--id={target_id}")
-            
-            # Formatting job path: projects/{project}/locations/{location}/jobs/{job}
-            job_path = f"projects/{self.project_id}/locations/{self.region}/jobs/{self.job_name}"
-            
-            request = run_v2.RunJobRequest(
-                name=job_path,
-                overrides={
-                    "container_overrides": [
-                        {
-                            "args": args
-                        }
-                    ]
-                }
-            )
-            
-            operation = client.run_job(request=request)
-            logger.info(f"Cloud Run Job triggered. Operation: {operation.operation.name}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to trigger Cloud Run Job via SDK: {e}")
-            # Fallback or just fail
-            return False
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                from google.cloud import run_v2
+                
+                client = run_v2.JobsClient()
+                
+                # Prepare arguments for the container
+                args = [f"--task={task}"]
+                if target_id:
+                    args.append(f"--id={target_id}")
+                
+                # Formatting job path: projects/{project}/locations/{location}/jobs/{job}
+                job_path = f"projects/{self.project_id}/locations/{self.region}/jobs/{self.job_name}"
+                
+                request = run_v2.RunJobRequest(
+                    name=job_path,
+                    overrides={
+                        "container_overrides": [
+                            {
+                                "args": args
+                            }
+                        ]
+                    }
+                )
+                
+                operation = client.run_job(request=request)
+                logger.info(f"Cloud Run Job triggered (Attempt {attempt+1}). Operation: {operation.operation.name}")
+                return True
+                
+            except Exception as e:
+                logger.warning(f"Failed to trigger Cloud Run Job (Attempt {attempt+1}/{max_retries}): {e}")
+                if attempt == max_retries - 1:
+                    logger.error(f"Final failure to trigger Cloud Run Job: {e}")
+                    return False
+                import time
+                time.sleep(2 ** attempt) # Exponential backoff
+        return False
 
     def _trigger_local_job(self, task: str, target_id: Optional[int] = None, **kwargs):
         """

@@ -11,12 +11,14 @@ import {
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 // Note: If dropdown-menu component doesn't match exactly, I'll adjust as I see it.
 // Assuming standard Radix UI pattern.
 
 export function NotificationBell() {
     const { notifications, unreadCount, markAsRead } = useNotifications();
+    const router = useRouter();
 
     return (
         <DropdownMenu>
@@ -48,7 +50,7 @@ export function NotificationBell() {
                             )}
                             onClick={() => {
                                 markAsRead(n.id);
-                                if (n.link) window.location.href = n.link;
+                                if (n.link) router.push(n.link);
                             }}
                         >
                             <div className="flex items-center justify-between w-full">

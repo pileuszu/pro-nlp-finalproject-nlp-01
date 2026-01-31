@@ -175,13 +175,28 @@ class PortfolioAnalyzeRequest(BaseModel):
 
 class CoverLetterGenerateRequest(BaseModel):
     recruitId: int
-    portfolioIds: List[int]
-    question: str
+    questions: List[str]
     tone: str = "professional"
 
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view
     pass
+
+# Recommendation Schemas
+class RecommendationBase(BaseModel):
+    recruitment_id: int
+    rank_order: int
+    reason: Optional[List[str]] = []
+
+class Recommendation(RecommendationBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class RecommendationListResponse(BaseModel):
+    items: List[Recommendation]
+    model_config = ConfigDict(from_attributes=True)
 
 # Notification Schemas
 class NotificationBase(BaseModel):

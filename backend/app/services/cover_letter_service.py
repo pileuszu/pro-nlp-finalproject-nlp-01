@@ -25,30 +25,42 @@ class CoverLetterService:
         return result.scalar_one_or_none()
 
     async def create_cover_letter(self, cl: schemas.CoverLetterCreate):
-        db_cl = models.CoverLetter(**cl.model_dump())
-        self.db.add(db_cl)
-        await self.db.commit()
-        await self.db.refresh(db_cl)
-        return db_cl
+        try:
+            db_cl = models.CoverLetter(**cl.model_dump())
+            self.db.add(db_cl)
+            await self.db.commit()
+            await self.db.refresh(db_cl)
+            return db_cl
+        except Exception as e:
+            await self.db.rollback()
+            raise e
 
     async def update_cover_letter(self, cl_id: int, user_id: int, data: dict):
-        db_cl = await self.get_cover_letter(cl_id, user_id)
-        if not db_cl:
-            return None
-        
-        for key, value in data.items():
-            setattr(db_cl, key, value)
+        try:
+            db_cl = await self.get_cover_letter(cl_id, user_id)
+            if not db_cl:
+                return None
             
-        await self.db.commit()
-        await self.db.refresh(db_cl)
-        return db_cl
+            for key, value in data.items():
+                setattr(db_cl, key, value)
+                
+            await self.db.commit()
+            await self.db.refresh(db_cl)
+            return db_cl
+        except Exception as e:
+            await self.db.rollback()
+            raise e
 
     async def delete_cover_letter(self, cl_id: int, user_id: int):
-        db_cl = await self.get_cover_letter(cl_id, user_id)
-        if not db_cl:
-            return False
-        
-        await self.db.delete(db_cl)
-        await self.db.commit()
-        return True
+        try:
+            db_cl = await self.get_cover_letter(cl_id, user_id)
+            if not db_cl:
+                return False
+            
+            await self.db.delete(db_cl)
+            await self.db.commit()
+            return True
+        except Exception as e:
+            await self.db.rollback()
+            raise e
 

@@ -9,7 +9,12 @@ from common import models
 
 router = APIRouter()
 
-@router.get("", response_model=schemas.RecruitmentListResponse)
+@router.get(
+    "", 
+    response_model=schemas.RecruitmentListResponse,
+    summary="채용 공고 목록 조회",
+    description="필터링 및 정렬 옵션에 따라 채용 공고 목록을 조회합니다. 로그인한 경우 백그라운드에서 추천 정보가 갱신됩니다."
+)
 async def list_recruits(
     background_tasks: BackgroundTasks,
     page: int = 1, 
@@ -41,9 +46,14 @@ async def list_recruits(
         }
     }
 
-@router.get("/recommend", response_model=Dict)
+@router.get(
+    "/recommend", 
+    response_model=Dict,
+    summary="AI 맞춤 추천 채용 조회",
+    description="사용자의 포트폴리오 분석 결과에 따라 가장 적합한 채용 공고들을 추천합니다."
+)
 async def get_recommendations(
-    portfolio_id: Optional[int] = Query(None),
+    portfolio_id: Optional[int] = Query(None, description="특정 포트폴리오 기준 추천을 원할 경우 사용"),
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -76,22 +86,26 @@ async def create_recruit(
     """Admin endpoint to create a new recruitment posting."""
     return await recruit_service.create_recruitment(db, recruit)
 
-@router.post("/index", status_code=201)
-async def index_recruitments(
-    payload: List[Dict] = Body(...),
-    db: AsyncSession = Depends(get_async_db),
-    current_user: models.User = Depends(deps.get_current_user)
+@router.post("/trigger-index", status_code=202)
+async def trigger_indexing(
+    internal_secret: str = Depends(deps.get_internal_secret_optional)
 ):
     """
-    Trigger bulk indexing job.
+    Internal trigger for recruitment indexing (used by Cloud Scheduler).
+    Authorized via X-Internal-Secret header.
     """
+    from common.config import settings
+    if internal_secret != settings.INTERNAL_API_SECRET:
+        raise HTTPException(status_code=403, detail="Not authorized for internal trigger")
+        
     from app.services.job_service import job_service
-    # We trigger a job instead of doing it inline
     success = job_service.trigger_job(task="recruit_indexing") 
     if not success:
-        raise HTTPException(status_code=500, detail="Failed to trigger indexing job (Infrastructure error)")
+        raise HTTPException(status_code=500, detail="Failed to trigger indexing job")
         
-    return {"message": "Recruitment indexing job triggered"}
+    return {"message": "Recruitment indexing job triggered via internal auth"}
+
+@router.post("/index", status_code=201)
 
 @router.put("/{recruit_id}", response_model=schemas.Recruitment)
 async def update_recruit(

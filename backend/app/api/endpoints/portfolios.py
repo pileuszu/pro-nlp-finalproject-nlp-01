@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -9,10 +9,16 @@ from app.services.portfolio_service import PortfolioService
 from app.api import deps
 
 from common import models
+from app.api.rate_limit import ai_gen_limiter
 
 router = APIRouter()
 
-@router.get("", response_model=schemas.PortfolioListResponse)
+@router.get(
+    "", 
+    response_model=schemas.PortfolioListResponse,
+    summary="포트폴리오 목록 조회",
+    description="로그인한 사용자가 생성한 모든 포트폴리오(파일, GitHub, Notion 포함) 목록을 반환합니다."
+)
 async def list_portfolios(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
@@ -118,23 +124,32 @@ async def delete_portfolio(
         raise HTTPException(status_code=404, detail="Portfolio not found or unauthorized")
     return {"success": True, "message": "Portfolio deleted"}
 
-@router.post("/analyze")
+@router.post(
+    "/analyze",
+    summary="포트폴리오 URL 분석",
+    description="GitHub 또는 Notion URL로부터 포트폴리오 정보를 소싱하여 AI 분석을 수행합니다. Rate Limit이 적용됩니다.",
+    responses={429: {"description": "Analysis limit exceeded"}}
+)
 async def analyze_portfolio(
+    request: Request,
     req: schemas.PortfolioAnalyzeRequest,
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Real AI analysis of a portfolio source for preview."""
+    await ai_gen_limiter.check(request)
     service = PortfolioService(db)
     return await service.analyze_portfolio_source(current_user.id, req.source, req.type)
 
 @router.post("/analyze/file")
 async def analyze_portfolio_file(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Real AI analysis of an uploaded file for preview."""
+    await ai_gen_limiter.check(request)
     service = PortfolioService(db)
     return await service.analyze_portfolio_file(current_user.id, file)
 

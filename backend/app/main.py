@@ -2,7 +2,8 @@ import logging
 import sys
 
 # Configure basic logging for startup
-logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+from app.core.logging_utils import setup_structured_logging
+setup_structured_logging()
 logger = logging.getLogger("main")
 
 # Suppress pdfminer logs
@@ -12,6 +13,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.exceptions import AppBaseException
 
 logger.info("Importing endpoints...")
 from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications
@@ -25,10 +27,26 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Initialize Database EARLY - Create tables and heal enums
-# Do this BEFORE importing/including any other modules that might use models
+# Initialize Database EARLY
 from common.db_init import init_db
 init_db()
+
+# Cleanup temporary files at startup
+import shutil
+from pathlib import Path
+UPLOAD_DIR = Path("/tmp/uploads")
+if UPLOAD_DIR.exists():
+    logger.info(f"Cleaning up temporary directory: {UPLOAD_DIR}")
+    for item in UPLOAD_DIR.iterdir():
+        try:
+            if item.is_file():
+                item.unlink()
+            elif item.is_dir():
+                shutil.rmtree(item)
+        except Exception as e:
+            logger.warning(f"Failed to delete {item}: {e}")
+else:
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 # CORS configuration
 origins = [
@@ -53,11 +71,23 @@ async def root():
 logger.info("FastAPI app READY for port binding.")
 
 # Global Exception Handlers
+@app.exception_handler(AppBaseException)
+async def app_base_exception_handler(request: Request, exc: AppBaseException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "success": False,
+            "detail": exc.message,
+            "data": exc.detail
+        },
+    )
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
+            "success": False,
             "detail": "입력값 검증에 실패했습니다.",
             "errors": exc.errors()
         },
@@ -65,11 +95,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled exception occurred: {exc}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
+            "success": False,
             "detail": "서버 내부 오류가 발생했습니다.",
-            "message": str(exc)
+            "message": str(exc) if settings.ENV != "production" else "Internal Server Error"
         },
     )
 

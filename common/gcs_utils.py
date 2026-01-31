@@ -37,7 +37,7 @@ class GCSUtils:
             # But for safety in current transition, we keep returning local_path
             return local_path
 
-    def download_file(self, remote_uri: str, local_path: str) -> str:
+    async def download_file(self, remote_uri: str, local_path: str) -> str:
         """
         Downloads a file from GCS (if URI starts with gs://) to local_path.
         Returns the local path.
@@ -59,5 +59,17 @@ class GCSUtils:
         except Exception as e:
             logger.error(f"Failed to download from GCS: {e}")
             return remote_uri
+
+    def check_connectivity(self) -> bool:
+        """
+        Checks if the GCS bucket is accessible.
+        """
+        if not self.bucket:
+            return False
+        try:
+            return self.bucket.exists()
+        except Exception as e:
+            logger.error(f"GCS connectivity check failed: {e}")
+            return False
 
 gcs_utils = GCSUtils()

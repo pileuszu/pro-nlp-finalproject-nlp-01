@@ -1,6 +1,10 @@
 import os
 from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
 from typing import Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Settings(BaseSettings):
     # App Config
@@ -41,5 +45,28 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def validate_database_url(cls, v: str) -> str:
+        if not v or v == "postgresql://postgres:postgres@localhost:5432/pro_nlp_db":
+            if os.getenv("ENV") in ["production", "preview"]:
+                 raise ValueError("DATABASE_URL must be explicitly set in production/preview environments")
+            logger.warning("Using default development DATABASE_URL")
+        return v
+
+    @field_validator("GCP_PROJECT_ID")
+    @classmethod
+    def validate_gcp_project(cls, v: Optional[str]) -> Optional[str]:
+        if not v and os.getenv("ENV") in ["production", "preview"]:
+            raise ValueError("GCP_PROJECT_ID is required in production/preview")
+        return v
+
+    @field_validator("GOOGLE_API_KEY", "NCP_CLOVASTUDIO_API_KEY")
+    @classmethod
+    def validate_api_keys(cls, v: str) -> str:
+        if not v:
+            logger.warning(f"Critical API Key is missing. Some AI features may not work.")
+        return v
 
 settings = Settings()

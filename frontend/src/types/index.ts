@@ -2,24 +2,23 @@ export interface Recruit {
     id: number;
     title: string;
     company: string;
-    startDate?: string;
+    start_date?: string;
     deadline?: string;
     tags?: string[];
     content?: string;
-    reason?: string;
+    reason?: string | string[];
 
-    // New Detailed Fields
+    // Detailed Fields (Snake Case Unified)
     link?: string;
     experience?: string;
     education?: string;
     employment_type?: string;
     salary?: string;
-    job_sector?: string;
+    category?: string;
+    location?: string;
     key_responsibilities?: string;
     required_qualifications?: string;
     preferred_qualifications?: string;
-    category?: string;
-    location?: string;
     view_count?: number;
 }
 
@@ -33,22 +32,18 @@ export interface Portfolio {
     id: number;
     project_name: string;
     type: 'link' | 'file' | 'github' | 'notion';
-    url?: string;
-    fileName?: string;
-    createdAt: string;
-    created_at?: string;
+    source_url?: string;
     content?: string;
+    created_at: string;
 
-    // Status
+    // Status (Snake Case Unified)
     processing_status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
-    processingStatus?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
 
     // Flattened Project Data
     period?: string;
     role?: string;
     description?: string;
     tech_stack?: string[];
-    source_url?: string;
     job_queries?: PortfolioJobQuery[];
 }
 
@@ -75,11 +70,10 @@ export interface CoverLetter {
     recruitTitle?: string;
     recruitCompany?: string;
     recruitDeadline?: string;
-    updatedAt: string;
+    created_at: string;
+    updated_at?: string;
 
-    // AI Analysis
-    status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
-    processingStatus?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
+    // AI Analysis (Snake Case Unified)
     processing_status?: 'PENDING' | 'PROCESSING' | 'REVIEW_REQUIRED' | 'COMPLETED' | 'FAILED';
     gap_analysis?: GapAnalysisResult;
     items?: CoverLetterItem[];

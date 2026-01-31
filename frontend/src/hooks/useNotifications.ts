@@ -40,19 +40,24 @@ export function useNotifications() {
     }, [isAuthenticated, token]);
 
     const markAsRead = async (id: number) => {
+        // Optimistic Update
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+        setUnreadCount(prev => Math.max(0, prev - 1));
+
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ""}/api/notifications/${id}/read`, {
+            const res = await fetch(getApiUrl(`/api/notifications/${id}/read`), {
                 method: "PATCH",
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            if (res.ok) {
-                setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-                setUnreadCount(prev => Math.max(0, prev - 1));
+            if (!res.ok) {
+                // Revert if failed (optional, but good practice)
+                fetchNotifications();
             }
         } catch (err) {
             console.error("Failed to mark notification as read", err);
+            fetchNotifications();
         }
     };
 

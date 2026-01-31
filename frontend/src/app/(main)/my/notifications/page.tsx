@@ -52,12 +52,12 @@ export default function NotificationsPage() {
                         >
                             <Card
                                 className={cn(
-                                    "group hover:shadow-md transition-all duration-300 cursor-pointer border-slate-200",
-                                    !n.is_read && "ring-1 ring-blue-500/20 bg-blue-50/30 border-blue-100"
+                                    "group hover:shadow-md transition-all duration-300 cursor-pointer border-slate-100",
+                                    !n.is_read && "ring-1 ring-blue-500/10 bg-blue-50/20 border-blue-50"
                                 )}
                                 onClick={() => {
                                     markAsRead(n.id);
-                                    if (n.link) window.location.href = n.link;
+                                    if (n.link) router.push(n.link);
                                 }}
                             >
                                 <CardContent className="p-6">

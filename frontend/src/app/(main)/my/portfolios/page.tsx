@@ -104,7 +104,7 @@ export default function PortfoliosPage() {
                                 <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-visible rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
                                     <CardHeader className="pb-4 relative">
                                         <StatusBadge
-                                            status={portfolio.processingStatus || portfolio.processing_status || 'PENDING'}
+                                            status={portfolio.processing_status || 'PENDING'}
                                             variant="card-tag"
                                         />
                                         <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800 group-hover:text-blue-700 transition-colors duration-300">
@@ -117,7 +117,7 @@ export default function PortfoliosPage() {
                                             <div className="flex items-center gap-2">
                                                 <span>{portfolio.role || 'N/A'}</span>
                                                 <span className="text-slate-200">•</span>
-                                                <span>{formatDate(portfolio.createdAt)}</span>
+                                                <span>{formatDate(portfolio.created_at)}</span>
                                             </div>
                                         </div>
                                     </CardHeader>
@@ -177,17 +177,17 @@ export default function PortfoliosPage() {
                                                     <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
                                                         {portfolio.project_name || "프로젝트"}
                                                     </h3>
-                                                    {portfolio.processingStatus === 'COMPLETED' && (
+                                                    {portfolio.processing_status === 'COMPLETED' && (
                                                         <Badge variant="outline" className="bg-emerald-50 border-emerald-100 text-emerald-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
                                                             Confirmed
                                                         </Badge>
                                                     )}
-                                                    {portfolio.processingStatus === 'REVIEW_REQUIRED' && (
+                                                    {portfolio.processing_status === 'REVIEW_REQUIRED' && (
                                                         <Badge variant="outline" className="bg-amber-500 border-amber-600 text-white text-[9px] font-black uppercase py-0 px-2 shrink-0">
                                                             Review Required
                                                         </Badge>
                                                     )}
-                                                    {(portfolio.processingStatus === 'PENDING' || portfolio.processingStatus === 'PROCESSING') && (
+                                                    {(portfolio.processing_status === 'PENDING' || portfolio.processing_status === 'PROCESSING') && (
                                                         <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[9px] font-black uppercase py-0 px-2 shrink-0 animate-pulse">
                                                             Processing
                                                         </Badge>
@@ -196,7 +196,7 @@ export default function PortfoliosPage() {
                                                 <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
                                                     <span className="truncate max-w-[200px]">{portfolio.description || "설명이 없습니다."}</span>
                                                     <span>•</span>
-                                                    <span>{formatDate(portfolio.createdAt)}</span>
+                                                    <span>{formatDate(portfolio.created_at)}</span>
                                                 </div>
                                             </div>
                                         </div>

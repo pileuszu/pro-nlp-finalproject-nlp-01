@@ -32,9 +32,9 @@ class Recruitment(Base):
     __tablename__ = "recruitments"
 
     id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, nullable=False)
-    company = Column(String, nullable=False)
-    link = Column(String, nullable=True)
+    title = Column(String, nullable=False, index=True)
+    company = Column(String, nullable=False, index=True)
+    link = Column(String, nullable=True, unique=True, index=True)
     start_date = Column(Date, nullable=True)
     deadline = Column(Date, nullable=True)
     location = Column(String, nullable=True)
@@ -77,7 +77,6 @@ class Portfolio(Base):
 
     owner = relationship("User", back_populates="portfolios")
     job_queries = relationship("PortfolioJobQuery", back_populates="portfolio", cascade="all, delete-orphan")
-    recommendations = relationship("Recommendation", back_populates="portfolio", cascade="all, delete-orphan")
 
 class PortfolioJobQuery(Base):
     __tablename__ = "portfolio_job_queries"
@@ -134,14 +133,13 @@ class Recommendation(Base):
     __tablename__ = "recommendations"
 
     id = Column(Integer, primary_key=True, index=True)
-    portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     recruitment_id = Column(Integer, ForeignKey("recruitments.id"), nullable=False)
     rank_order = Column(Integer, nullable=False)
-    score = Column(Float, nullable=True)
-    reason = Column(Text, nullable=True)
+    reason = Column(JSON, nullable=True) # List of strings or objects explaining why it's recommended
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    portfolio = relationship("Portfolio", back_populates="recommendations")
+    user = relationship("User") # Optional: add back_populates if needed
     recruitment = relationship("Recruitment", back_populates="recommendations")
 
 class Notification(Base):

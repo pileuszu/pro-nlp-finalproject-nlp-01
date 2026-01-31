@@ -120,13 +120,7 @@ export default function RecruitPage() {
                                 >
                                     <Link href={`/recruit/${recruit.id}`} prefetch={false} className="block h-full group">
                                         <Card className="relative flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out hover:-translate-y-1.5 cursor-pointer border-slate-200 bg-white rounded-2xl overflow-visible ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm">
-                                            {/* Recommendation Badge */}
-                                            {recruit.reason && (
-                                                <div className="absolute -top-1.5 -right-3 rotate-6 z-10 px-4 py-1.5 bg-blue-600 border border-blue-400 text-white text-[10px] font-bold shadow-xl scale-110 rounded-lg whitespace-nowrap backdrop-blur-sm ring-2 ring-white/20 flex items-center gap-1.5">
-                                                    <Sparkles className="h-3 w-3 fill-white" />
-                                                    AI 추천
-                                                </div>
-                                            )}
+                                            {/* AI 추천 Badge 제거됨 */}
                                             <CardHeader className="pb-4">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-100 text-[10px] font-black uppercase tracking-widest px-2 py-0.5">
@@ -148,7 +142,7 @@ export default function RecruitPage() {
                                                                         <Sparkles className="h-3 w-3" /> AI 추천 사유
                                                                     </div>
                                                                     <div className="line-clamp-2">
-                                                                        {recruit.reason}
+                                                                        {Array.isArray(recruit.reason) ? recruit.reason.join(' ') : recruit.reason}
                                                                     </div>
                                                                 </div>
                                                             </TooltipTrigger>
@@ -156,7 +150,16 @@ export default function RecruitPage() {
                                                                 <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50 text-blue-400 font-bold sticky top-0 bg-slate-900 z-10">
                                                                     <Sparkles className="h-3.5 w-3.5" /> 상세 추천 사유
                                                                 </div>
-                                                                {recruit.reason}
+                                                                {Array.isArray(recruit.reason) ? (
+                                                                    <div className="space-y-2">
+                                                                        {recruit.reason.map((r, i) => (
+                                                                            <div key={i} className="flex gap-2">
+                                                                                <span className="text-blue-500">•</span>
+                                                                                <span>{r}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : recruit.reason}
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>

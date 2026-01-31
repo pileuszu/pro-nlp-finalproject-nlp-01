@@ -15,9 +15,9 @@ class AICoverLetterService:
         generate_req: schemas.CoverLetterGenerateRequest
     ) -> models.CoverLetter:
         """
-        Creates a placeholder and triggers the AI generation job.
+        Creates placeholders for multiple questions and triggers the AI generation job.
         """
-        # 1. Fetch Recruitment (needed for title)
+        # 1. Fetch Recruitment
         stmt = select(models.Recruitment).where(models.Recruitment.id == generate_req.recruitId)
         result = await db.execute(stmt)
         recruitment = result.scalar_one_or_none()
@@ -25,31 +25,52 @@ class AICoverLetterService:
         if not recruitment:
             raise ValueError("Recruitment not found")
 
-        # 2. Create Placeholder Record
+        # 2. Create Header Record
         cover_letter = models.CoverLetter(
             user_id=user_id,
             recruitment_id=recruitment.id,
             title=f"{recruitment.company} - {recruitment.title} 자소서 (생성 중)",
-            content="작성 중입니다...",
+            content="일괄 작성 중입니다...",
             processing_status=models.ProcessingStatus.PENDING,
             gap_analysis={}
         )
-        db.add(cover_letter)
-        await db.commit()
-        await db.refresh(cover_letter)
+        try:
+            db.add(cover_letter)
+            await db.flush() # Get ID
+
+            # 3. Create Placeholder Items for each question
+            for q_text in generate_req.questions:
+                item = models.CoverLetterItem(
+                    cover_letter_id=cover_letter.id,
+                    question=q_text,
+                    content="AI가 내용을 구성하고 있습니다...",
+                    category="general"
+                )
+                db.add(item)
+            
+            await db.commit()
+            await db.refresh(cover_letter)
+        except Exception as e:
+            logger.error(f"Failed to create cover letter placeholders: {e}")
+            await db.rollback()
+            raise e
         
-        # 3. Trigger Job
+        # 4. Trigger Job (Bulk)
+        # We don't need to pass 'question' in env vars anymore as the Job will fetch from DB items
         success = job_service.trigger_job(
             task="cover_letter_generation", 
             target_id=cover_letter.id,
-            question=generate_req.question,
             tone=generate_req.tone
         )
         
         if not success:
-            cover_letter.processing_status = models.ProcessingStatus.FAILED
-            await db.commit()
-            # We still return the object, but with FAILED status so polling sees it
+            logger.warning(f"Job trigger failed for cover letter {cover_letter.id}. Marking as FAILED.")
+            try:
+                cover_letter.processing_status = models.ProcessingStatus.FAILED
+                await db.commit()
+            except Exception as e_inner:
+                logger.error(f"Failed to mark cover letter as FAILED: {e_inner}")
+                await db.rollback()
         
         return cover_letter
 

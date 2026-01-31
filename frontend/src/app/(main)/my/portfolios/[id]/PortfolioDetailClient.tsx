@@ -23,9 +23,9 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
 
     // Polling logic
     const { data: polledData } = usePolling<Portfolio>(
-        portfolio?.processingStatus === 'PENDING' || portfolio?.processingStatus === 'PROCESSING' ? `/portfolios/${id}` : '',
+        portfolio?.processing_status === 'PENDING' || portfolio?.processing_status === 'PROCESSING' ? `/portfolios/${id}` : '',
         3000,
-        (data) => data.processingStatus === 'REVIEW_REQUIRED' || data.processingStatus === 'COMPLETED' || data.processingStatus === 'FAILED'
+        (data) => data.processing_status === 'REVIEW_REQUIRED' || data.processing_status === 'COMPLETED' || data.processing_status === 'FAILED'
     );
 
     // Use polledData as the source of truth when available, otherwise fall back to initial fetch state
@@ -110,12 +110,12 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 {displayPortfolio.type === 'link' ? '웹사이트 / 링크' : displayPortfolio.type === 'github' ? 'GitHub 레포지토리' : 'PDF 문서'}
                             </Badge>
                             <StatusBadge
-                                status={displayPortfolio.processingStatus || displayPortfolio.processing_status || 'PENDING'}
+                                status={displayPortfolio.processing_status || 'PENDING'}
                             />
                         </div>
                         <span className="text-slate-400 text-sm flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {formatDate(displayPortfolio.createdAt)} 등록
+                            {formatDate(displayPortfolio.created_at)} 등록
                         </span>
                     </div>
                     <CardTitle className="text-3xl font-bold text-slate-900 leading-tight">
@@ -229,24 +229,10 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         )}
                     </div>
 
-                    {(displayPortfolio.url || displayPortfolio.source_url) && (
+                    {(displayPortfolio.source_url) && (
                         <div className="space-y-3 pt-2">
                             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">연결된 리소스</h3>
-                            {displayPortfolio.url && (
-                                <a
-                                    href={displayPortfolio.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 hover:text-blue-700 transition-all group w-full"
-                                >
-                                    <div className="p-2 bg-white rounded-lg border border-slate-200 group-hover:border-blue-200 shadow-sm">
-                                        <Icon className="h-6 w-6 text-slate-500 group-hover:text-blue-600 transition-colors" />
-                                    </div>
-                                    <span className="font-medium truncate flex-1">{displayPortfolio.url}</span>
-                                    <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-400" />
-                                </a>
-                            )}
-                            {displayPortfolio.source_url && displayPortfolio.source_url !== displayPortfolio.url && (
+                            {displayPortfolio.source_url && (
                                 <a
                                     href={displayPortfolio.source_url}
                                     target="_blank"
@@ -265,7 +251,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                 </CardContent>
 
                 <CardFooter className="bg-slate-50/30 border-t border-slate-100 p-6 flex justify-end gap-3">
-                    {displayPortfolio.processingStatus === 'REVIEW_REQUIRED' && (
+                    {displayPortfolio.processing_status === 'REVIEW_REQUIRED' && (
                         <Button variant="brand" className="px-8 font-bold shadow-lg shadow-blue-500/20" onClick={handleConfirm}>
                             <Sparkles className="h-4 w-4 mr-2" /> 이 내용으로 최종 확정
                         </Button>

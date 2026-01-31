@@ -63,49 +63,60 @@ class AICoverLetterService:
             cl.gap_analysis = gap_result
             await db.commit()
 
-            # 6. Generate Answer
-            # Retrieve parameters from Environment (passed by JobService) or DB
-            # Ideally these should be in the DB model or passed clearly.
-            # Here we follow existing pattern of Env Vars for job params or fallback to title
-            question = os.getenv("JOB_EXTRA_QUESTION", cl.title)
+            # 6. Generate Answers for each Item
             tone = os.getenv("JOB_EXTRA_TONE", "professional")
+            
+            # Fetch items created as placeholders in the backend
+            items_stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
+            items_res = await db.execute(items_stmt)
+            items = items_res.scalars().all()
+            
+            if not items:
+                # Fallback for old records or unexpected states
+                logger.warning(f"No items found for cover letter {cl_id}, creating one from title")
+                items = [models.CoverLetterItem(
+                    cover_letter_id=cl.id,
+                    question=cl.title,
+                    category="general"
+                )]
+                db.add(items[0])
+                await db.flush()
 
-            logger.info(f"Generating answer for question: {question} with tone: {tone}")
+            for item in items:
+                logger.info(f"Generating answer for item {item.id}: {item.question[:30]}... (Tone: {tone})")
+                
+                try:
+                    answer_data = self.generator.generate_answer(
+                        company_name=recruitment.company,
+                        job_title=recruitment.title,
+                        question=item.question,
+                        context=context_text,
+                        gap_analysis=gap_result,
+                        tone=tone
+                    )
 
-            answer_data = self.generator.generate_answer(
-                company_name=recruitment.company,
-                job_title=recruitment.title,
-                question=question,
-                context=context_text,
-                gap_analysis=gap_result,
-                tone=tone
-            )
-
-            # 7. Save Result
-            item = models.CoverLetterItem(
-                cover_letter_id=cl.id,
-                question=question,
-                content=answer_data.get("content"),
-                key_points=answer_data.get("key_points"),
-                suggested_improvements=answer_data.get("suggested_improvements"),
-                category="general"
-            )
-            db.add(item)
+                    item.content = answer_data.get("content")
+                    item.key_points = answer_data.get("key_points")
+                    item.suggested_improvements = answer_data.get("suggested_improvements")
+                    
+                    # Update main cover letter content with the first item's content as a summary
+                    if not cl.content or cl.content == "일괄 작성 중입니다...":
+                        cl.content = item.content
+                        
+                except Exception as e:
+                    logger.error(f"Failed to generate for item {item.id}: {e}")
+                    item.content = "이 문항에 대한 답변 생성에 실패했습니다."
 
             # Update Main Status
             cl.processing_status = models.ProcessingStatus.REVIEW_REQUIRED
-            content = answer_data.get("content", "")
-            if content:
-                content = content.replace("\x00", "")
-            cl.content = content
             await db.commit()
             
-            # 8. Create Notification
+            # 7. Create Notification
             await NotificationService.create_and_notify(
                 db=db,
                 user_id=cl.user_id,
-                title="자기소개서 생성 완료",
-                message=f"[{recruitment.company} - {recruitment.title}] 자기소개서가 생성되었습니다. 내용을 검토해 주세요.",
+                title="자기소개서 일괄 생성 완료",
+                message=f"[{recruitment.company} - {recruitment.title}] 자기소개서의 모든 문항 작성이 완료되었습니다.",
                 link=f"/my/cover-letters/{cl.id}",
                 notification_type="COVER_LETTER_READY"
             )
@@ -115,8 +126,8 @@ class AICoverLetterService:
             logger.info(f"Successfully generated cover letter {cl_id}")
 
         except Exception as e:
-            logger.error(f"Generation Failed for Cover Letter {cl_id}: {e}")
-            cl.processing_status = "FAILED"
+            logger.error(f"Generation Failed for Cover Letter {cl_id}: {e}\n{traceback.format_exc()}")
+            cl.processing_status = models.ProcessingStatus.FAILED
             await db.commit()
             raise
 

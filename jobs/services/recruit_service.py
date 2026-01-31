@@ -10,22 +10,13 @@ from common import models
 
 logger = logging.getLogger(__name__)
 
-async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_id: int):
-    """
-    Run the full AI recommendation pipeline for a specific portfolio and save results to the DB.
-    """
-    from jobs.core.recruit.matcher import RecruitMatcher
-    from jobs.core.recruit.indexer import RecruitIndexer
-    from common.models import Portfolio, Recommendation, Recruitment, User, PortfolioJobQuery
-    
-    logger.info(f"Starting recommendation pre-computation for Portfolio {portfolio_id}")
-
+async def _get_portfolio_context(db: AsyncSession, portfolio_id: int):
+    from common.models import Portfolio, User
     stmt = select(Portfolio).where(Portfolio.id == portfolio_id)
     result = await db.execute(stmt)
     portfolio = result.scalar_one_or_none()
-    if not portfolio: 
-        logger.error(f"Portfolio {portfolio_id} not found")
-        return []
+    if not portfolio:
+        return None, None
 
     portfolio_data = {
         "project_name": portfolio.project_name,
@@ -34,8 +25,7 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
         "role": portfolio.role,
         "period": portfolio.period
     }
-    
-    # Add User context if available
+
     user_stmt = select(User).where(User.id == portfolio.user_id)
     user_res = await db.execute(user_stmt)
     user = user_res.scalar_one_or_none()
@@ -43,10 +33,13 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
         portfolio_data["user_summary"] = user.profile_summary
         portfolio_data["desired_job_title"] = user.desired_job_title
 
-    matcher = RecruitMatcher()
-    indexer = RecruitIndexer()
+    return portfolio, portfolio_data
 
-    # 1. Fetch Job Queries and Search
+async def _search_candidates(db: AsyncSession, portfolio):
+    from jobs.core.recruit.indexer import RecruitIndexer
+    from common.models import PortfolioJobQuery, User
+    
+    indexer = RecruitIndexer()
     query_stmt = select(PortfolioJobQuery).where(PortfolioJobQuery.portfolio_id == portfolio.id)
     query_result = await db.execute(query_stmt)
     db_queries = query_result.scalars().all()
@@ -57,72 +50,90 @@ async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_i
     for db_q in db_queries:
         if not db_q.query_text: continue
         if db_q.embedding is not None:
-             # Use pre-calculated embedding directly
              initial_results = await indexer.search_by_vector(db, db_q.embedding, k=3)
         else:
-             # Fallback: Generate embedding and search
              initial_results = await indexer.search(db, db_q.query_text, k=3)
         
-        # Optimization: Skip local reranking to reduce API calls. 
-        # We rely on Vector Score for initial candidate selection (Top 10)
-        # and then use Global Reranker for final ordering.
-        refined_results = initial_results 
-        
-        for doc in refined_results:
+        for doc in initial_results:
             uid = doc.metadata.get('id')
             if uid and uid not in seen_ids:
                 all_candidates.append(doc)
                 seen_ids.add(uid)
 
     if not all_candidates:
-        # Fallback if no specific queries: use user context or project name
+        user_stmt = select(User).where(User.id == portfolio.user_id)
+        user = (await db.execute(user_stmt)).scalar_one_or_none()
         fallback_query = (user.desired_job_title if user else None) or portfolio.project_name or "개발자"
         logger.info(f"No candidates from queries, using fallback search: {fallback_query}")
-        initial_results = await indexer.search(db, fallback_query, k=10)
-        all_candidates = initial_results
+        all_candidates = await indexer.search(db, fallback_query, k=10)
 
-    if not all_candidates:
-        logger.info("No candidates found even after fallback.")
-        return []
+    return all_candidates
 
-    # 2. AI Re-rank and Reason
-    logger.info(f"Ranking {len(all_candidates)} candidates...")
-    recommendations = await matcher.rank_and_reason(portfolio_data, all_candidates)
-    
-    # 3. Save to Recommendation Table
-    # Clear old ones first
-    delete_stmt = sa.delete(Recommendation).where(Recommendation.portfolio_id == portfolio_id)
-    await db.execute(delete_stmt)
-    
-    saved_results = []
-    for i, rec in enumerate(recommendations):
-        # We need the recruitment_id. Matcher returns metadata.
-        # Assuming unique_id or some field maps to recruitment.id
-        # Let's try to find it by company and title if id is not obvious
+async def _save_recommendations(db: AsyncSession, user_id: int, portfolio_name: str, ai_recs: List[dict]):
+    from common.models import Recommendation, Recruitment
+    saved_count = 0
+    for i, rec in enumerate(ai_recs):
         recruit_id = rec.get("id")
         if not recruit_id:
              r_stmt = select(Recruitment).where(
                  Recruitment.company == rec.get("company"),
                  Recruitment.title == rec.get("title")
              )
-             r_res = await db.execute(r_stmt)
-             r_obj = r_res.scalar_one_or_none()
+             r_obj = (await db.execute(r_stmt)).scalar_one_or_none()
              if r_obj: recruit_id = r_obj.id
 
         if recruit_id:
-            new_rec = Recommendation(
-                portfolio_id=portfolio_id,
-                recruitment_id=recruit_id,
-                rank_order=i,
-                score=rec.get("score"),
-                reason=rec.get("reason", "")
+            existing_stmt = select(Recommendation).where(
+                Recommendation.user_id == user_id,
+                Recommendation.recruitment_id == recruit_id
             )
-            db.add(new_rec)
-            saved_results.append(rec)
-    
+            existing_rec = (await db.execute(existing_stmt)).scalar_one_or_none()
+            
+            new_reason = f"[{portfolio_name}] {rec.get('reason', '')}"
+            if existing_rec:
+                reasons = existing_rec.reason or []
+                if not isinstance(reasons, list): reasons = [str(reasons)]
+                if not any(r.startswith(f"[{portfolio_name}]") for r in reasons):
+                    reasons.append(new_reason)
+                    existing_rec.reason = reasons
+            else:
+                db.add(Recommendation(
+                    user_id=user_id,
+                    recruitment_id=recruit_id,
+                    rank_order=100 + i,
+                    reason=[new_reason]
+                ))
+            saved_count += 1
     await db.commit()
-    logger.info(f"Saved {len(saved_results)} recommendations for Portfolio {portfolio_id}")
-    return saved_results
+    return saved_count
+
+async def precompute_recommendations_for_portfolio(db: AsyncSession, portfolio_id: int):
+    """
+    Refactored orchestrator for recommendation pre-computation.
+    """
+    from jobs.core.recruit.matcher import RecruitMatcher
+    
+    # 1. Prepare Data
+    portfolio, portfolio_data = await _get_portfolio_context(db, portfolio_id)
+    if not portfolio:
+        logger.error(f"Portfolio {portfolio_id} not found")
+        return []
+
+    # 2. Search Candidates
+    all_candidates = await _search_candidates(db, portfolio)
+    if not all_candidates:
+        logger.info("No candidates found.")
+        return []
+
+    # 3. AI Rank and Reason
+    matcher = RecruitMatcher()
+    ai_recommendations = await matcher.rank_and_reason(portfolio_data, all_candidates)
+    
+    # 4. Save and Aggregate
+    saved_count = await _save_recommendations(db, portfolio.user_id, portfolio.project_name, ai_recommendations)
+    
+    logger.info(f"Aggregated {saved_count} recommendations for Portfolio {portfolio_id}")
+    return ai_recommendations
 
 async def bulk_precompute_recommendations(db: AsyncSession):
     """
@@ -146,11 +157,11 @@ async def bulk_precompute_recommendations(db: AsyncSession):
 
 async def global_rerank_recommendations(db: AsyncSession, user_id: int):
     """
-    Rerank ALL recommendations across all portfolios for a user using their global profile.
+    Rerank ALL recommendations for a user using their global profile.
     This provides a unified Top-N list of jobs relevant to the user's overall profile.
     """
     from jobs.core.recruit.matcher import RecruitMatcher
-    from common.models import User, Portfolio, Recommendation, Recruitment
+    from common.models import User, Recommendation, Recruitment
     
     logger.info(f"Starting global reranking for User {user_id}")
     
@@ -161,34 +172,13 @@ async def global_rerank_recommendations(db: AsyncSession, user_id: int):
     if not user: return
 
     # Global Query: Use profile summary + desired job title
-    global_query = ""
-    if user.profile_summary:
-        global_query = f"{user.desired_job_title or '개발자'} {user.profile_summary}"[:500]
-    
-    # Fallback to latest portfolio if user profile is empty
-    if not global_query or len(global_query) < 10:
-        port_stmt = select(Portfolio).where(Portfolio.user_id == user_id).order_by(Portfolio.created_at.desc()).limit(1)
-        port_res = await db.execute(port_stmt)
-        latest_port = port_res.scalar_one_or_none()
-        
-        if latest_port:
-            techs = ""
-            if latest_port.tech_stack:
-                # Handle JSON list or string
-                if isinstance(latest_port.tech_stack, list):
-                    techs = ", ".join(latest_port.tech_stack)
-                else:
-                    techs = str(latest_port.tech_stack)
-                    
-            global_query = f"{latest_port.role or '개발자'} {techs} {latest_port.description or ''}"[:500]
-    
+    global_query = f"{user.desired_job_title or '개발자'} {user.profile_summary or ''}"[:1000].strip()
     if not global_query:
         global_query = "개발자"
 
-    # 2. Fetch ALL existing recommendations for this user
-    # Join Portfolio to filter by user_id
-    rec_stmt = select(Recommendation, Recruitment).join(Portfolio).join(Recruitment).where(
-        Portfolio.user_id == user_id
+    # 2. Fetch ALL recommendations for this user
+    rec_stmt = select(Recommendation, Recruitment).join(Recruitment).where(
+        Recommendation.user_id == user_id
     )
     rec_result = await db.execute(rec_stmt)
     rows = rec_result.all()
@@ -197,28 +187,20 @@ async def global_rerank_recommendations(db: AsyncSession, user_id: int):
 
     # 3. Convert to "Document-like" objects for Reranker
     candidates = []
-    seen_recruit_ids = set()
-    
     for rec_obj, recruitment in rows:
-        if recruitment.id in seen_recruit_ids:
-            continue
-        seen_recruit_ids.add(recruitment.id)
-        
         content = (
             f"회사: {recruitment.company}\n"
             f"직무: {recruitment.title}\n"
             f"주요 업무: {recruitment.key_responsibilities}\n"
             f"자격 요건: {recruitment.required_qualifications}\n"
         )
-        
-        doc = Document(page_content=content, metadata={"id": str(rec_obj.id)})
-        candidates.append(doc)
+        candidates.append(Document(page_content=content, metadata={"id": str(rec_obj.id)}))
     
     if not candidates: return
 
     # 4. Rerank using NCP
     matcher = RecruitMatcher()
-    refined_results = await matcher.rerank_with_ncp(global_query, candidates, top_n=20)
+    refined_results = await matcher.rerank_with_ncp(global_query, candidates, top_n=30)
     
     # 5. Update Rank Order
     for i, doc in enumerate(refined_results):
