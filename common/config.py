@@ -61,6 +61,13 @@ class Settings(BaseSettings):
         if not v and os.getenv("ENV") in ["production", "preview"]:
             raise ValueError("GCP_PROJECT_ID is required in production/preview")
         return v
+    
+    @field_validator("BACKEND_URL")
+    @classmethod
+    def validate_backend_url(cls, v: str) -> str:
+        if v and not v.startswith(("http://", "https://")):
+            return f"https://{v}"
+        return v
 
     @field_validator("GOOGLE_API_KEY", "NCP_CLOVASTUDIO_API_KEY")
     @classmethod
