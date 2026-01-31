@@ -68,8 +68,8 @@ describe('PortfoliosPage', () => {
         await waitFor(() => {
             expect(screen.getAllByText(/나만의 기술 블로그/i).length).toBeGreaterThan(0);
 
-            // Check for AI READY badge (should be visible by default, no expansion needed)
-            const badges = screen.getAllByText(/AI READY/i);
+            // Check for StatusBadge text (should be visible by default)
+            const badges = screen.getAllByText(/최종 확정/i);
             expect(badges.length).toBeGreaterThan(0);
         });
     });
