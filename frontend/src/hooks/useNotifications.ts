@@ -61,6 +61,27 @@ export function useNotifications() {
         }
     };
 
+    const markAllAsRead = async () => {
+        // Optimistic Update
+        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+        setUnreadCount(0);
+
+        try {
+            const res = await fetch(getApiUrl(`/api/notifications/read-all`), {
+                method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            if (!res.ok) {
+                fetchNotifications();
+            }
+        } catch (err) {
+            console.error("Failed to mark all notifications as read", err);
+            fetchNotifications();
+        }
+    };
+
     useEffect(() => {
         if (!isAuthenticated) return;
 
