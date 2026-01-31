@@ -6,6 +6,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements from backend for now as they share dependencies
