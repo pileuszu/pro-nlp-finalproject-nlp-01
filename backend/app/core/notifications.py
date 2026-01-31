@@ -11,28 +11,54 @@ class NotificationBroadcaster:
     """
     Redis-backed SSE broadcaster for real-time notifications.
     Supports multi-instance environments via Redis Pub/Sub.
+    Uses a singleton connection pool for efficiency and stability.
     """
+    _redis_pool: Optional[aioredis.Redis] = None
+
     def __init__(self):
         self.redis_url = settings.REDIS_URL
         if not self.redis_url:
             logger.warning("REDIS_URL is not set. Real-time notifications might not work across instances.")
-        
-    async def get_redis(self):
-        """Helper to get a redis connection"""
+
+    async def get_redis(self) -> Optional[aioredis.Redis]:
+        """
+        Get or create a singleton Redis connection pool.
+        """
         if not self.redis_url:
             return None
-        return await aioredis.from_url(self.redis_url, encoding="utf-8", decode_responses=True)
+            
+        if self._redis_pool is None:
+            try:
+                # Create a connection pool with keepalive to prevent timeouts
+                self._redis_pool = aioredis.from_url(
+                    self.redis_url, 
+                    encoding="utf-8", 
+                    decode_responses=True,
+                    socket_keepalive=True,
+                    health_check_interval=30
+                )
+                logger.info("Initialized Redis connection pool for notifications")
+            except Exception as e:
+                logger.error(f"Failed to initialize Redis pool: {e}", exc_info=True)
+                return None
+        
+        return self._redis_pool
 
     async def subscribe(self, user_id: int):
         """
         Generator that subscribes to user-specific Redis channel and yields messages.
         """
         if not self.redis_url:
-            # Fallback (or error) if no Redis
             logger.error("Cannot subscribe: Redis URL missing")
             return
 
         redis = await self.get_redis()
+        if not redis:
+            logger.error("Cannot subscribe: Redis connection failed")
+            return
+
+        # For Pub/Sub, we need a dedicated connection or pubsub object
+        # accessing .pubsub() on the client gets a pubsub instance
         pubsub = redis.pubsub()
         channel = f"notification:{user_id}"
         
@@ -40,21 +66,22 @@ class NotificationBroadcaster:
             await pubsub.subscribe(channel)
             logger.info(f"Subscribed to Redis channel: {channel}")
             
-            iterator = pubsub.listen()
-            while True:
-                try:
-                    # Wait for message with a timeout to send heartbeats
-                    message = await asyncio.wait_for(iterator.__anext__(), timeout=15.0)
-                    if message["type"] == "message":
-                        yield f"data: {message['data']}\n\n"
-                except asyncio.TimeoutError:
-                    # Send heartbeat (comment) to keep connection alive
-                    yield ": keepalive\n\n"
+            async for message in pubsub.listen():
+                if message["type"] == "message":
+                    yield f"data: {message['data']}\n\n"
+                    
+        except asyncio.CancelledError:
+            logger.info(f"Subscription cancelled for user {user_id}")
+            raise
         except Exception as e:
-            logger.error(f"Redis subscription error for user {user_id}: {e}")
+            logger.error(f"Redis subscription error for user {user_id}: {e}", exc_info=True)
         finally:
-            await pubsub.unsubscribe(channel)
-            await redis.close()
+            try:
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
+                # Do NOT close the main redis pool here
+            except Exception as e:
+                logger.error(f"Error closing pubsub for user {user_id}: {e}")
 
     async def broadcast(self, user_id: int, data: dict):
         """
@@ -69,16 +96,22 @@ class NotificationBroadcaster:
         payload = json.dumps(data, ensure_ascii=False)
         
         redis = await self.get_redis()
+        if not redis:
+            logger.error("Cannot broadcast: Redis connection failed")
+            return
+
         try:
-            # Publish to Redis
-            # This returns number of subscribers passing the message
-            # But in Pub/Sub, we just fire and forget usually, or trust Redis.
             await redis.publish(channel, payload)
             logger.info(f"Broadcasted to Redis channel {channel}: {payload}")
         except Exception as e:
-            logger.error(f"Redis publish error for user {user_id}: {e}")
-        finally:
-            await redis.close()
+            logger.error(f"Redis publish error for user {user_id}: {e}", exc_info=True)
+
+    async def close(self):
+        """Gracefully close the connection pool"""
+        if self._redis_pool:
+            await self._redis_pool.close()
+            self._redis_pool = None
+            logger.info("Closed Redis connection pool")
 
 # Singleton instance
 broadcaster = NotificationBroadcaster()
