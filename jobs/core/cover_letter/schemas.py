@@ -8,6 +8,10 @@ from pydantic import BaseModel, Field
 class GapAnalysisResult(BaseModel):
     """Gap analysis result schema"""
     
+    overall_fit: str = Field(
+        description="종합 적합도 평가 결과. 반드시 '상', '중', '하' 중 하나로 입력."
+    )
+
     is_gap_found: bool = Field(
         description="True if essential skills are missing, False if well matched"
     )
