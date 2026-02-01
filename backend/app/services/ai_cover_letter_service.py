@@ -61,6 +61,7 @@ class AICoverLetterService:
             task="cover_letter_generation", 
             target_id=cover_letter.id,
             tone=generate_req.tone,
+            mode=generate_req.mode, # Pass generation mode (full/outline)
             portfolio_ids=generate_req.portfolio_ids
         )
         

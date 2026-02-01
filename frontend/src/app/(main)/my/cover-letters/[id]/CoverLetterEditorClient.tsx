@@ -246,7 +246,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    // mode: aiMode, // Removed to fix 422 Error (Backend schema doesn't support 'mode')
+                    mode: aiMode === 'strategy' ? 'outline' : 'full',
                     tone: aiTone,
                     recruit_id: linkedRecruit?.id,
                     portfolio_ids: [],

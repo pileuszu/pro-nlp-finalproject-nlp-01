@@ -1,10 +1,10 @@
 import logging
 import os
 import json
-import httpx
+import traceback
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from common import models, config
+from common import models
 from jobs.core.cover_letter.retriever import PGHybridRetriever
 from jobs.core.cover_letter.generator import CoverLetterGenerator
 from jobs.services.notification_service import NotificationService
@@ -65,6 +65,7 @@ class AICoverLetterService:
 
             # 6. Generate Answers for each Item
             tone = os.getenv("JOB_EXTRA_TONE", "professional")
+            generation_mode = os.getenv("JOB_EXTRA_MODE", "full") # 'full' or 'outline'
             
             # Fetch items created as placeholders in the backend
             items_stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
@@ -83,21 +84,50 @@ class AICoverLetterService:
                 await db.flush()
 
             for item in items:
-                logger.info(f"Generating answer for item {item.id}: {item.question[:30]}... (Tone: {tone})")
+                logger.info(f"Generating ({generation_mode}) for item {item.id}: {item.question[:30]}... (Tone: {tone})")
                 
                 try:
-                    answer_data = self.generator.generate_answer(
-                        company_name=recruitment.company,
-                        job_title=recruitment.title,
-                        question=item.question,
-                        context=context_text,
-                        gap_analysis=gap_result,
-                        tone=tone
-                    )
+                    if generation_mode == "outline":
+                        outline_data = self.generator.generate_outline(
+                            company_name=recruitment.company,
+                            job_title=recruitment.title,
+                            question=item.question,
+                            context=context_text,
+                            gap_analysis=gap_result
+                        )
+                        # Save outline result
+                        # Map Outline fields to DB fields as closely as possible
+                        # content -> formatted string of outline
+                        item.content = f"""**[개요 생성 결과]**
+**한 줄 결론**: {outline_data.get('one_liner')}
 
-                    item.content = answer_data.get("content")
-                    item.key_points = answer_data.get("key_points")
-                    item.suggested_improvements = answer_data.get("suggested_improvements")
+**핵심 메시지**: {', '.join(outline_data.get('key_messages', []))}
+
+**문단 구성 계획**:
+"""
+                        for plan in outline_data.get('paragraph_plans', []):
+                            item.content += f"\n- **{plan.get('section_title')}**: {plan.get('paragraph_goal')}"
+                            if plan.get('key_points'):
+                                item.content += f" ({', '.join(plan.get('key_points'))})"
+                        
+                        # Use key_points field to store user questions or messages
+                        item.key_points = outline_data.get('key_messages')
+                        item.suggested_improvements = outline_data.get('questions_for_user') # Map questions to suggested_improvements
+                        
+                    else:
+                        # Default Full Generation
+                        answer_data = self.generator.generate_answer(
+                            company_name=recruitment.company,
+                            job_title=recruitment.title,
+                            question=item.question,
+                            context=context_text,
+                            gap_analysis=gap_result,
+                            tone=tone # Kept for interface consistency, though logic ignores it now
+                        )
+
+                        item.content = answer_data.get("content")
+                        item.key_points = answer_data.get("key_points")
+                        item.suggested_improvements = answer_data.get("suggested_improvements")
                     
                     # Update main cover letter content with the first item's content as a summary
                     if not cl.content or cl.content == "일괄 작성 중입니다...":
