@@ -19,7 +19,7 @@ interface RecruitDetail extends Recruit {
 interface ExistingDoc {
     id: number;
     title: string;
-    updatedAt: string;
+    updated_at: string;
 }
 
 export default function RecruitDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -51,7 +51,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
             });
 
         if (isAuthenticated && id) {
-            fetchWithAuth(getApiUrl(`/cover-letters?recruitId=${id}`), { cache: 'no-store' })
+            fetchWithAuth(getApiUrl(`/cover-letters?recruit_id=${id}`), { cache: 'no-store' })
                 .then(res => res.ok ? res.json() : { items: [] })
                 .then(data => setExistingDocs(data.items || []))
                 .catch(err => console.error(err));
@@ -159,7 +159,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     <li key={doc.id}>
                                         <Link href={`/my/cover-letters/${doc.id}`} className="block bg-white border border-slate-200 rounded-lg p-3 hover:border-blue-200 transition-all group shadow-sm hover:shadow-md">
                                             <div className="font-medium text-sm text-slate-900 group-hover:text-blue-600 truncate transition-colors">{doc.title}</div>
-                                            <div className="text-xs text-slate-400 mt-1">{doc.updatedAt} 저장됨</div>
+                                            <div className="text-xs text-slate-400 mt-1">{doc.updated_at} 저장됨</div>
                                         </Link>
                                     </li>
                                 ))}
@@ -188,7 +188,7 @@ export default function RecruitDetailPage({ params }: { params: Promise<{ id: st
                                     <Calendar className="h-4 w-4" /> 채용 기간
                                 </span>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-slate-400 font-medium">{recruit.startDate || "정보 없음"}</span>
+                                    <span className="text-xs text-slate-400 font-medium">{recruit.start_date || "정보 없음"}</span>
                                     <span className="text-xs text-slate-300">~</span>
                                     <span className={cn(
                                         "font-bold text-right",

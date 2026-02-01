@@ -7,6 +7,7 @@ import { CoverLetter } from "@/types";
 import { PenTool, FileText, Calendar, Trash2, X, LayoutList, Check, LayoutGrid, List, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
@@ -133,7 +134,7 @@ export default function CoverLettersPage() {
                         className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
                     >
                         {coverLetters.map((cl, index) => {
-                            const expired = isExpired(cl.recruitDeadline);
+                            const expired = isExpired(cl.recruit_deadline);
                             const isSelected = selectedIds.includes(cl.id);
 
                             return (
@@ -144,11 +145,17 @@ export default function CoverLettersPage() {
                                     transition={{ delay: index * 0.05 }}
                                 >
                                     <Card className={cn(
-                                        "relative flex flex-col transition-all duration-500 ease-in-out group border-slate-200 bg-white h-full min-h-[300px] overflow-hidden rounded-2xl ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm",
+                                        "relative flex flex-col transition-all duration-500 ease-in-out group border-slate-200 bg-white h-full min-h-[300px] overflow-visible rounded-2xl ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm",
                                         expired && "opacity-75 grayscale-[0.3]",
                                         isSelectionMode ? "cursor-pointer border-blue-100 shadow-sm" : "hover:shadow-xl hover:-translate-y-1.5",
                                         isSelected && "ring-2 ring-blue-500 border-blue-500 bg-blue-50/10 shadow-lg shadow-blue-500/5 hover:ring-blue-500/20"
                                     )} onClick={() => isSelectionMode && toggleSelection(cl.id)}>
+
+                                        {/* Status Tag */}
+                                        <StatusBadge
+                                            status={cl.processing_status || 'COMPLETED'}
+                                            variant="card-tag"
+                                        />
 
                                         {/* Whole Card Link (Active only in normal mode) */}
                                         {!isSelectionMode && (
@@ -177,15 +184,12 @@ export default function CoverLettersPage() {
                                                     <FileText className={cn("h-5 w-5", expired ? "text-slate-400" : (isSelected ? "text-white" : "text-orange-500"))} />
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1.5 pt-1">
-                                                    {!isSelectionMode && (
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-[10px] font-black uppercase tracking-[0.1em] px-2 py-0.5",
-                                                            expired ? "bg-slate-200 text-slate-500 border-slate-300" : "bg-blue-50 text-blue-600 border-blue-200"
-                                                        )}>
-                                                            {expired ? "마감됨" : "작성 중"}
+                                                    {expired && (
+                                                        <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[10px] font-black py-0.5">
+                                                            마감됨
                                                         </Badge>
                                                     )}
-                                                    {cl.recruitDeadline && !expired && !isSelectionMode && (
+                                                    {cl.recruit_deadline && !expired && !isSelectionMode && (
                                                         <span className="text-[10px] font-black text-red-500 animate-pulse bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
                                                             D-DAY 임박
                                                         </span>
@@ -201,20 +205,20 @@ export default function CoverLettersPage() {
                                                     {cl.title}
                                                 </CardTitle>
 
-                                                {cl.recruitTitle && (
+                                                {cl.recruit_title && (
                                                     <div className="relative z-50 flex items-center gap-2 text-sm text-slate-500 flex-wrap">
-                                                        <span className={cn("font-bold", expired ? "text-slate-400" : "text-slate-700")}>{cl.recruitCompany}</span>
+                                                        <span className={cn("font-bold", expired ? "text-slate-400" : "text-slate-700")}>{cl.recruit_company}</span>
                                                         <span className="text-slate-200">|</span>
                                                         {!isSelectionMode ? (
                                                             <Link
-                                                                href={`/recruit/${cl.recruitId}`}
+                                                                href={`/recruit/${cl.recruit_id}`}
                                                                 className={cn("transition-colors duration-300 truncate max-w-[180px] hover:text-blue-600 hover:underline")}
                                                                 onClick={(e) => { if (expired) e.preventDefault(); e.stopPropagation(); }}
                                                             >
-                                                                {cl.recruitTitle}
+                                                                {cl.recruit_title}
                                                             </Link>
                                                         ) : (
-                                                            <span className="truncate max-w-[180px] opacity-70 font-medium">{cl.recruitTitle}</span>
+                                                            <span className="truncate max-w-[180px] opacity-70 font-medium">{cl.recruit_title}</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -231,11 +235,11 @@ export default function CoverLettersPage() {
                                             <div className="flex flex-col gap-1 w-full flex-1">
                                                 <div className="flex items-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-70">
                                                     <Calendar className="h-3 w-3 mr-1.5 opacity-60" />
-                                                    {cl.updatedAt}
+                                                    {cl.updated_at || cl.created_at}
                                                 </div>
-                                                {cl.recruitDeadline && (
+                                                {cl.recruit_deadline && (
                                                     <div className={cn("text-[10px] font-black", expired ? "text-slate-400" : "text-blue-500")}>
-                                                        DUE: {cl.recruitDeadline}
+                                                        DUE: {cl.recruit_deadline}
                                                     </div>
                                                 )}
                                             </div>
@@ -260,7 +264,7 @@ export default function CoverLettersPage() {
                         className="space-y-3 p-0"
                     >
                         {coverLetters.map((cl, index) => {
-                            const expired = isExpired(cl.recruitDeadline);
+                            const expired = isExpired(cl.recruit_deadline);
                             const isSelected = selectedIds.includes(cl.id);
 
                             return (
@@ -304,22 +308,27 @@ export default function CoverLettersPage() {
                                                     <h3 className={cn("text-lg font-bold truncate group-hover:text-blue-600 transition-colors duration-300", expired ? "text-slate-500" : "text-slate-900")}>
                                                         {cl.title}
                                                     </h3>
-                                                    <Badge variant="outline" className={cn(
-                                                        "text-[9px] font-black uppercase px-2 py-0 border-none",
-                                                        expired ? "bg-slate-200 text-slate-500" : "bg-blue-50 text-blue-600"
-                                                    )}>
-                                                        {expired ? "마감됨" : "작성 중"}
-                                                    </Badge>
-                                                    {cl.recruitDeadline && !expired && !isSelectionMode && (
+                                                    <div className="flex gap-1">
+                                                        <StatusBadge
+                                                            status={cl.processing_status || 'PENDING'}
+                                                            variant="card-tag"
+                                                        />
+                                                        {expired && (
+                                                            <Badge variant="outline" className="bg-slate-200 text-slate-500 border-slate-300 text-[9px] font-black uppercase py-0 px-2">
+                                                                Expired
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    {cl.recruit_deadline && !expired && !isSelectionMode && (
                                                         <span className="text-[9px] font-black text-red-500 animate-pulse bg-red-50 px-1.5 py-0 rounded border border-red-100">
                                                             D-DAY 임박
                                                         </span>
                                                     )}
                                                 </div>
                                                 <div className="flex items-center gap-3 text-xs text-slate-400 font-medium whitespace-nowrap overflow-hidden">
-                                                    <span className="font-bold text-slate-600 shrink-0">{cl.recruitCompany}</span>
+                                                    <span className="font-bold text-slate-600 shrink-0">{cl.recruit_company}</span>
                                                     <span className="opacity-30">|</span>
-                                                    <span className="truncate">{cl.recruitTitle}</span>
+                                                    <span className="truncate">{cl.recruit_title}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -327,11 +336,11 @@ export default function CoverLettersPage() {
                                         <div className="flex items-center gap-8 shrink-0">
                                             <div className="hidden md:flex flex-col items-end gap-1 shrink-0 text-right">
                                                 <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5 opacity-60">
-                                                    <Calendar className="h-3 w-3" /> {cl.updatedAt}
+                                                    <Calendar className="h-3 w-3" /> {cl.updated_at || cl.created_at}
                                                 </div>
-                                                {cl.recruitDeadline && (
+                                                {cl.recruit_deadline && (
                                                     <div className={cn("text-[10px] font-black", expired ? "text-slate-300" : "text-blue-500")}>
-                                                        DUE: {cl.recruitDeadline}
+                                                        DUE: {cl.recruit_deadline}
                                                     </div>
                                                 )}
                                             </div>

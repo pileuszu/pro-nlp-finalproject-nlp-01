@@ -1,15 +1,17 @@
 import os
+from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.models import models
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from common.database import get_async_db
+from common import models
 from jose import jwt
 from datetime import datetime, timedelta
 
-from app.core.config import settings
+from common.config import settings
 from app.api import deps
-from app.schemas import schemas
+from common import schemas
 
 router = APIRouter()
 
@@ -24,7 +26,14 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 @router.get("/kakao/callback")
-async def kakao_callback(code: str, db: Session = Depends(get_db)):
+async def kakao_callback(
+    code: str, 
+    redirect_uri: Optional[str] = None, 
+    db: AsyncSession = Depends(get_async_db)
+):
+    # Determine which redirect_uri to use (parameter has priority for dynamic environments)
+    actual_redirect_uri = redirect_uri or settings.KAKAO_REDIRECT_URI
+    
     # 1. Exchange code for token
     async with httpx.AsyncClient() as client:
         token_res = await client.post(
@@ -33,7 +42,7 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
                 "grant_type": "authorization_code",
                 "client_id": settings.KAKAO_REST_API_KEY,
                 "client_secret": settings.KAKAO_CLIENT_SECRET,
-                "redirect_uri": settings.KAKAO_REDIRECT_URI,
+                "redirect_uri": actual_redirect_uri,
                 "code": code,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded;charset=utf-8"},
@@ -65,16 +74,18 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
         profile_image = profile.get("profile_image_url")
 
         # 3. DB Check & Create
-        user = db.query(models.User).filter(models.User.email == email).first()
+        stmt = select(models.User).where(models.User.email == email)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
         if not user:
             user = models.User(
                 email=email,
-                name=name,
-                profile_image=profile_image
+                name=name
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
+            await db.commit()
+            await db.refresh(user)
 
         # 4. Create Local Token
         local_token = create_access_token(data={"sub": user.email, "user_id": user.id})
@@ -85,8 +96,7 @@ async def kakao_callback(code: str, db: Session = Depends(get_db)):
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "name": user.name,
-                "profile_image": user.profile_image
+                "name": user.name
             }
         }
 

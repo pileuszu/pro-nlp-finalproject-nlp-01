@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { NotificationBell } from "./NotificationBell";
 
 export function Header() {
     const { isAuthenticated, logout, user } = useAuthStore();
@@ -70,7 +71,8 @@ export function Header() {
                 <div className="flex items-center gap-3">
                     {isAuthenticated ? (
                         <>
-                            <span className="text-sm text-gray-500 hidden sm:inline-block mr-2">
+                            <NotificationBell />
+                            <span className="text-sm text-gray-500 hidden sm:inline-block mr-2 ml-1">
                                 <strong>{user?.name}</strong>님 환영합니다
                             </span>
                             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600 hover:text-red-600 hover:bg-red-50">

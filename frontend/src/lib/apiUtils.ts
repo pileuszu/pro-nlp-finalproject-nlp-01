@@ -1,7 +1,10 @@
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export function getApiUrl(path: string): string {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    if (baseUrl && !baseUrl.startsWith('http')) {
+        baseUrl = `https://${baseUrl}`;
+    }
     const prefix = process.env.NEXT_PUBLIC_API_URL_PREFIX || '/api';
 
     // Ensure path starts with / if it's just the endpoint
@@ -11,11 +14,18 @@ export function getApiUrl(path: string): string {
 
     // If path is already relative /api/..., just prepend baseUrl
     if (cleanPath.startsWith(prefix)) {
-        return `${baseUrl}${cleanPath}`;
+        const url = `${baseUrl}${cleanPath}`;
+        if (typeof window !== 'undefined' && path === '/auth/kakao/callback') {
+            console.log(`[API DEBUG] Target URL: ${url}`);
+        }
+        return url;
     }
 
-    return `${baseUrl}${prefix}${cleanPath}`;
-    return `${baseUrl}${prefix}${cleanPath}`;
+    const url = `${baseUrl}${prefix}${cleanPath}`;
+    if (typeof window !== 'undefined' && path === '/auth/kakao/callback') {
+        console.log(`[API DEBUG] Target URL: ${url}`);
+    }
+    return url;
 }
 
 export async function fetchWithAuth(url: string, options: RequestInit = {}) {

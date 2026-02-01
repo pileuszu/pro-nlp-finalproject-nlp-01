@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Portfolio } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
-import { Plus, FileText, Link as LinkIcon, Github, Sparkles, LayoutGrid, List } from "lucide-react";
+import { Plus, FileText, Link as LinkIcon, Github, LayoutGrid, List } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -100,8 +101,12 @@ export default function PortfoliosPage() {
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 transition={{ delay: index * 0.05 }}
                             >
-                                <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-hidden rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
+                                <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-visible rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5">
                                     <CardHeader className="pb-4 relative">
+                                        <StatusBadge
+                                            status={portfolio.processing_status || 'PENDING'}
+                                            variant="card-tag"
+                                        />
                                         <CardTitle className="flex items-center gap-3 text-lg font-bold text-slate-800 group-hover:text-blue-700 transition-colors duration-300">
                                             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 group-hover:bg-blue-50 group-hover:border-blue-100 transition-colors duration-300">
                                                 {getIcon(portfolio.type)}
@@ -112,18 +117,8 @@ export default function PortfoliosPage() {
                                             <div className="flex items-center gap-2">
                                                 <span>{portfolio.role || 'N/A'}</span>
                                                 <span className="text-slate-200">•</span>
-                                                <span>{formatDate(portfolio.createdAt)}</span>
+                                                <span>{formatDate(portfolio.created_at)}</span>
                                             </div>
-                                            {portfolio.processingStatus === 'PENDING' && (
-                                                <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[10px] gap-1 font-black animate-pulse py-0.5">
-                                                    ANALYZING...
-                                                </Badge>
-                                            )}
-                                            {portfolio.processingStatus === 'COMPLETED' && (
-                                                <Badge variant="outline" className="bg-blue-50/50 border-blue-100 text-blue-600 text-[10px] gap-1 font-black py-0.5">
-                                                    <Sparkles className="h-2.5 w-2.5 fill-blue-500" /> AI READY
-                                                </Badge>
-                                            )}
                                         </div>
                                     </CardHeader>
                                     <CardContent className="flex-1 pb-6 space-y-4">
@@ -182,12 +177,17 @@ export default function PortfoliosPage() {
                                                     <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
                                                         {portfolio.project_name || "프로젝트"}
                                                     </h3>
-                                                    {portfolio.processingStatus === 'COMPLETED' && (
-                                                        <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
-                                                            AI Ready
+                                                    {portfolio.processing_status === 'COMPLETED' && (
+                                                        <Badge variant="outline" className="bg-emerald-50 border-emerald-100 text-emerald-600 text-[9px] font-black uppercase py-0 px-2 shrink-0">
+                                                            Confirmed
                                                         </Badge>
                                                     )}
-                                                    {portfolio.processingStatus === 'PENDING' && (
+                                                    {portfolio.processing_status === 'REVIEW_REQUIRED' && (
+                                                        <Badge variant="outline" className="bg-amber-500 border-amber-600 text-white text-[9px] font-black uppercase py-0 px-2 shrink-0">
+                                                            Review Required
+                                                        </Badge>
+                                                    )}
+                                                    {(portfolio.processing_status === 'PENDING' || portfolio.processing_status === 'PROCESSING') && (
                                                         <Badge variant="outline" className="bg-yellow-50 border-yellow-100 text-yellow-600 text-[9px] font-black uppercase py-0 px-2 shrink-0 animate-pulse">
                                                             Processing
                                                         </Badge>
@@ -196,7 +196,7 @@ export default function PortfoliosPage() {
                                                 <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
                                                     <span className="truncate max-w-[200px]">{portfolio.description || "설명이 없습니다."}</span>
                                                     <span>•</span>
-                                                    <span>{formatDate(portfolio.createdAt)}</span>
+                                                    <span>{formatDate(portfolio.created_at)}</span>
                                                 </div>
                                             </div>
                                         </div>

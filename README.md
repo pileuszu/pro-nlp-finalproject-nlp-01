@@ -6,15 +6,16 @@
 
 ```text
 pro-nlp-finalproject-nlp-01/
-├── backend/            # 백엔드 서버 코드
-├── frontend/           # 프론트엔드 클라이언트 코드
-├── llm-pipeline/      # LLM 파이프라인 서비스 (FastAPI, LangGraph)
-├── docs/               # 문서 및 설계 자료
-│   ├── conventions/    # 협업 가이드 (Git/Commit/PR)
-│   ├── api/            # API 명세 및 Swagger 규격
-│   ├── db/             # 데이터베이스 스키마
-│   └── LLM_PIPELINE_GUIDE.md # LLM 파이프라인 개발 가이드
-└── README.md           # 프로젝트 메인 문서
+├── common/             # Shared Code (Models, DB, Schemas) - Single Source of Truth
+├── backend/            # Backend API Service (FastAPI)
+├── jobs/               # Background Worker Service (Heavy AI Tasks)
+├── frontend/           # Frontend Client (Next.js)
+├── llm-pipeline/       # Legacy/Experimental LLM Scripts
+├── docs/               # Documentation
+│   ├── conventions/    # Collaboration Guides
+│   ├── api/            # API Specs
+│   └── db/             # DB Schema
+└── README.md           # Project Main Document
 ```
 
 ## 🧠 Technical Resources

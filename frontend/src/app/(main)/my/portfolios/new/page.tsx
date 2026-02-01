@@ -5,26 +5,21 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Github, Sparkles, Loader2, Save, Upload } from "lucide-react";
+import { ArrowLeft, Github, Upload, Loader2 } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
-import { Portfolio } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
 
 export default function NewPortfolioPage() {
     const router = useRouter();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
     const { toast } = useToast();
 
     // Form States
     const [githubUrl, setGithubUrl] = useState("");
 
-    // Preview State
-    const [previewData, setPreviewData] = useState<Partial<Portfolio> | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleGithubAnalyze = async (url: string) => {
@@ -34,40 +29,16 @@ export default function NewPortfolioPage() {
         }
         setIsAnalyzing(true);
         try {
-            const result = await portfolioApi.analyzePortfolio(url, "github");
-
-            if (!result || !result.user_data) {
-                throw new Error("분석 데이터가 올바르지 않습니다.");
+            const initialResult = await portfolioApi.analyzePortfolio(url, "github");
+            if (!initialResult.success || !initialResult.portfolio_id) {
+                throw new Error(initialResult.error || "분석 요청에 실패했습니다.");
             }
 
-            // Map LLM result to Portfolio structure
-            const user_data = result.user_data;
-            const projects = user_data.projects || [];
-
-            if (projects.length === 0) {
-                throw new Error("프로젝트 정보가 없습니다.");
-            }
-            const p0 = projects[0];
-
-            setPreviewData({
-                type: 'github',
-                source_url: githubUrl,
-                project_name: p0.project_name || "",
-                period: p0.period || "",
-                role: p0.role || "",
-                description: p0.description_for_embedding || "",
-                tech_stack: p0.tech_stack || [],
-                job_queries: (p0.job_queries || []).map(q => ({
-                    type: q.type,
-                    query_text: q.query,
-                    evidence: q.evidence
-                })),
-                content: result.raw_text || ""
-            });
+            toast("분석이 시작되었습니다. 완료되면 알림으로 알려드릴게요!", "success");
+            router.push('/my/portfolios');
         } catch (err) {
             console.error(err);
             toast(`분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
-        } finally {
             setIsAnalyzing(false);
         }
     };
@@ -76,171 +47,20 @@ export default function NewPortfolioPage() {
         if (!file) return;
         setIsAnalyzing(true);
         try {
-            const result = await portfolioApi.analyzePortfolioFile(file);
-
-            if (!result || !result.user_data) {
-                throw new Error("분석 데이터가 올바르지 않습니다.");
+            const initialResult = await portfolioApi.analyzePortfolioFile(file);
+            if (!initialResult.success || !initialResult.portfolio_id) {
+                throw new Error(initialResult.error || "파일 분석 요청에 실패했습니다.");
             }
 
-            const user_data = result.user_data;
-            const projects = user_data.projects || [];
-
-            if (projects.length === 0) {
-                throw new Error("프로젝트 정보가 없습니다.");
-            }
-            const p0 = projects[0];
-
-            setPreviewData({
-                type: 'file',
-                source_url: file.name,
-                project_name: p0.project_name || "",
-                period: p0.period || "",
-                role: p0.role || "",
-                description: p0.description_for_embedding || "",
-                tech_stack: p0.tech_stack || [],
-                job_queries: (p0.job_queries || []).map(q => ({
-                    type: q.type,
-                    query_text: q.query,
-                    evidence: q.evidence
-                })),
-                content: result.raw_text || ""
-            });
+            toast("파일 분석이 시작되었습니다. 리스트에서 확인하실 수 있습니다.", "success");
+            router.push('/my/portfolios');
         } catch (err) {
             console.error(err);
             toast(`파일 분석 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
-        } finally {
             setIsAnalyzing(false);
         }
     };
 
-    const handleFinalSave = async () => {
-        if (!previewData) return;
-        setIsSaving(true);
-        console.log("Saving Portfolio with Data:", previewData);
-        try {
-            await portfolioApi.createPortfolio(previewData);
-            toast("포트폴리오가 성공적으로 저장되었습니다.", "success");
-            router.push('/my/portfolios');
-        } catch (err) {
-            console.error(err);
-            toast(`저장 실패: ${err instanceof Error ? err.message : "Unknown error"}`, "error");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    if (isAnalyzing) {
-        return (
-            <div className="flex flex-col h-[70vh] items-center justify-center space-y-10 animate-in fade-in duration-700">
-                <div className="relative">
-                    <div className="h-28 w-28 rounded-full border-[6px] border-slate-100 border-t-blue-500 animate-spin" />
-                    <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-10 text-blue-500 fill-blue-500 animate-pulse" />
-                </div>
-                <div className="text-center space-y-4 max-w-lg">
-                    <h2 className="text-3xl font-bold text-slate-900 tracking-tight">AI 데이터 정제 중...</h2>
-                    <p className="text-slate-500 leading-relaxed font-medium">GitHub에서 데이터를 가져와 AI가 프로젝트를 추출하고 있습니다.</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (previewData) {
-        return (
-            <div className="container max-w-4xl mx-auto py-12 px-4 space-y-8 animate-in fade-in zoom-in-95 duration-500">
-                <div className="flex items-center justify-between">
-                    <Button variant="ghost" onClick={() => setPreviewData(null)} className="text-slate-500">
-                        <ArrowLeft className="h-4 w-4 mr-2" /> 다시 입력하기
-                    </Button>
-                    <Badge variant="outline" className="bg-blue-50 border-blue-100 text-blue-600 font-bold">AI PREVIEW MODE</Badge>
-                </div>
-
-                <div className="space-y-6">
-                    <Card className="shadow-2xl border-blue-100 ring-4 ring-blue-500/5">
-                        <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                            <CardTitle className="text-2xl font-bold text-slate-900">분석 결과 검토</CardTitle>
-                            <CardDescription>AI가 추출한 내용을 확인하고 수정하세요. 저장 버튼을 눌러야 최종 반영됩니다.</CardDescription>
-                        </CardHeader>
-                        <CardContent className="p-8 space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
-                                <div className="md:col-span-2 space-y-2">
-                                    <Label className="font-bold text-blue-700 text-xs uppercase">프로젝트 명</Label>
-                                    <Input
-                                        value={previewData.project_name || ""}
-                                        onChange={e => setPreviewData({ ...previewData, project_name: e.target.value })}
-                                        className="bg-white border-blue-100"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="font-bold text-slate-500 text-xs uppercase">기간</Label>
-                                    <Input
-                                        value={previewData.period || ""}
-                                        onChange={e => setPreviewData({ ...previewData, period: e.target.value })}
-                                        className="bg-white"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label className="font-bold text-slate-500 text-xs uppercase">역할</Label>
-                                    <Input
-                                        value={previewData.role || ""}
-                                        onChange={e => setPreviewData({ ...previewData, role: e.target.value })}
-                                        className="bg-white"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-3">
-                                <Label className="font-bold text-slate-500 text-xs uppercase flex items-center gap-2">
-                                    <Sparkles className="h-3 w-3" /> 프로젝트 상세 설명 (임베딩용)
-                                </Label>
-                                <Textarea
-                                    className="min-h-[200px] leading-relaxed"
-                                    value={previewData.description || ""}
-                                    onChange={e => setPreviewData({ ...previewData, description: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="space-y-3">
-                                <Label className="font-bold text-slate-500 text-xs uppercase">기술 스택 (쉼표 구분)</Label>
-                                <Input
-                                    value={previewData.tech_stack?.join(", ") || ""}
-                                    onChange={e => setPreviewData({ ...previewData, tech_stack: e.target.value.split(",").map(s => s.trim()) })}
-                                />
-                            </div>
-
-                            {/* Job Queries Section */}
-                            {previewData.job_queries && previewData.job_queries.length > 0 && (
-                                <div className="space-y-4 pt-4 border-t border-slate-100">
-                                    <Label className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                                        <Sparkles className="h-4 w-4 text-blue-500" /> 맞춤형 검색 쿼리 (AI 생성)
-                                    </Label>
-                                    <div className="grid gap-3">
-                                        {previewData.job_queries.map((q, idx) => (
-                                            <div key={idx} className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">Type {q.type}</Badge>
-                                                    <span className="text-xs font-bold text-slate-400">
-                                                        {q.type === 'A' ? '기술 스택 중심' : q.type === 'B' ? '문제 해결 중심' : '프로젝트 요약'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm font-medium text-slate-700 leading-relaxed">{q.query_text}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </CardContent>
-                        <CardFooter className="bg-slate-50/50 border-t border-slate-100 p-6 flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setPreviewData(null)} disabled={isSaving}>취소</Button>
-                            <Button variant="brand" onClick={handleFinalSave} disabled={isSaving} className="px-10 font-bold shadow-lg shadow-blue-500/20">
-                                {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
-                                최종 확인 및 저장
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                </div>
-            </div>
-        );
-    }
 
     return (
         <div className="container max-w-4xl mx-auto py-12 px-4 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -285,7 +105,12 @@ export default function NewPortfolioPage() {
                                             value={githubUrl}
                                             onChange={(e) => setGithubUrl(e.target.value)}
                                         />
-                                        <Button onClick={() => handleGithubAnalyze(githubUrl)} className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl transition-all">
+                                        <Button
+                                            onClick={() => handleGithubAnalyze(githubUrl)}
+                                            disabled={isAnalyzing}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl transition-all"
+                                        >
+                                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                             연동 및 분석
                                         </Button>
                                     </div>
