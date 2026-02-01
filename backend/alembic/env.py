@@ -20,9 +20,9 @@ from dotenv import load_dotenv
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
-from app.models.models import Base
-from app.db.database import DATABASE_URL
+# Add project root to path to find 'common'
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from common.database import Base, DATABASE_URL
 
 target_metadata = Base.metadata
 
