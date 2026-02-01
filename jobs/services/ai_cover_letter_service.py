@@ -1,10 +1,12 @@
 import logging
 import os
 import json
-import httpx
+import traceback
+import asyncio
+import random
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from common import models, config
+from common import models
 from jobs.core.cover_letter.retriever import PGHybridRetriever
 from jobs.core.cover_letter.generator import CoverLetterGenerator
 from jobs.services.notification_service import NotificationService
@@ -65,6 +67,7 @@ class AICoverLetterService:
 
             # 6. Generate Answers for each Item
             tone = os.getenv("JOB_EXTRA_TONE", "professional")
+            generation_mode = os.getenv("JOB_EXTRA_MODE", "full") # 'full' or 'outline'
             
             # Fetch items created as placeholders in the backend
             items_stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
@@ -82,30 +85,76 @@ class AICoverLetterService:
                 db.add(items[0])
                 await db.flush()
 
-            for item in items:
-                logger.info(f"Generating answer for item {item.id}: {item.question[:30]}... (Tone: {tone})")
-                
-                try:
-                    answer_data = self.generator.generate_answer(
-                        company_name=recruitment.company,
-                        job_title=recruitment.title,
-                        question=item.question,
-                        context=context_text,
-                        gap_analysis=gap_result,
-                        tone=tone
-                    )
 
-                    item.content = answer_data.get("content")
-                    item.key_points = answer_data.get("key_points")
-                    item.suggested_improvements = answer_data.get("suggested_improvements")
-                    
-                    # Update main cover letter content with the first item's content as a summary
-                    if not cl.content or cl.content == "일괄 작성 중입니다...":
-                        cl.content = item.content
+            for i, item in enumerate(items):
+                logger.info(f"Generating ({generation_mode}) for item {item.id} ({i+1}/{len(items)}): {item.question[:30]}... (Tone: {tone})")
+                
+                # Add delay between requests to avoid Rate Limit (429)
+                if i > 0:
+                    delay = 3 + random.uniform(0, 2)
+                    logger.info(f"Sleeping for {delay:.2f}s to respect rate limits...")
+                    await asyncio.sleep(delay)
+
+                retries = 3
+                for attempt in range(retries):
+                    try:
+                        if generation_mode == "outline":
+                            outline_data = self.generator.generate_outline(
+                                company_name=recruitment.company,
+                                job_title=recruitment.title,
+                                question=item.question,
+                                context=context_text,
+                                gap_analysis=gap_result
+                            )
+                            # Save outline result
+                            item.content = f"""**[개요 생성 결과]**
+**한 줄 결론**: {outline_data.get('one_liner')}
+
+**핵심 메시지**: {', '.join(outline_data.get('key_messages', []))}
+
+**문단 구성 계획**:
+"""
+                            for plan in outline_data.get('paragraph_plans', []):
+                                item.content += f"\n- **{plan.get('section_title')}**: {plan.get('paragraph_goal')}"
+                                if plan.get('key_points'):
+                                    item.content += f" ({', '.join(plan.get('key_points'))})"
+                            
+                            item.key_points = outline_data.get('key_messages')
+                            item.suggested_improvements = outline_data.get('questions_for_user')
+                            
+                        else:
+                            # Default Full Generation
+                            answer_data = self.generator.generate_answer(
+                                company_name=recruitment.company,
+                                job_title=recruitment.title,
+                                question=item.question,
+                                context=context_text,
+                                gap_analysis=gap_result,
+                                tone=tone
+                            )
+
+                            item.content = answer_data.get("content")
+                            item.key_points = answer_data.get("key_points")
+                            item.suggested_improvements = answer_data.get("suggested_improvements")
                         
-                except Exception as e:
-                    logger.error(f"Failed to generate for item {item.id}: {e}")
-                    item.content = "이 문항에 대한 답변 생성에 실패했습니다."
+                        # Update main cover letter content with the first item's content as a summary
+                        if not cl.content or cl.content == "일괄 작성 중입니다...":
+                            cl.content = item.content
+                        
+                        # Success, break retry loop
+                        break
+
+                    except Exception as e:
+                        if "429" in str(e) or "Too Many Requests" in str(e):
+                            if attempt < retries - 1:
+                                wait_time = (2 ** attempt) * 5 + random.uniform(0, 3) 
+                                logger.warning(f"Rate limit hit for item {item.id}. Retrying in {wait_time:.2f}s... (Attempt {attempt+1}/{retries})")
+                                await asyncio.sleep(wait_time)
+                                continue
+                        
+                        logger.error(f"Failed to generate for item {item.id}: {e}")
+                        item.content = "이 문항에 대한 답변 생성에 실패했습니다."
+                        break
 
             # Update Main Status
             cl.processing_status = models.ProcessingStatus.REVIEW_REQUIRED

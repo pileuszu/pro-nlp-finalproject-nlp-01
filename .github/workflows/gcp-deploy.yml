@@ -32,7 +32,7 @@ jobs:
       - name: Set Environment Variables
         id: env-vars
         run: |
-          if [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+          if [[ "${{ github.ref }}" == "refs/heads/release" ]]; then
             echo "ENV_TYPE=production" >> $GITHUB_OUTPUT
             echo "BACKEND_SERVICE=pro-nlp-backend" >> $GITHUB_OUTPUT
             echo "JOB_SERVICE=pro-nlp-jobs" >> $GITHUB_OUTPUT

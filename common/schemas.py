@@ -178,6 +178,7 @@ class CoverLetterGenerateRequest(BaseModel):
     portfolio_ids: List[int] = []
     questions: List[str]
     tone: str = "professional"
+    mode: str = "full" # 'full' or 'outline'
 
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view

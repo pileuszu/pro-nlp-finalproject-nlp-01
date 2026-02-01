@@ -4,7 +4,7 @@ Hybrid 검색 모듈 (BM25 + Vector)
 - Vector: 의미적 유사성 검색
 - 가중치 조합으로 최종 순위 결정
 """
-from typing import List, Tuple
+from typing import List
 from rank_bm25 import BM25Okapi
 from langchain_core.documents import Document
 from langchain_chroma import Chroma

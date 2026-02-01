@@ -376,12 +376,27 @@ class PortfolioService:
                 portfolio.description = p0.description_for_embedding
                 portfolio.tech_stack = p0.tech_stack
                 
+                # Generate Embedding for Analysis Preview
+                if p0.description_for_embedding:
+                    try:
+                        embedding0 = await self.vector_store.get_embedding(p0.description_for_embedding)
+                        portfolio.embedding = embedding0
+                    except Exception as e:
+                        logger.error(f"Failed to generate embedding for analysis: {e}")
+
                 for jq in p0.job_queries:
+                    # Generate query embedding
+                    q_emb = None
+                    try:
+                        q_emb = await self.vector_store.get_embedding(jq.query)
+                    except: pass
+                    
                     portfolio.job_queries.append(
                         PortfolioJobQuery(
                             type=jq.type,
                             query_text=jq.query,
-                            evidence=jq.evidence
+                            evidence=jq.evidence,
+                            embedding=q_emb
                         )
                     )
             
