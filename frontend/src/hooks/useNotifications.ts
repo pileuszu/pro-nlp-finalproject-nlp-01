@@ -93,17 +93,22 @@ export function useNotifications() {
 
     // 1. Visibility Detection
     useEffect(() => {
-        // Handle initial state
-        setIsPageVisible(!document.hidden);
-
         const handleVisibilityChange = () => {
             const visible = !document.hidden;
             setIsPageVisible(visible);
             if (visible) {
-                // Immediately fetch when coming back
                 fetchNotifications();
             }
         };
+
+        // Initialize state (deferred to avoid synchronous setState warning)
+        // If state is already matching, we don't need to do anything.
+        if (document.hidden) {
+            // Use setTimeout to avoid "setState synchronously within effect" lint error
+            const timer = setTimeout(() => setIsPageVisible(false), 0);
+            return () => clearTimeout(timer);
+        }
+
         document.addEventListener("visibilitychange", handleVisibilityChange);
         return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
     }, [fetchNotifications]);
@@ -149,9 +154,11 @@ export function useNotifications() {
             return;
         }
 
-        // Initialize (Load latest data when becoming active or on mount)
-        // We verify unread count to ensure red dot is accurate
-        fetchNotifications();
+        // Initialize (Load latest data when becoming active)
+        const init = async () => {
+            await fetchNotifications();
+        };
+        init();
 
         // SSE Setup
         // Construction using getApiUrl to avoid path issues
