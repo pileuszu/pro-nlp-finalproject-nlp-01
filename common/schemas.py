@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, Field
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 from typing import List, Optional
 from datetime import date, datetime
 
@@ -110,6 +110,33 @@ class PortfolioListResponse(BaseModel):
 
 class PortfolioCreateRequest(PortfolioBase):
     job_queries: Optional[List[PortfolioJobQueryCreate]] = []
+    
+    @field_validator('source_url')
+    @classmethod
+    def validate_source_url(cls, v: Optional[str]) -> Optional[str]:
+        if v and len(v.strip()) == 0:
+            raise ValueError("Source URL cannot be empty")
+        if v and len(v) > 2048:
+            raise ValueError("Source URL is too long (max 2048 characters)")
+        return v.strip() if v else v
+    
+    @field_validator('project_name')
+    @classmethod
+    def validate_project_name(cls, v: Optional[str]) -> Optional[str]:
+        if v and len(v.strip()) == 0:
+            raise ValueError("Project name cannot be empty")
+        if v and len(v) > 200:
+            raise ValueError("Project name is too long (max 200 characters)")
+        return v.strip() if v else v
+    
+    @field_validator('type')
+    @classmethod
+    def validate_type(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            allowed_types = ['github', 'notion', 'blog', 'file']
+            if v not in allowed_types:
+                raise ValueError(f"Type must be one of: {', '.join(allowed_types)}")
+        return v
 
 class PortfolioUpdateRequest(BaseModel):
     type: Optional[str] = None
