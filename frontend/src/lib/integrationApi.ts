@@ -20,8 +20,11 @@ export const integrationApi = {
         return res.json();
     },
 
-    getGithubLoginUrl: (): string => {
-        return getApiUrl("/integrations/github/login");
+    getGithubAuthUrl: async (): Promise<string> => {
+        const res = await fetchWithAuth(getApiUrl("/integrations/github/auth-url"));
+        if (!res.ok) throw new Error("Failed to get GitHub auth URL");
+        const data = await res.json();
+        return data.url;
     },
 
     fetchGithubRepos: async (): Promise<IntegrationRepo[]> => {

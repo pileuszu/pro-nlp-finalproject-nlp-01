@@ -91,7 +91,11 @@ class PortfolioService:
             )
             self.db.add(portfolio)
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
             
             job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
             return portfolio
@@ -116,7 +120,11 @@ class PortfolioService:
             )
             self.db.add(portfolio)
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
             
             job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
             return portfolio
@@ -141,7 +149,11 @@ class PortfolioService:
             )
             self.db.add(portfolio)
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
             
             job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
             return portfolio

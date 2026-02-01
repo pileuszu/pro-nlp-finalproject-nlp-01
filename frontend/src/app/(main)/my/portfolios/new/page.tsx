@@ -57,8 +57,14 @@ export default function NewPortfolioPage() {
         loadIntegrations();
     }, [loadIntegrations]);
 
-    const handleGithubConnect = () => {
-        window.location.href = integrationApi.getGithubLoginUrl();
+    const handleGithubConnect = async () => {
+        try {
+            const url = await integrationApi.getGithubAuthUrl();
+            window.location.href = url;
+        } catch (err) {
+            console.error("Failed to get GitHub auth URL:", err);
+            toast("GitHub 연동 URL을 가져오는데 실패했습니다.", "error");
+        }
     };
 
     const githubIntegration = integrations.find(i => i.provider === 'github');

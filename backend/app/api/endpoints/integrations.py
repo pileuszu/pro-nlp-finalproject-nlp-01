@@ -21,11 +21,26 @@ async def list_integrations(
     result = await db.execute(stmt)
     return result.scalars().all()
 
-@router.get("/github/login")
-async def github_login(current_user: models.User = Depends(deps.get_current_user)):
-    """Redirects to GitHub for OAuth."""
+@router.get("/github/auth-url")
+async def get_github_auth_url(current_user: models.User = Depends(deps.get_current_user)):
+    """Returns GitHub OAuth URL for frontend to redirect."""
     scope = "repo,read:user"
     url = f"https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri={settings.GITHUB_REDIRECT_URI}&scope={scope}&state={current_user.id}"
+    return {"url": url}
+
+@router.get("/github/login")
+async def github_login(
+    user_id: int = None,
+    current_user: models.User = Depends(deps.get_current_user_optional)
+):
+    """Redirects to GitHub for OAuth. Supports both authenticated and query param modes."""
+    # Use user_id from query param if provided, otherwise from current_user
+    uid = user_id if user_id else (current_user.id if current_user else None)
+    if not uid:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    scope = "repo,read:user"
+    url = f"https://github.com/login/oauth/authorize?client_id={settings.GITHUB_CLIENT_ID}&redirect_uri={settings.GITHUB_REDIRECT_URI}&scope={scope}&state={uid}"
     return RedirectResponse(url)
 
 @router.get("/github/callback")
