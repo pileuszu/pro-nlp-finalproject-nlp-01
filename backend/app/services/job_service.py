@@ -44,6 +44,14 @@ class JobService:
                 if target_id:
                     args.append(f"--id={target_id}")
                 
+                # OPTIONAL: Pass kwargs as environment variables
+                # The container expects env vars like JOB_EXTRA_TONE, JOB_EXTRA_MODE
+                env_vars = []
+                for k, v in kwargs.items():
+                    env_key = f"JOB_EXTRA_{k.upper()}"
+                    env_val = str(v)
+                    env_vars.append({"name": env_key, "value": env_val})
+                
                 # Formatting job path: projects/{project}/locations/{location}/jobs/{job}
                 job_path = f"projects/{self.project_id}/locations/{self.region}/jobs/{self.job_name}"
                 
@@ -52,7 +60,8 @@ class JobService:
                     overrides={
                         "container_overrides": [
                             {
-                                "args": args
+                                "args": args,
+                                "env": env_vars
                             }
                         ]
                     }
