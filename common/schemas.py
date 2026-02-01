@@ -11,9 +11,16 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     pass
 
+class UserIntegration(BaseModel):
+    id: int
+    provider: str
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class User(UserBase):
     id: int
     created_at: datetime
+    integrations: List[UserIntegration] = []
     model_config = ConfigDict(from_attributes=True)
 
 # Recruitment Schemas

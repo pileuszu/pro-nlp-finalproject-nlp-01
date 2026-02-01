@@ -12,6 +12,7 @@ export interface PortfolioApi {
     uploadFile: (file: File) => Promise<Portfolio>;
     importNotion: (url: string, title?: string) => Promise<Portfolio>;
     importGithub: (url: string, title?: string) => Promise<Portfolio>;
+    importBlog: (url: string, title?: string) => Promise<Portfolio>;
     analyzePortfolio: (source: string, type: string) => Promise<AnalysisResult>;
     analyzePortfolioFile: (file: File) => Promise<AnalysisResult>;
     getPortfolio: (id: number) => Promise<Portfolio>;
@@ -82,6 +83,27 @@ export const portfolioApi: PortfolioApi = {
         if (!res.ok) {
             const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
             throw new Error(errorData.detail || "GitHub import failed");
+        }
+
+        return res.json() as Promise<Portfolio>;
+    },
+
+    /**
+     * Import portfolio from a Blog URL (Velog, Tistory).
+     */
+    importBlog: async (url: string, title: string = "Blog Portfolio"): Promise<Portfolio> => {
+        const res = await fetchWithAuth(getApiUrl("/portfolios/blog"), {
+            method: "POST",
+            body: JSON.stringify({
+                title,
+                source_url: url,
+                type: "blog"
+            }),
+        });
+
+        if (!res.ok) {
+            const errorData = (await res.json().catch(() => ({}))) as { detail?: string };
+            throw new Error(errorData.detail || "Blog import failed");
         }
 
         return res.json() as Promise<Portfolio>;

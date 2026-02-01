@@ -20,6 +20,7 @@ class PortfolioService:
         self._file_extractor = None
         self._notion_extractor = None
         self._github_extractor = None
+        self._blog_extractor = None # Added
         self._llm_refiner = None
         self._vector_store = None
         
@@ -64,6 +65,13 @@ class PortfolioService:
             self._vector_store = SupabaseVectorStore()
         return self._vector_store
 
+    @property
+    def blog_extractor(self):
+        if not self._blog_extractor:
+            from jobs.core.portfolio.extractors.blog_extractor import BlogExtractor
+            self._blog_extractor = BlogExtractor()
+        return self._blog_extractor
+
     async def process_portfolio_logic(self, portfolio_id: int):
         """
         Core logic for processing a portfolio.
@@ -85,6 +93,8 @@ class PortfolioService:
             source = portfolio.source_url
             p_type = portfolio.type
             
+            extracted_projects = [] # List of {"title": str, "content": str, "url": str}
+
             # Download from GCS if needed
             if source.startswith("gs://"):
                 local_file_name = os.path.basename(source)
@@ -92,85 +102,96 @@ class PortfolioService:
                 source = await gcs_utils.download_file(source, local_path)
                 logger.info(f"Downloaded GCS file to {source} for processing")
 
+            # 0. Get User Integration (Token) if available
+            from common.models import UserIntegration
+            stmt_int = select(UserIntegration).where(
+                UserIntegration.user_id == portfolio.user_id, 
+                UserIntegration.provider == p_type
+            )
+            res_int = await self.db.execute(stmt_int)
+            integration = res_int.scalar_one_or_none()
+            token = integration.access_token if integration else None
+
             if p_type == "file":
                 text = self.file_extractor.extract(source)
+                extracted_projects = [{"title": portfolio.project_name or "New File", "content": text, "url": portfolio.source_url}]
                 # Cleanup local download
                 if source != portfolio.source_url and os.path.exists(source):
                     try: os.remove(source)
                     except: pass
             elif p_type == "notion":
+                # If we have a token from integration, use it. Otherwise use default.
+                if token:
+                    self.notion_extractor.client = None # Reset to re-init with new token
+                    self.notion_extractor.access_token = token
+                    from notion_client import Client
+                    self.notion_extractor.client = Client(auth=token)
+                
                 text = self.notion_extractor.extract(source)
+                extracted_projects = [{"title": portfolio.project_name or "Notion Page", "content": text, "url": source}]
             elif p_type == "github":
-                text = self.github_extractor.extract(source)
+                extracted_projects = self.github_extractor.extract_multi(source, token=token)
+            elif p_type == "blog":
+                extracted_projects = await self.blog_extractor.extract_multi(source)
             else:
-                text = ""
+                raise ValueError(f"Unknown portfolio type: {p_type}")
 
-            if not text or text.startswith("[Error]") or "Error" in text[:20]:
-                raise ValueError(f"Extraction failed: {text}")
+            if not extracted_projects:
+                raise ValueError(f"Extraction failed or no projects found for {p_type}")
 
-            portfolio.content = self._sanitize_text(text)
-            await self.db.commit()
+            # 2. Process each extracted project
+            # First one updates the existing portfolio, others create new ones
+            for i, proj_data in enumerate(extracted_projects):
+                proj_text = proj_data["content"]
+                proj_title = proj_data["title"]
+                proj_url = proj_data["url"]
 
-            # 2. Refine (AI Pipeline)
-            combined_result = await self.llm_refiner.extract_user_data_and_queries(text)
-            user_data = combined_result.user_data
-            projects = user_data.projects
-            
-            if not projects:
-                portfolio.extracted_summary = user_data.profile.summary
-                portfolio.extracted_job_title = user_data.profile.job_title
-                portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
-                await NotificationService.create_and_notify(
-                    db=self.db,
-                    user_id=portfolio.user_id,
-                    title="포트폴리오 분석 완료",
-                    message=f"[{portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
-                    link=f"/my/portfolios/{portfolio.id}",
-                    notification_type="PORTFOLIO_READY"
-                )
-                await self.db.commit()
-            else:
-                base_title = portfolio.title
-                p0 = projects[0]
+                # Refine single project (more accurate & cost effective)
+                # If only one project was extracted, we can use the old method which extracts profile too, 
+                # but for batch, we use refine_single_project.
+                project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
                 
-                # P0 Embedding
-                desc0 = p0.description_for_embedding or ""
-                embedding0 = None
-                if desc0:
+                target_portfolio = None
+                if i == 0:
+                    target_portfolio = portfolio
+                else:
+                    # Create a new portfolio record for subsequent projects
+                    target_portfolio = Portfolio(
+                        user_id=portfolio.user_id,
+                        type=portfolio.type,
+                        source_url=proj_url,
+                        processing_status=ProcessingStatus.PROCESSING
+                    )
+                    self.db.add(target_portfolio)
+                    await self.db.flush() # Get ID
+
+                # Update portfolio data
+                target_portfolio.project_name = project_refined.project_name
+                target_portfolio.period = project_refined.period
+                target_portfolio.role = project_refined.role
+                target_portfolio.description = project_refined.description_for_embedding
+                target_portfolio.tech_stack = project_refined.tech_stack
+                target_portfolio.content = self._sanitize_text(proj_text)
+                
+                # Generate embedding
+                if target_portfolio.description:
                     try:
-                        embedding0 = await self.vector_store.get_embedding(desc0)
+                        target_portfolio.embedding = await self.vector_store.get_embedding(target_portfolio.description)
                     except Exception as e:
-                        logger.error(f"Failed to generate embedding for background project {p0.project_name}: {e}")
+                        logger.error(f"Embedding failed for {target_portfolio.id}: {e}")
 
-                portfolio.project_name = p0.project_name
-                portfolio.period = p0.period
-                portfolio.role = p0.role
-                portfolio.description = p0.description_for_embedding
-                portfolio.tech_stack = p0.tech_stack
-                portfolio.extracted_summary = user_data.profile.summary
-                portfolio.extracted_job_title = user_data.profile.job_title
-                portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
-                portfolio.embedding = embedding0
-
-                # 4. Save Portfolios
-                await NotificationService.create_and_notify(
-                    db=self.db,
-                    user_id=portfolio.user_id,
-                    title="포트폴리오 분석 완료",
-                    message=f"[{portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
-                    link=f"/my/portfolios/{portfolio.id}",
-                    notification_type="PORTFOLIO_READY"
-                )
+                # Add Job Queries
+                # Clear existing if any (for i=0)
+                if i == 0:
+                    target_portfolio.job_queries = []
                 
-                # Add Job Queries for p0 to main portfolio
-                for jq in p0.job_queries:
+                for jq in project_refined.job_queries:
                     q_emb = None
                     try:
                         q_emb = await self.vector_store.get_embedding(jq.query)
-                    except Exception as e:
-                        logger.error(f"Failed to pre-embed job query: {e}")
-
-                    portfolio.job_queries.append(
+                    except: pass
+                    
+                    target_portfolio.job_queries.append(
                         PortfolioJobQuery(
                             type=jq.type,
                             query_text=jq.query,
@@ -178,79 +199,40 @@ class PortfolioService:
                             embedding=q_emb
                         )
                     )
-                
-                self.db.add(portfolio)
-                
-                # Create other projects as new portfolios
-                new_portfolios = [portfolio]
-                
-                for proj in projects[1:]:
-                    desc_proj = proj.description_for_embedding or ""
-                    embedding_proj = None
-                    if desc_proj:
-                        try:
-                            embedding_proj = await self.vector_store.get_embedding(desc_proj)
-                        except Exception as e:
-                            logger.error(f"Failed to generate embedding for background project {proj.project_name}: {e}")
 
-                    new_p = Portfolio(
-                        title=base_title + f" ({proj.project_name})",
-                        type=portfolio.type,
-                        source_url=portfolio.source_url,
-                        content=text,
-                        user_id=portfolio.user_id,
-                        extracted_summary=user_data.profile.summary,
-                        extracted_job_title=user_data.profile.job_title,
-                        processing_status=ProcessingStatus.REVIEW_REQUIRED,
-                        project_name=proj.project_name,
-                        period=proj.period,
-                        role=proj.role,
-                        description=proj.description_for_embedding,
-                        tech_stack=proj.tech_stack,
-                        embedding=embedding_proj
-                    )
-                    
-                    # Add queries for this project
-                    for jq in proj.job_queries:
-                         q_emb = None
-                         try:
-                             q_emb = await self.vector_store.get_embedding(jq.query)
-                         except: pass
-                         
-                         new_p.job_queries.append(
-                            PortfolioJobQuery(
-                                type=jq.type,
-                                query_text=jq.query,
-                                evidence=jq.evidence,
-                                embedding=q_emb
-                            )
-                         )
-
-                    self.db.add(new_p)
-                    new_portfolios.append(new_p)
-                
+                target_portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 await self.db.commit()
-                logger.info(f"Successfully processed portfolio {portfolio.id} split into {len(new_portfolios)} entries")
 
-                # 5. Trigger Post-Processing
-                from jobs.services.recruit_service import precompute_recommendations_for_portfolio
+                # Notify
+                await NotificationService.create_and_notify(
+                    db=self.db,
+                    user_id=target_portfolio.user_id,
+                    title="포트폴리오 분석 완료",
+                    message=f"[{target_portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
+                    link=f"/my/portfolios/{target_portfolio.id}",
+                    notification_type="PORTFOLIO_READY"
+                )
 
-                for p in new_portfolios:
-                    try:
-                        await precompute_recommendations_for_portfolio(self.db, p.id)
-                    except Exception as e:
-                        logger.error(f"Post-processing (Recs) failed for {p.id}: {e}")
+                # Post-processing (Recommendations)
+                try:
+                    from jobs.services.recruit_service import precompute_recommendations_for_portfolio
+                    await precompute_recommendations_for_portfolio(self.db, target_portfolio.id)
+                except Exception as e:
+                    logger.error(f"Post-processing (Recs) failed for {target_portfolio.id}: {e}")
 
-                    try:
-                         await self._update_user_global_profile(
-                            user_id=p.user_id,
-                            project_name=p.project_name,
-                            role=p.role or "",
-                            tech_stack=", ".join(p.tech_stack) if p.tech_stack else "",
-                            description=p.description or ""
-                        )
-                    except Exception as e:
-                        logger.error(f"Post-processing (Profile) failed for {p.id}: {e}")
+                # Update user global profile incrementally
+                try:
+                    await self._update_user_global_profile(
+                        user_id=target_portfolio.user_id,
+                        project_name=target_portfolio.project_name,
+                        role=target_portfolio.role or "",
+                        tech_stack=", ".join(target_portfolio.tech_stack) if target_portfolio.tech_stack else "",
+                        description=target_portfolio.description or ""
+                    )
+                except Exception as e:
+                    logger.error(f"Post-processing (Profile) failed for {target_portfolio.id}: {e}")
+
+            logger.info(f"Successfully processed {len(extracted_projects)} portfolios from {source}")
 
         except Exception as e:
             logger.error(f"Processing Failed for Portfolio {portfolio_id}: {e}")
@@ -344,6 +326,16 @@ class PortfolioService:
                 source = await gcs_utils.download_file(source, local_path)
                 logger.info(f"Downloaded GCS file (Analysis) to {source} for processing")
 
+            # 0. Get User Integration (Token) if available
+            from common.models import UserIntegration
+            stmt_int = select(UserIntegration).where(
+                UserIntegration.user_id == portfolio.user_id, 
+                UserIntegration.provider == p_type
+            )
+            res_int = await self.db.execute(stmt_int)
+            integration = res_int.scalar_one_or_none()
+            token = integration.access_token if integration else None
+
             if p_type == "file":
                 text = self.file_extractor.extract(source)
                 # Cleanup
@@ -351,9 +343,17 @@ class PortfolioService:
                     try: os.remove(source)
                     except: pass
             elif p_type == "notion":
+                # If we have a token from integration, use it. Otherwise use default.
+                if token:
+                    self.notion_extractor.client = None
+                    self.notion_extractor.access_token = token
+                    from notion_client import Client
+                    self.notion_extractor.client = Client(auth=token)
                 text = self.notion_extractor.extract(source)
             elif p_type == "github":
-                text = self.github_extractor.extract(source)
+                text = self.github_extractor.extract(source, token=token)
+            elif p_type == "blog":
+                text = await self.blog_extractor.extract(source)
             else:
                 text = ""
 

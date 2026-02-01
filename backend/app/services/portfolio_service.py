@@ -125,6 +125,31 @@ class PortfolioService:
             await self.db.rollback()
             raise
 
+    async def create_portfolio_from_blog(self, user_id: int, title: str, blog_url: str) -> Portfolio:
+        """
+        Trigger a Blog extraction job.
+        """
+        logger.info(f"Creating portfolio from Blog for user {user_id}: {title} ({blog_url})")
+        
+        try:
+            portfolio = Portfolio(
+                project_name=title,
+                type="blog",
+                source_url=blog_url,
+                user_id=user_id,
+                processing_status=ProcessingStatus.PENDING
+            )
+            self.db.add(portfolio)
+            await self.db.commit()
+            await self.db.refresh(portfolio)
+            
+            job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
+            return portfolio
+        except Exception as e:
+            logger.error(f"Blog portfolio creation failed: {e}")
+            await self.db.rollback()
+            raise
+
     async def save_verified_portfolio(self, user_id: int, req: schemas.PortfolioCreateRequest):
         """
         Save a portfolio that has been reviewed by the user.

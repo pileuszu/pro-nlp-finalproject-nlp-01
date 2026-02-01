@@ -235,6 +235,55 @@ class LLMRefiner:
                 )
             )
 
+    async def refine_single_project(self, text: str, project_name_hint: str = None) -> Project:
+        """
+        Refine a single project's data. This is more efficient than full extraction 
+        because we know there is only ONE project.
+        """
+        system_prompt = f"""
+당신은 IT 전문 포트폴리오 분석가입니다.
+제공된 텍스트(README 및 소스 코드 조각)를 분석하여 **단 하나의 프로젝트**에 대한 상세 정보를 추출하세요.
+
+**분석 대상:** {project_name_hint or "주어진 프로젝트"}
+
+**추출 항목:**
+1. **project_name**: 가장 적합한 프로젝트 이름
+2. **period**: 진행 기간 (없으면 null)
+3. **role**: 주요 역할 및 담당 업무
+4. **tech_stack**: 사용된 핵심 기술 스택 리스트
+5. **description_for_embedding**: [문제-해결-결과] 중심의 정제된 설명
+6. **job_queries**: 이 경험을 바탕으로 지원 가능한 채용 공고 검색용 쿼리 3개 (A, B, C 타입)
+
+**주의사항:**
+- 소스 코드 조각이 포함된 경우, 기술적 구현 내용(예: 특정 라이브러리 활용 방식, 알고리즘 등)을 '해결' 섹션에 상세히 반영하세요.
+- 결과는 반드시 지정된 JSON 형식을 따라야 합니다.
+"""
+        user_prompt = f"[프로젝트 데이터]\n{text}"
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # We reuse Project's schema for Structured Output
+        schema = Project.model_json_schema()
+        
+        try:
+            response_text = await self._call_ncp(messages, response_schema=schema)
+            project = Project.model_validate_json(response_text)
+            
+            if len(project.job_queries) > 3:
+                project.job_queries = project.job_queries[:3]
+                
+            return project
+        except Exception as e:
+            logger.error(f"Single Project Refinement Failed: {e}")
+            return Project(
+                project_name=project_name_hint or "분석 실패 프로젝트",
+                description_for_embedding=f"분석 오류: {str(e)}\n\n원문 일부:\n{text[:200]}...",
+                job_queries=[]
+            )
+
     async def update_global_user_profile(self, current_summary: str, current_job_title: str, new_project_info: str) -> dict:
         """
         Incrementally update the user's global profile summary and job title based on new project experience.

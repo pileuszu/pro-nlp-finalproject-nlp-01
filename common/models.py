@@ -26,6 +26,7 @@ class User(Base):
 
     portfolios = relationship("Portfolio", back_populates="owner")
     cover_letters = relationship("CoverLetter", back_populates="owner")
+    integrations = relationship("UserIntegration", back_populates="user", cascade="all, delete-orphan")
 
 class Recruitment(Base):
     __tablename__ = "recruitments"
@@ -153,3 +154,17 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
+
+class UserIntegration(Base):
+    __tablename__ = "user_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    provider = Column(String, nullable=False)  # 'github', 'notion'
+    access_token = Column(String, nullable=False)
+    refresh_token = Column(String, nullable=True)
+    provider_user_id = Column(String, nullable=True) # ID from the provider
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="integrations")

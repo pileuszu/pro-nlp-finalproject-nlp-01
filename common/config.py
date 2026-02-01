@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     KAKAO_CLIENT_SECRET: str = os.getenv("KAKAO_CLIENT_SECRET", "")
     KAKAO_REDIRECT_URI: str = os.getenv("KAKAO_REDIRECT_URI", "")
 
+    # GitHub OAuth
+    GITHUB_CLIENT_ID: str = os.getenv("GITHUB_CLIENT_ID", "")
+    GITHUB_CLIENT_SECRET: str = os.getenv("GITHUB_CLIENT_SECRET", "")
+    GITHUB_REDIRECT_URI: str = os.getenv("GITHUB_REDIRECT_URI", "")
+
     # Job Config
     GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
     NOTION_TOKEN: str = os.getenv("NOTION_TOKEN", "")

@@ -82,6 +82,19 @@ async def import_github_portfolio(
     service = PortfolioService(db)
     return await service.create_portfolio_from_github(current_user.id, payload.title, payload.source_url, background_tasks)
 
+@router.post("/blog", response_model=schemas.PortfolioDetail, status_code=201)
+async def import_blog_portfolio(
+    background_tasks: BackgroundTasks,
+    payload: schemas.PortfolioCreateRequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Import portfolio from a Technical Blog (Velog, Tistory).
+    """
+    service = PortfolioService(db)
+    return await service.create_portfolio_from_blog(current_user.id, payload.title, payload.source_url)
+
 @router.get("/{portfolio_id}", response_model=schemas.PortfolioDetail)
 async def get_portfolio(
     portfolio_id: int, 
