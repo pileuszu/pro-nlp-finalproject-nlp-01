@@ -49,11 +49,11 @@ export const portfolioApi: PortfolioApi = {
     /**
      * Import portfolio from a Notion URL.
      */
-    importNotion: async (url: string, title: string = "Notion Page"): Promise<Portfolio> => {
+    importNotion: async (url: string, projectName: string = "Notion Page"): Promise<Portfolio> => {
         const res = await fetchWithAuth(getApiUrl("/portfolios/notion"), {
             method: "POST",
             body: JSON.stringify({
-                title,
+                project_name: projectName,
                 source_url: url,
                 type: "notion"
             }),
@@ -70,11 +70,11 @@ export const portfolioApi: PortfolioApi = {
     /**
      * Import portfolio from a GitHub URL (Repo or Profile).
      */
-    importGithub: async (url: string, title: string = "GitHub Portfolio"): Promise<Portfolio> => {
+    importGithub: async (url: string, projectName: string = "GitHub Portfolio"): Promise<Portfolio> => {
         const res = await fetchWithAuth(getApiUrl("/portfolios/github"), {
             method: "POST",
             body: JSON.stringify({
-                title,
+                project_name: projectName,
                 source_url: url,
                 type: "github"
             }),
@@ -91,11 +91,11 @@ export const portfolioApi: PortfolioApi = {
     /**
      * Import portfolio from a Blog URL (Velog, Tistory).
      */
-    importBlog: async (url: string, title: string = "Blog Portfolio"): Promise<Portfolio> => {
+    importBlog: async (url: string, projectName: string = "Blog Portfolio"): Promise<Portfolio> => {
         const res = await fetchWithAuth(getApiUrl("/portfolios/blog"), {
             method: "POST",
             body: JSON.stringify({
-                title,
+                project_name: projectName,
                 source_url: url,
                 type: "blog"
             }),

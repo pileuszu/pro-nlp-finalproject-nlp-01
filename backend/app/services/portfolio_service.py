@@ -75,15 +75,15 @@ class PortfolioService:
                 file_path.unlink()
             raise
 
-    async def create_portfolio_from_github(self, user_id: int, title: str, github_url: str) -> Portfolio:
+    async def create_portfolio_from_github(self, user_id: int, project_name: str, github_url: str) -> Portfolio:
         """
         Trigger a GitHub extraction job.
         """
-        logger.info(f"Creating portfolio from GitHub for user {user_id}: {title} ({github_url})")
+        logger.info(f"Creating portfolio from GitHub for user {user_id}: {project_name} ({github_url})")
         
         try:
             portfolio = Portfolio(
-                project_name=title,
+                project_name=project_name,
                 type="github",
                 source_url=github_url,
                 user_id=user_id,
@@ -100,15 +100,15 @@ class PortfolioService:
             await self.db.rollback()
             raise
 
-    async def create_portfolio_from_notion(self, user_id: int, title: str, notion_url: str) -> Portfolio:
+    async def create_portfolio_from_notion(self, user_id: int, project_name: str, notion_url: str) -> Portfolio:
         """
         Trigger a Notion extraction job.
         """
-        logger.info(f"Creating portfolio from Notion for user {user_id}: {title} ({notion_url})")
+        logger.info(f"Creating portfolio from Notion for user {user_id}: {project_name} ({notion_url})")
         
         try:
             portfolio = Portfolio(
-                project_name=title,
+                project_name=project_name,
                 type="notion",
                 source_url=notion_url,
                 user_id=user_id,
@@ -125,15 +125,15 @@ class PortfolioService:
             await self.db.rollback()
             raise
 
-    async def create_portfolio_from_blog(self, user_id: int, title: str, blog_url: str) -> Portfolio:
+    async def create_portfolio_from_blog(self, user_id: int, project_name: str, blog_url: str) -> Portfolio:
         """
         Trigger a Blog extraction job.
         """
-        logger.info(f"Creating portfolio from Blog for user {user_id}: {title} ({blog_url})")
+        logger.info(f"Creating portfolio from Blog for user {user_id}: {project_name} ({blog_url})")
         
         try:
             portfolio = Portfolio(
-                project_name=title,
+                project_name=project_name,
                 type="blog",
                 source_url=blog_url,
                 user_id=user_id,
