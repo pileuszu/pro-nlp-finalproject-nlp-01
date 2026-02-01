@@ -30,7 +30,7 @@ class ManualRAG:
         url = f"{base_url}/v1/api-tools/embedding/v2"
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "X-NCP-CLOVASTUDIO-API-KEY": self.api_key,
+            # "X-NCP-CLOVASTUDIO-API-KEY": self.api_key,
             "Content-Type": "application/json"
         }
         res = requests.post(
