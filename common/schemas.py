@@ -19,6 +19,8 @@ class UserIntegration(BaseModel):
 class User(UserBase):
     id: int
     created_at: datetime
+    profile_summary: Optional[str] = None
+    desired_job_title: Optional[str] = None
     integrations: List[UserIntegration] = []
     model_config = ConfigDict(from_attributes=True)
 
@@ -181,6 +183,7 @@ class PortfolioAnalyzeRequest(BaseModel):
 
 class CoverLetterGenerateRequest(BaseModel):
     recruit_id: int
+    cover_letter_id: Optional[int] = None
     portfolio_ids: List[int] = []
     questions: List[str]
     tone: str = "professional"

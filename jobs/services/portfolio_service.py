@@ -210,7 +210,8 @@ class PortfolioService:
                     title="포트폴리오 분석 완료",
                     message=f"[{target_portfolio.project_name}] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
                     link=f"/my/portfolios/{target_portfolio.id}",
-                    notification_type="PORTFOLIO_READY"
+                    notification_type="PORTFOLIO_READY",
+                    target_id=target_portfolio.id
                 )
 
                 # Post-processing (Recommendations)

@@ -29,18 +29,6 @@ export default function NewPortfolioPage() {
     const [githubRepos, setGithubRepos] = useState<IntegrationRepo[]>([]);
     const [isLoadingRepos, setIsLoadingRepos] = useState(false);
 
-    const loadIntegrations = useCallback(async () => {
-        try {
-            const data = await integrationApi.fetchIntegrations();
-            setIntegrations(data);
-            if (data.find(i => i.provider === 'github')) {
-                loadGithubRepos();
-            }
-        } catch (err) {
-            console.error("Failed to load integrations", err);
-        }
-    }, []);
-
     const loadGithubRepos = useCallback(async () => {
         setIsLoadingRepos(true);
         try {
@@ -52,6 +40,18 @@ export default function NewPortfolioPage() {
             setIsLoadingRepos(false);
         }
     }, []);
+
+    const loadIntegrations = useCallback(async () => {
+        try {
+            const data = await integrationApi.fetchIntegrations();
+            setIntegrations(data);
+            if (data.find(i => i.provider === 'github')) {
+                loadGithubRepos();
+            }
+        } catch (err) {
+            console.error("Failed to load integrations", err);
+        }
+    }, [loadGithubRepos]);
 
     useEffect(() => {
         loadIntegrations();

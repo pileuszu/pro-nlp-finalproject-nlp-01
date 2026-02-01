@@ -1,8 +1,8 @@
 "use client";
 
+import React, { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Trash2, CheckCircle, Sparkles, Plus } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,24 +30,35 @@ export function QuestionEditorItem({
     onRemove,
     onApplySuggestion
 }: QuestionEditorItemProps) {
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [question.question]);
+
     return (
         <motion.div layout initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
             className="bg-white border-2 border-slate-100 rounded-[2rem] p-8 shadow-sm relative group hover:shadow-xl transition-all duration-300"
         >
-            <div className="flex justify-between items-center mb-8">
-                <div className="flex items-center gap-4 flex-1">
-                    <div className="flex items-center bg-slate-900 text-white rounded-xl px-4 py-2 gap-2 shrink-0 shadow-lg shadow-slate-200">
+            <div className="flex justify-between items-start mb-8">
+                <div className="flex items-start gap-4 flex-1">
+                    <div className="flex items-center bg-slate-900 text-white rounded-xl px-4 py-2 gap-2 shrink-0 shadow-lg shadow-slate-200 mt-1">
                         <span className="text-xs font-bold uppercase tracking-widest opacity-60">ITEM</span>
                         <span className="text-md font-black">{index + 1}</span>
                     </div>
-                    <Input
+                    <Textarea
+                        ref={textareaRef}
                         value={question.question}
                         onChange={e => onUpdate('question', e.target.value)}
-                        className="border-none text-2xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-slate-200"
+                        className="border-none text-2xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-slate-200 resize-none min-h-[40px] bg-transparent overflow-hidden leading-tight py-1"
                         placeholder="질문 문항을 입력하세요"
+                        rows={1}
                     />
                 </div>
-                <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full"><Trash2 className="h-5 w-5" /></Button>
+                <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full shrink-0"><Trash2 className="h-5 w-5" /></Button>
             </div>
             <div className="relative group/textarea">
                 <Textarea

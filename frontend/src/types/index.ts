@@ -86,3 +86,14 @@ export interface User {
     profile_summary?: string;
     desired_job_title?: string;
 }
+
+export interface NotificationEventDetail {
+    type: string;
+    data: {
+        target_id?: number;
+        title?: string;
+        message?: string;
+        link?: string;
+        [key: string]: unknown;
+    };
+}

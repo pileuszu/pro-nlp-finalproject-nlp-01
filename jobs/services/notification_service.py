@@ -15,7 +15,8 @@ class NotificationService:
         title: str,
         message: str,
         link: Optional[str] = None,
-        notification_type: str = "GENERAL"
+        notification_type: str = "GENERAL",
+        target_id: Optional[int] = None
     ):
         """
         Consolidated helper to:
@@ -46,7 +47,8 @@ class NotificationService:
                             "type": notification_type,
                             "title": title,
                             "message": message,
-                            "link": link
+                            "link": link,
+                            "target_id": target_id
                         },
                         headers={
                             "X-Internal-Secret": settings.INTERNAL_API_SECRET

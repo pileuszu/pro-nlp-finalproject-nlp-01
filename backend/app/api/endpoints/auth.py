@@ -96,7 +96,9 @@ async def kakao_callback(
             "user": {
                 "id": user.id,
                 "email": user.email,
-                "name": user.name
+                "name": user.name,
+                "profile_summary": user.profile_summary,
+                "desired_job_title": user.desired_job_title
             }
         }
 

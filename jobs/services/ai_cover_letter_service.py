@@ -138,7 +138,7 @@ class AICoverLetterService:
                             item.suggested_improvements = answer_data.get("suggested_improvements")
                         
                         # Update main cover letter content with the first item's content as a summary
-                        if not cl.content or cl.content == "일괄 작성 중입니다...":
+                        if i == 0:
                             cl.content = item.content
                         
                         # Success, break retry loop
@@ -167,7 +167,8 @@ class AICoverLetterService:
                 title="자기소개서 일괄 생성 완료",
                 message=f"[{recruitment.company} - {recruitment.title}] 자기소개서의 모든 문항 작성이 완료되었습니다.",
                 link=f"/my/cover-letters/{cl.id}",
-                notification_type="COVER_LETTER_READY"
+                notification_type="COVER_LETTER_READY",
+                target_id=cl.id
             )
             
             await db.commit() # Final commit

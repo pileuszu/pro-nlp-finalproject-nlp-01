@@ -177,8 +177,18 @@ export function useNotifications() {
                 const data = JSON.parse(event.data);
                 // Show Toast using our custom useToast
                 toast(data.message || data.title, "success");
-                // Refresh list
+
+                // 1. Refresh global notification list/count
                 fetchNotifications();
+
+                // 2. Broadcast Custom Event for specific UI updates
+                if (data.type) {
+                    const event = new CustomEvent('notification_event', {
+                        detail: { type: data.type, data: data }
+                    });
+                    window.dispatchEvent(event);
+                    console.log(`Global event dispatched: status_update_${data.type}`);
+                }
             } catch (e) {
                 console.error("SSE Parse Error", e);
             }
