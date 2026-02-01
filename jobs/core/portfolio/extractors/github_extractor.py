@@ -20,6 +20,9 @@ class GitHubExtractor(BaseExtractor):
         self.headers = {"Accept": "application/vnd.github.v3+json"}
         if self.github_token:
             self.headers["Authorization"] = f"token {self.github_token}"
+            logger.info("GitHub API: Using authenticated requests")
+        else:
+            logger.warning("GitHub API: No token provided, using unauthenticated requests (rate limited to 60/hour)")
         self.client = httpx.Client(headers=self.headers, timeout=10.0)
 
     def extract(self, source: str, token: Optional[str] = None) -> str:
@@ -184,6 +187,19 @@ class GitHubExtractor(BaseExtractor):
                     "url": repo['html_url']
                 })
             return results
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                logger.error(f"GitHub API authentication failed. Please connect your GitHub account for private repos.")
+                raise ValueError(
+                    "GitHub 인증이 필요합니다. 마이페이지에서 GitHub 계정을 연결해주세요. "
+                    "Public 저장소는 저장소 URL을 직접 입력해주세요."
+                )
+            elif e.response.status_code == 404:
+                logger.error(f"GitHub user '{user_id}' not found")
+                raise ValueError(f"GitHub 사용자 '{user_id}'를 찾을 수 없습니다.")
+            else:
+                logger.error(f"GitHub API error: {e}")
+                raise ValueError(f"GitHub API 오류: {e.response.status_code}")
         except Exception as e:
             logger.error(f"Error fetching user repos: {e}")
             return []
