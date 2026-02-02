@@ -20,7 +20,7 @@ interface QuestionItem {
 interface QuestionEditorItemProps {
     question: QuestionItem;
     index: number;
-    onUpdate: (field: 'question' | 'answer', value: string) => void;
+    onUpdate: (field: 'question' | 'answer' | 'hint', value: string) => void;
     onRemove: () => void;
     onApplySuggestion: (suggestion: string) => void;
 }
@@ -60,20 +60,23 @@ export function QuestionEditorItem({
                             placeholder="질문 문항을 입력하세요"
                             rows={1}
                         />
-                        {(question.hint || question.max_length) && (
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400 font-bold ml-1">
-                                {question.hint && (
-                                    <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg text-slate-500">
-                                        <Sparkles className="h-3 w-3 text-blue-500" /> {question.hint}
-                                    </span>
-                                )}
-                                {question.max_length && (
-                                    <span className="flex items-center gap-1.5 px-1">
-                                        최대 {question.max_length}자
-                                    </span>
-                                )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 ml-1">
+                            <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1 rounded-xl text-slate-500 hover:border-slate-200 transition-all focus-within:ring-2 focus-within:ring-slate-100 focus-within:bg-white group">
+                                <Sparkles className="h-3 w-3 text-blue-500 group-focus-within:animate-pulse" />
+                                <input
+                                    type="text"
+                                    value={question.hint || ""}
+                                    onChange={e => onUpdate('hint', e.target.value)}
+                                    placeholder="항목별 힌트/가이드라인 입력 (예: 협업 경험 강조)"
+                                    className="bg-transparent border-none p-0 text-[11px] font-bold outline-none w-64 placeholder:text-slate-300"
+                                />
                             </div>
-                        )}
+                            {question.max_length && (
+                                <span className="text-[11px] text-slate-400 font-bold px-1 py-1 bg-slate-50/50 rounded-lg border border-transparent">
+                                    최대 {question.max_length}자
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full shrink-0"><Trash2 className="h-5 w-5" /></Button>

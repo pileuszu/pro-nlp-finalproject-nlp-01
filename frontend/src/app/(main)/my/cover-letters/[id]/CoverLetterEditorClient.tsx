@@ -238,7 +238,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     const addQuestion = () => setQuestions([...questions, { id: Date.now(), question: "", answer: "" }]);
     const removeQuestion = (qId: number) => setQuestions(questions.filter(q => q.id !== qId));
-    const updateQuestion = (qId: number, field: 'question' | 'answer', value: string) =>
+    const updateQuestion = (qId: number, field: 'question' | 'answer' | 'hint', value: string) =>
         setQuestions(questions.map(q => q.id === qId ? { ...q, [field]: value } : q));
 
     // Unused togglePortfolio removed
