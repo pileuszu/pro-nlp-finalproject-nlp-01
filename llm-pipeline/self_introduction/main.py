@@ -129,6 +129,8 @@ def save_resume_to_file(result, output_dir: Path):
         resume = item["resume"]
         content += f"""## 문항 {item['question_id']}: {item['question']}
 
+### {resume.title}
+
 {resume.content}
 
 ---
