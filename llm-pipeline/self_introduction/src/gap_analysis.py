@@ -13,7 +13,8 @@ from langchain_core.documents import Document
 
 from config.settings import (
     CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
-    LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS
+    LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS,
+    LLM_USE_THINKING, LLM_THINKING_LEVEL
 )
 from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult
 from src.prompt_templates import (
@@ -29,17 +30,35 @@ from src.data_loader import load_company_data, load_user_data
 
 def get_llm() -> ChatOpenAI:
     """LLM 인스턴스 생성 (HyperCLOVA OpenAI 호환 API)"""
+    extra_params = {
+        "topP": LLM_TOP_P,
+        "repetitionPenalty": LLM_REPETITION_PENALTY,
+        "maxTokens": LLM_MAX_TOKENS
+    }
+    
+    # Thinking 기능 활성화 (HCX-007)
+    if LLM_USE_THINKING:
+        # v3 API 명세 반영
+        # 1. maxTokens 사용 불가 -> 제거
+        if "maxTokens" in extra_params:
+            del extra_params["maxTokens"]
+            
+        # 2. maxCompletionTokens 설정 (High 기준 권장값 20480 또는 사용자 설정)
+        extra_params["maxCompletionTokens"] = LLM_MAX_TOKENS # 또는 20480
+        
+        # 3. thinking.effort 설정
+        extra_params["thinking"] = {
+            "effort": LLM_THINKING_LEVEL  # v3 명세: 'effort' (low, medium, high)
+        }
+
     return ChatOpenAI(
         model=LLM_MODEL,
         api_key=CLOVA_API_KEY,
         base_url=CLOVA_BASE_URL,
         temperature=LLM_TEMPERATURE,
-        extra_body={
-            "topP": LLM_TOP_P,
-            "repetitionPenalty": LLM_REPETITION_PENALTY,
-            "maxTokens": LLM_MAX_TOKENS
-        }
+        extra_body=extra_params
     )
+
 
 
 def format_experiences(documents: List[Document]) -> str:
@@ -105,7 +124,7 @@ def analyze_gap(
         "job_requirements": job_requirements,
         "user_experiences": experiences_text
     })
-    
+
     # 응답에서 content 추출
     response_text = response.content if hasattr(response, 'content') else str(response)
     
@@ -194,7 +213,7 @@ def generate_resume(
     # LLM 호출 후 수동 파싱
     chain = prompt | llm
     response = chain.invoke(input_vars)
-    
+
     # 응답에서 content 추출
     response_text = response.content if hasattr(response, 'content') else str(response)
     

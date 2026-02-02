@@ -43,3 +43,8 @@ VECTOR_WEIGHT = 0.7
 # 청킹 설정
 CHUNK_SIZE = 800
 CHUNK_OVERLAP = 160
+
+# Thinking 설정 (HCX-007 이상)
+# Level: low, medium, high 중 선택 (API 지원 시)
+LLM_USE_THINKING = True
+LLM_THINKING_LEVEL = "high"  # budget_tokens 등 구체적 값은 나중에 매핑
