@@ -19,7 +19,9 @@ from jobs.core.cover_letter.config import (
     LLM_TEMPERATURE,
     LLM_TOP_P,
     LLM_REPETITION_PENALTY,
-    LLM_MAX_TOKENS
+    LLM_MAX_TOKENS,
+    LLM_USE_THINKING,
+    LLM_THINKING_LEVEL
 )
 
 logger = logging.getLogger(__name__)
@@ -42,16 +44,33 @@ class CoverLetterGenerator:
             
             # Use ChatOpenAI with HyperCLOVA OpenAI-compatible endpoint
             # 설정값은 jobs/core/cover_letter/config.py에서 관리
+            extra_params = {
+                "topP": LLM_TOP_P,
+                "repetitionPenalty": LLM_REPETITION_PENALTY,
+                "maxTokens": LLM_MAX_TOKENS
+            }
+
+            # Thinking 기능 활성화 (HCX-007)
+            if LLM_USE_THINKING:
+                # v3 API 명세 반영
+                # 1. maxTokens 사용 불가 -> 제거
+                if "maxTokens" in extra_params:
+                    del extra_params["maxTokens"]
+                    
+                # 2. maxCompletionTokens 설정 (High 기준 권장값 20480 또는 사용자 설정)
+                extra_params["maxCompletionTokens"] = LLM_MAX_TOKENS # 또는 20480
+                
+                # 3. thinking.effort 설정
+                extra_params["thinking"] = {
+                    "effort": LLM_THINKING_LEVEL  # v3 명세: 'effort' (low, medium, high)
+                }
+
             self._llm = ChatOpenAI(
                 model=LLM_MODEL,
                 api_key=api_key,
                 base_url="https://clovastudio.stream.ntruss.com/v1/openai",
                 temperature=LLM_TEMPERATURE,
-                extra_body={
-                    "topP": LLM_TOP_P,
-                    "repetitionPenalty": LLM_REPETITION_PENALTY,
-                    "maxTokens": LLM_MAX_TOKENS
-                }
+                extra_body=extra_params
             )
         return self._llm
 
