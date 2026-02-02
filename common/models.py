@@ -18,7 +18,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
-    is_admin = Column(Boolean, default=False, nullable=False)  # 관리자 권한
+    # is_admin = Column(Boolean, default=False, nullable=False)  # 관리자 권한 (미사용)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # User Profile Fields (extracted from portfolios)
