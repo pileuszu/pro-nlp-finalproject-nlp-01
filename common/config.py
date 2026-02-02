@@ -56,6 +56,9 @@ class Settings(BaseSettings):
     # Redis (Upstash)
     REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
 
+    # Frontend URL for OAuth Redirects
+    FRONTEND_URL: Optional[str] = os.getenv("FRONTEND_URL")
+
     class Config:
         case_sensitive = True
 

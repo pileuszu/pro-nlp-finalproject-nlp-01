@@ -102,9 +102,12 @@ async def github_callback(
         await db.commit()
         
     # Redirect back to frontend
-    # Assuming frontend URL from settings or just /my/portfolios/new
-    frontend_url = f"{settings.BACKEND_URL.replace('api.', '').replace(':8000', ':3000')}/my/portfolios/new?connected=github"
-    # Actually, we should probably redirect to a specific success page or just back with a param.
+    if settings.FRONTEND_URL:
+        frontend_base = settings.FRONTEND_URL.rstrip('/')
+    else:
+        frontend_base = settings.BACKEND_URL.replace('api.', '').replace(':8000', ':3000').rstrip('/')
+    
+    frontend_url = f"{frontend_base}/my/portfolios/new?connected=github"
     return RedirectResponse(frontend_url)
 
 @router.get("/github/repos")
@@ -147,7 +150,7 @@ async def get_notion_auth_url(current_user: models.User = Depends(deps.get_curre
     if not settings.NOTION_OAUTH_CLIENT_ID or settings.NOTION_OAUTH_CLIENT_ID == "0":
         raise HTTPException(status_code=500, detail="Notion OAuth Client ID is not configured (received '0' or empty)")
         
-    url = f"https://api.notion.com/v1/oauth/authorize?client_id={settings.NOTION_OAUTH_CLIENT_ID}&response_type=code&owner=user&redirect_uri={settings.NOTION_OAUTH_REDIRECT_URI}/api/integrations/notion/callback&state={current_user.id}"
+    url = f"https://api.notion.com/v1/oauth/authorize?client_id={settings.NOTION_OAUTH_CLIENT_ID}&response_type=code&owner=user&redirect_uri={settings.NOTION_OAUTH_REDIRECT_URI}/api/integrations/notion/callback&state=user_{current_user.id}"
     return {"url": url}
 
 @router.get("/notion/login")
@@ -163,7 +166,7 @@ async def notion_login(
     if not settings.NOTION_OAUTH_CLIENT_ID or settings.NOTION_OAUTH_CLIENT_ID == "0":
         raise HTTPException(status_code=500, detail="Notion OAuth Client ID is not configured")
     
-    url = f"https://api.notion.com/v1/oauth/authorize?client_id={settings.NOTION_OAUTH_CLIENT_ID}&response_type=code&owner=user&redirect_uri={settings.NOTION_OAUTH_REDIRECT_URI}/api/integrations/notion/callback&state={uid}"
+    url = f"https://api.notion.com/v1/oauth/authorize?client_id={settings.NOTION_OAUTH_CLIENT_ID}&response_type=code&owner=user&redirect_uri={settings.NOTION_OAUTH_REDIRECT_URI}/api/integrations/notion/callback&state=user_{uid}"
     return RedirectResponse(url)
 
 @router.get("/notion/callback")
@@ -173,7 +176,11 @@ async def notion_callback(
     db: AsyncSession = Depends(get_async_db)
 ):
     """Handles Notion OAuth callback."""
-    user_id = int(state)
+    # State should be user_{id}
+    try:
+        user_id = int(state.replace("user_", ""))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid state parameter")
     
     async with httpx.AsyncClient() as client:
         # 1. Exchange code for token
@@ -227,7 +234,12 @@ async def notion_callback(
         await db.commit()
     
     # Redirect back to frontend
-    frontend_url = f"{settings.BACKEND_URL.replace('api.', '').replace(':8000', ':3000')}/my/portfolios/new?connected=notion"
+    if settings.FRONTEND_URL:
+        frontend_base = settings.FRONTEND_URL.rstrip('/')
+    else:
+        frontend_base = settings.BACKEND_URL.replace('api.', '').replace(':8000', ':3000').rstrip('/')
+        
+    frontend_url = f"{frontend_base}/my/portfolios/new?connected=notion"
     return RedirectResponse(frontend_url)
 
 @router.get("/notion/pages")

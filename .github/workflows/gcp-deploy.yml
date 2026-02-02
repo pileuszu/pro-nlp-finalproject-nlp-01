@@ -158,6 +158,7 @@ jobs:
             NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}
             GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}
             BACKEND_URL=${{ steps.env-vars.outputs.BACKEND_URL }}
+            FRONTEND_URL=${{ secrets.PREVIEW_FRONTEND_URL || secrets.PROD_FRONTEND_URL || secrets.FRONTEND_URL }}
             GH_OAUTH_CLIENT_ID=${{ steps.env-vars.outputs.GH_CLIENT_ID }}
             GH_OAUTH_CLIENT_SECRET=${{ steps.env-vars.outputs.GH_CLIENT_SECRET }}
             GH_OAUTH_REDIRECT_URI=${{ steps.env-vars.outputs.GH_REDIRECT_URI }}
@@ -185,6 +186,7 @@ jobs:
             --set-env-vars "NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}" \
             --set-env-vars "GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" \
             --set-env-vars "BACKEND_URL=${{ steps.env-vars.outputs.BACKEND_URL }}" \
+            --set-env-vars "FRONTEND_URL=${{ secrets.PREVIEW_FRONTEND_URL || secrets.PROD_FRONTEND_URL || secrets.FRONTEND_URL }}" \
             --set-env-vars "GCP_PROJECT_ID=${{ env.PROJECT_ID }}" \
             --set-env-vars "GH_OAUTH_CLIENT_ID=${{ steps.env-vars.outputs.GH_CLIENT_ID }}" \
             --set-env-vars "GH_OAUTH_CLIENT_SECRET=${{ steps.env-vars.outputs.GH_CLIENT_SECRET }}" \
@@ -207,6 +209,7 @@ jobs:
             --set-env-vars "NOTION_TOKEN=${{ steps.env-vars.outputs.NO_TOKEN }}" \
             --set-env-vars "GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" \
             --set-env-vars "BACKEND_URL=${{ steps.env-vars.outputs.BACKEND_URL }}" \
+            --set-env-vars "FRONTEND_URL=${{ secrets.PREVIEW_FRONTEND_URL || secrets.PROD_FRONTEND_URL || secrets.FRONTEND_URL }}" \
             --set-env-vars "GCP_PROJECT_ID=${{ env.PROJECT_ID }}" \
             --set-env-vars "GH_OAUTH_CLIENT_ID=${{ steps.env-vars.outputs.GH_CLIENT_ID }}" \
             --set-env-vars "GH_OAUTH_CLIENT_SECRET=${{ steps.env-vars.outputs.GH_CLIENT_SECRET }}" \

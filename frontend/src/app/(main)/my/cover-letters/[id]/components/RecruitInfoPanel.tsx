@@ -151,9 +151,9 @@ export function RecruitInfoPanel({
                                         </Label>
                                         <div className="grid grid-cols-3 gap-2">
                                             {[
-                                                { id: 'draft', label: '완성형 초안', icon: <Wand2 className="h-4 w-4" /> },
-                                                { id: 'strategy', label: '뼈대 개요', icon: <LayoutList className="h-4 w-4" /> },
-                                                { id: 'refine', label: '문장 정교화', icon: <MessageSquare className="h-4 w-4" /> }
+                                                { id: 'draft', label: '기본 스타일', icon: <Wand2 className="h-4 w-4" /> },
+                                                { id: 'strategy', label: '가이드라인 생성', icon: <LayoutList className="h-4 w-4" /> },
+                                                { id: 'refine', label: '소제목 스타일', icon: <MessageSquare className="h-4 w-4" /> }
                                             ].map(mode => (
                                                 <div key={mode.id} onClick={() => setAiMode(mode.id as AiMode)} className={cn("p-4 rounded-2xl border-2 transition-all cursor-pointer text-center space-y-2", aiMode === mode.id ? "border-blue-600 bg-blue-50/50 shadow-md" : "border-slate-50 bg-slate-50/50 hover:border-slate-100 hover:bg-white")}>
                                                     <div className={cn("mx-auto h-8 w-8 rounded-xl flex items-center justify-center transition-all", aiMode === mode.id ? "bg-blue-600 text-white" : "bg-white text-slate-300")}>{mode.icon}</div>
