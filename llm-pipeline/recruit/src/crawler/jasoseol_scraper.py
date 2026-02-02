@@ -2,19 +2,29 @@ import requests
 import json
 import time
 import os
+import csv
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
+from bs4 import BeautifulSoup
+import pandas as pd
+import sys
 
 # 경로 설정
 # 현재 파일 위치: .../recruit/src/crawler/jasoseol_scraper.py
 # RECRUIT_DIR: .../recruit/
 RECRUIT_DIR = Path(__file__).resolve().parent.parent.parent
+sys.path.append(str(RECRUIT_DIR / "src"))
+
+from crawler.ocr_processor import OCRProcessor
 env_path = RECRUIT_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
 
 DATA_DIR = RECRUIT_DIR / "data" / "recruit_data"
 SAVE_FILE_JSON = DATA_DIR / "jasoseol_questions.json"
+SAVE_FILE_CSV = DATA_DIR / "jasoseol_recruit.csv"
+SAVE_FILE_OCR_CSV = DATA_DIR / "jasoseol_recruit_ocr.csv"
 
 # 저장 디렉토리 생성
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -91,6 +101,53 @@ class JasoseolScraper:
             print(f"Error occurred while fetching questions for ID {employment_id}: {e}")
             return []
 
+    def get_recruit_detail(self, recruit_id):
+        """특정 recruit_id에 대한 상세 공고 정보(이미지 포함)를 가져옴"""
+        url = f"{self.base_url}/employment/get.json"
+        payload = {
+            "employment_company_id": recruit_id,
+            "skip_read_log": True
+        }
+        
+        try:
+            response = self.session.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('ret'):
+                    content_html = data.get('content', '')
+                    soup = BeautifulSoup(content_html, 'html.parser')
+                    
+                    # 텍스트 추출
+                    content_text = soup.get_text(separator='\n', strip=True)
+                    
+                    # 이미지 URL 추출
+                    images = []
+                    for img in soup.find_all('img'):
+                        src = img.get('src')
+                        if src:
+                            images.append(src)
+                    
+                    content_images = ",".join(images)
+                    
+                    return {
+                        "company": data.get('name'),
+                        "title": data.get('title'),
+                        "url": f"https://jasoseol.com/recruit/{recruit_id}",
+                        "content_text": content_text,
+                        "content_images": content_images,
+                        "apply_url": data.get('employment_page_url'),
+                        "Needs_OCR": True if images else False
+                    }
+                else:
+                    print(f"Failed to get recruit detail for ID {recruit_id}: ret is false")
+                    return None
+            else:
+                print(f"Failed to fetch recruit detail for ID {recruit_id}: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error occurred while fetching recruit detail for ID {recruit_id}: {e}")
+            return None
+
     def run(self):
         # 날짜 범위 설정: 오늘 00시 ~ 일주일 후 00시
         now = datetime.utcnow()
@@ -105,20 +162,37 @@ class JasoseolScraper:
         recruitments = self.get_calendar_list(start_str, end_str)
         print(f"총 {len(recruitments)}개의 공고를 발견했습니다.")
         
-        all_data = []
-        output_file = SAVE_FILE_JSON
+        all_questions_data = []
+        csv_columns = ["company", "title", "url", "content_text", "content_images", "apply_url", "Needs_OCR"]
+        
+        # CSV 파일 초기화 (헤더 작성)
+        with open(SAVE_FILE_CSV, "w", encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=csv_columns)
+            writer.writeheader()
+        
+        processed_recruit_ids = set()
         
         try:
             for idx, recruit in enumerate(recruitments):
+                recruit_id = recruit.get('id')
                 company_name = recruit.get('name')
                 recruit_title = recruit.get('title')
-                recruit_id = recruit.get('id')
+                
+                # 공고 정보 상세 수집 및 CSV 저장 (한 번만 수행)
+                if recruit_id not in processed_recruit_ids:
+                    print(f"[{idx+1}/{len(recruitments)}] {company_name} - 공고 상세 정보 추출 중...")
+                    detail = self.get_recruit_detail(recruit_id)
+                    if detail:
+                        with open(SAVE_FILE_CSV, "a", encoding='utf-8-sig', newline='') as f:
+                            writer = csv.DictWriter(f, fieldnames=csv_columns)
+                            writer.writerow(detail)
+                        processed_recruit_ids.add(recruit_id)
+                        time.sleep(2) # 상세 정보 요청 간 지연
                 
                 employments = recruit.get('employments', [])
-                
                 for emp in employments:
                     emp_id = emp.get('id')
-                    print(f"[{idx+1}/{len(recruitments)}] {company_name} - {recruit_title} (ID: {emp_id}) 추출 중...")
+                    print(f"  - {company_name} (ID: {emp_id}) 자소서 문항 추출 중...")
                     
                     try:
                         questions = self.get_questions(emp_id)
@@ -127,7 +201,6 @@ class JasoseolScraper:
                         if isinstance(questions, list):
                             for q in questions:
                                 total_count = q.get('total_count')
-                                # 글자 수 제한이 없거나 0인 경우 처리
                                 max_length = total_count if total_count and total_count > 0 else "글자수 제한 없음"
                                 
                                 processed_questions.append({
@@ -143,42 +216,55 @@ class JasoseolScraper:
                             "end_time": recruit.get('end_time'),
                             "questions": processed_questions
                         }
-                        all_data.append(item)
+                        all_questions_data.append(item)
                         
-                        # 질문 출력 추가 (글자 수 제한 포함)
+                        # 질문 출력
                         if processed_questions:
                             for i, q_item in enumerate(processed_questions, 1):
                                 q_text = q_item["question"] or ""
-                                q_max = q_item["max_length"]
-                                # q_max가 숫자면 '자'를 붙이고, 문자열이면 그대로 출력
-                                limit_str = f"{q_max}자" if isinstance(q_max, int) else q_max
-                                print(f"  Q{i} (최대 {limit_str}): {q_text[:100]}{'...' if len(q_text) > 100 else ''}")
+                                limit_str = f"{q_item['max_length']}자" if isinstance(q_item['max_length'], int) else q_item['max_length']
+                                print(f"    Q{i} ({limit_str}): {q_text[:50]}...")
                         else:
-                            print("  (질문 정보 없음)")
+                            print("    (질문 정보 없음)")
                         
-                        # 중간 저장 (혹시 모를 중단에 대비)
-                        with open(output_file, "w", encoding='utf-8') as f:
-                            json.dump(all_data, f, ensure_ascii=False, indent=4)
+                        # JSON 중간 저장
+                        with open(SAVE_FILE_JSON, "w", encoding='utf-8') as f:
+                            json.dump(all_questions_data, f, ensure_ascii=False, indent=4)
                             
                     except Exception as e:
                         print(f"Error processing employment {emp_id}: {e}")
                         continue
                         
-                    # 요청 간 지연 시간 (5초 이상으로 설정)
-                    print(f"서버 부하 방지를 위해 5초 대기 중...")
-                    time.sleep(5)
+                    # 요청 간 지연 시간
+                    time.sleep(3)
+                    
         except KeyboardInterrupt:
-            print("\n사용자에 의해 스크래핑이 중단되었습니다. 현재까지 데이터를 저장합니다.")
+            print("\n사용자에 의해 스크래핑이 중단되었습니다.")
         except Exception as e:
-            print(f"\n치명적인 에러 발생: {e}. 현재까지 데이터를 저장합니다.")
+            print(f"\n치명적인 에러 발생: {e}")
         finally:
-            # 최종 저장
-            if all_data:
-                with open(output_file, "w", encoding='utf-8') as f:
-                    json.dump(all_data, f, ensure_ascii=False, indent=4)
-                print(f"\n최종 완료! 총 {len(all_data)} 건의 데이터를 {output_file}에 안전하게 저장했습니다.")
+            if all_questions_data:
+                with open(SAVE_FILE_JSON, "w", encoding='utf-8') as f:
+                    json.dump(all_questions_data, f, ensure_ascii=False, indent=4)
+                print(f"\n완료! 자소서 문항: {SAVE_FILE_JSON}, 공고 정보: {SAVE_FILE_CSV}")
             else:
                 print("\n저장할 데이터가 없습니다.")
+
+        # OCR 처리 추가
+        if os.path.exists(SAVE_FILE_CSV):
+            print("\n=== OCR 처리 시작 ===")
+            try:
+                processor = OCRProcessor()
+                processor.process_csv(
+                    input_csv=str(SAVE_FILE_CSV), 
+                    output_csv=str(SAVE_FILE_OCR_CSV),
+                    needs_ocr_col='Needs_OCR',
+                    image_urls_col='content_images',
+                    context_col='content_text'
+                )
+                print(f"OCR 완료! 결과 저장: {SAVE_FILE_OCR_CSV}")
+            except Exception as e:
+                print(f"OCR 처리 중 에러 발생: {e}")
 
 if __name__ == "__main__":
     scraper = JasoseolScraper()

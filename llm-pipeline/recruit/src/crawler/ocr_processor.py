@@ -17,7 +17,7 @@ class OCRProcessor:
         self.rec_predictor = RecognitionPredictor(self.foundation_predictor)
         print("Models loaded.")
 
-    def process_csv(self, input_csv, output_csv):
+    def process_csv(self, input_csv, output_csv, needs_ocr_col='Needs_OCR', image_urls_col='Image_URLs', context_col='Full_Context'):
         print(f"Reading {input_csv}...")
         try:
             df = pd.read_csv(input_csv)
@@ -25,27 +25,30 @@ class OCRProcessor:
             print(f"File {input_csv} not found.")
             return
 
-        if 'Needs_OCR' not in df.columns or 'Image_URLs' not in df.columns:
-            print("Required columns (Needs_OCR, Image_URLs) not found.")
+        if needs_ocr_col not in df.columns or image_urls_col not in df.columns:
+            print(f"Required columns ({needs_ocr_col}, {image_urls_col}) not found.")
             return
+
+        if context_col not in df.columns:
+            df[context_col] = ""
 
         # Filter rows needing OCR
         # Handle various boolean/string representations
-        df['Needs_OCR'] = df['Needs_OCR'].astype(str).str.lower() == 'true'
+        df[needs_ocr_col] = df[needs_ocr_col].astype(str).str.lower() == 'true'
         
-        ocr_indices = df[df['Needs_OCR']].index.tolist()
+        ocr_indices = df[df[needs_ocr_col]].index.tolist()
         print(f"Found {len(ocr_indices)} posts requiring OCR.")
 
         for idx in ocr_indices:
             row = df.loc[idx]
-            image_urls = str(row['Image_URLs']).split(',')
+            image_urls = str(row[image_urls_col]).split(',')
             image_urls = [url.strip() for url in image_urls if url.strip()]
 
             if not image_urls:
                 print(f"Row {idx}: Needs OCR but no images found.")
                 continue
 
-            print(f"Processing Row {idx} (Job ID: {row.get('Job ID', 'Unknown')})... {len(image_urls)} images.")
+            print(f"Processing Row {idx}... {len(image_urls)} images.")
             
             extracted_texts = []
             
@@ -73,16 +76,16 @@ class OCRProcessor:
 
             if extracted_texts:
                 new_text = "\n\n[OCR Extracted Text]\n" + "\n\n".join(extracted_texts)
-                # Append to Full_Context
-                current_context = str(df.loc[idx, 'Full_Context'])
-                if current_context == 'nan' or current_context == 'N/A':
-                    df.loc[idx, 'Full_Context'] = new_text
+                # Append to context column
+                current_context = str(df.loc[idx, context_col])
+                if current_context == 'nan' or current_context == 'N/A' or not current_context:
+                    df.loc[idx, context_col] = new_text
                 else:
-                    df.loc[idx, 'Full_Context'] = current_context + "\n" + new_text
+                    df.loc[idx, context_col] = current_context + "\n" + new_text
                 
                 # Mark as processed
-                df.loc[idx, 'Needs_OCR'] = False
-                print(f"  Updated Full_Context for Job {row.get('Job ID', 'Unknown')}.")
+                df.loc[idx, needs_ocr_col] = False
+                print(f"  Updated {context_col} for row {idx}.")
 
         # Save result
         df.to_csv(output_csv, index=False, encoding='utf-8-sig')
