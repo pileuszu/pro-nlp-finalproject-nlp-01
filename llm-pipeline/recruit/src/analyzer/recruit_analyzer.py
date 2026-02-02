@@ -16,7 +16,8 @@ from common.clova_client import ClovaStudioClient
 
 # .env 로드
 BASE_DIR = SRC_DIR.parent.parent.parent  # pro-nlp-finalproject-nlp-01
-env_path = BASE_DIR / ".env"
+RECRUIT_DIR = Path(__file__).resolve().parent.parent.parent
+env_path = RECRUIT_DIR / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # 경로 설정 (기본값)

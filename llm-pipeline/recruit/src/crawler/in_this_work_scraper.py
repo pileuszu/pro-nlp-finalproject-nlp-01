@@ -59,7 +59,7 @@ def get_headers():
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept-Encoding': 'gzip, deflate',
         'Connection': 'keep-alive',
         'Upgrade-Insecure-Requests': '1',
         'Sec-Fetch-Dest': 'document',
@@ -78,7 +78,7 @@ def get_job_list(pages=1):
         if page == 1:
             url = "https://inthiswork.com/it"
         else:
-            url = f"https://inthiswork.com/it?paged1={page}"
+            url = f"https://inthiswork.com/it/?paged1={page}"
             
         time.sleep(random.uniform(2, 4))
         print(f"[{page}페이지] 목록 수집 중... ({url})")
@@ -90,7 +90,9 @@ def get_job_list(pages=1):
                 continue
                 
             soup = BeautifulSoup(resp.text, 'html.parser')
-            entries = soup.select('.dpt-entry')
+            entries = soup.select('.sub-entry')
+            if not entries:
+                entries = soup.select('.dpt-entry')
             if not entries:
                 entries = soup.select('.dpt-entry-wrapper')
             
@@ -132,51 +134,68 @@ def get_job_list(pages=1):
             
     return all_jobs
 
-def get_job_detail(url):
-    time.sleep(random.uniform(2, 6))
-    try:
-        resp = requests.get(url, headers=get_headers(), timeout=15)
-        if resp.status_code != 200:
-            print(f"  → 접속 거부됨 ({resp.status_code}): {url}")
-            return "", "", ""
+def get_job_detail(url, max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            # 기본 대기 시간
+            time.sleep(random.uniform(2, 5))
+            
+            resp = requests.get(url, headers=get_headers(), timeout=15)
+            
+            if resp.status_code == 200:
+                soup = BeautifulSoup(resp.text, 'html.parser')
+                content_area = (
+                    soup.select_one('.fusion-content-tb') or 
+                    soup.select_one('.fusion-content-tb-1') or 
+                    soup.select_one('.fusion-content-tb-2') or 
+                    soup.select_one('.post-content') or 
+                    soup.select_one('.entry-content')
+                )
+                
+                if not content_area:
+                    if len(resp.text) > 2000:
+                        content_area = soup.find('body')
+                    else:
+                        return "", "", ""
+                
+                apply_link_obj = content_area.select_one('a.maxbutton')
+                if not apply_link_obj:
+                    for a in content_area.select('a'):
+                        if "지원하러" in a.get_text() or "지원하기" in a.get_text():
+                            apply_link_obj = a
+                            break
+                
+                apply_url = ""
+                if apply_link_obj:
+                    apply_url = apply_link_obj.get('href', '')
+                    apply_link_obj.decompose()
 
-        soup = BeautifulSoup(resp.text, 'html.parser')
-        content_area = (
-            soup.select_one('.fusion-content-tb') or 
-            soup.select_one('.fusion-content-tb-1') or 
-            soup.select_one('.fusion-content-tb-2') or 
-            soup.select_one('.post-content') or 
-            soup.select_one('.entry-content')
-        )
-        
-        if not content_area:
-            if len(resp.text) > 2000:
-                content_area = soup.find('body')
+                images = content_area.select('img')
+                image_links = [img.get('src') for img in images if img.get('src')]
+                images_str = ", ".join(image_links)
+
+                text_content = content_area.get_text(separator='\n', strip=True)
+                return text_content[:5000], images_str, apply_url
+                
+            elif resp.status_code == 429:
+                wait_time = (attempt + 1) * 30  # 429 발생 시 더 오래 대기 (30, 60, 90초)
+                print(f"  → [429] 너무 많은 요청. {wait_time}초 대기 후 재시도... ({attempt + 1}/{max_retries})")
+                time.sleep(wait_time)
+            else:
+                print(f"  → 접속 실패 ({resp.status_code}): {url}")
+                if attempt < max_retries - 1:
+                    time.sleep(5)
+                else:
+                    return "", "", ""
+                    
+        except Exception as e:
+            print(f"  → 상세 에러({url}) - 시도 {attempt+1}: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(5)
             else:
                 return "", "", ""
-        
-        apply_link_obj = content_area.select_one('a.maxbutton')
-        if not apply_link_obj:
-            for a in content_area.select('a'):
-                if "지원하러" in a.get_text() or "지원하기" in a.get_text():
-                    apply_link_obj = a
-                    break
-        
-        apply_url = ""
-        if apply_link_obj:
-            apply_url = apply_link_obj.get('href', '')
-            apply_link_obj.decompose()
-
-        images = content_area.select('img')
-        image_links = [img.get('src') for img in images if img.get('src')]
-        images_str = ", ".join(image_links)
-
-        text_content = content_area.get_text(separator='\n', strip=True)
-        return text_content[:5000], images_str, apply_url
-
-    except Exception as e:
-        print(f"  → 상세 에러({url}): {e}")
-        return "", "", ""
+                
+    return "", "", ""
 
 # -----------------------------------------------------
 # OCR 관련 함수
@@ -254,8 +273,12 @@ def main():
                 df.at[idx, 'content_text'] = full_ocr_text
                 print("  -> 변환 완료")
 
-        df.to_csv(SAVE_FILE_OCR_CSV, index=False, encoding='utf-8-sig')
-        print(f"[완료] {SAVE_FILE_OCR_CSV} 저장됨.")
+        if os.path.exists(SAVE_FILE_OCR_CSV):
+            df.to_csv(SAVE_FILE_OCR_CSV, mode='a', header=False, index=False, encoding='utf-8-sig')
+            print(f"[추가 완료] {SAVE_FILE_OCR_CSV}에 {len(df)}건 추가됨.")
+        else:
+            df.to_csv(SAVE_FILE_OCR_CSV, mode='w', header=True, index=False, encoding='utf-8-sig')
+            print(f"[저장 완료] {SAVE_FILE_OCR_CSV} 생성됨.")
 
 if __name__ == "__main__":
     main()

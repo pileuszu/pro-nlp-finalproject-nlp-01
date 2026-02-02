@@ -3,10 +3,22 @@ import json
 import time
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
 
-# .env 파일 로드
-load_dotenv(find_dotenv())
+# 경로 설정
+# 현재 파일 위치: .../recruit/src/crawler/jasoseol_scraper.py
+# RECRUIT_DIR: .../recruit/
+RECRUIT_DIR = Path(__file__).resolve().parent.parent.parent
+env_path = RECRUIT_DIR / ".env"
+load_dotenv(dotenv_path=env_path)
+
+DATA_DIR = RECRUIT_DIR / "data" / "recruit_data"
+SAVE_FILE_JSON = DATA_DIR / "jasoseol_questions.json"
+
+# 저장 디렉토리 생성
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
 
 class JasoseolScraper:
     def __init__(self):
@@ -83,7 +95,7 @@ class JasoseolScraper:
         # 날짜 범위 설정: 오늘 00시 ~ 일주일 후 00시
         now = datetime.utcnow()
         start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        end_dt = start_dt + timedelta(days=7)
+        end_dt = start_dt + timedelta(days=1)
         
         # API 형식에 맞게 문자열 변환 (Z 포맷)
         start_str = start_dt.strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -94,7 +106,7 @@ class JasoseolScraper:
         print(f"총 {len(recruitments)}개의 공고를 발견했습니다.")
         
         all_data = []
-        output_file = "jasoseol_questions.json"
+        output_file = SAVE_FILE_JSON
         
         try:
             for idx, recruit in enumerate(recruitments):
