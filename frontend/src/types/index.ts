@@ -52,6 +52,8 @@ export interface CoverLetterItem {
     question: string;
     content: string;
     category?: string;
+    hint?: string;
+    max_length?: number;
     key_points?: string[];
     suggested_improvements?: string[];
 }

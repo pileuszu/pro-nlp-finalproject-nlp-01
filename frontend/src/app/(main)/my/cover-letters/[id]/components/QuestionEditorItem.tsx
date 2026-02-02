@@ -11,6 +11,8 @@ interface QuestionItem {
     id: number;
     question: string;
     answer: string;
+    hint?: string;
+    max_length?: number;
     key_points?: string[];
     suggested_improvements?: string[];
 }
@@ -49,14 +51,30 @@ export function QuestionEditorItem({
                         <span className="text-xs font-bold uppercase tracking-widest opacity-60">ITEM</span>
                         <span className="text-md font-black">{index + 1}</span>
                     </div>
-                    <Textarea
-                        ref={textareaRef}
-                        value={question.question}
-                        onChange={e => onUpdate('question', e.target.value)}
-                        className="border-none text-2xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-slate-200 resize-none min-h-[40px] bg-transparent overflow-hidden leading-tight py-1"
-                        placeholder="질문 문항을 입력하세요"
-                        rows={1}
-                    />
+                    <div className="flex-1 space-y-2">
+                        <Textarea
+                            ref={textareaRef}
+                            value={question.question}
+                            onChange={e => onUpdate('question', e.target.value)}
+                            className="border-none text-2xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-slate-200 resize-none min-h-[40px] bg-transparent overflow-hidden leading-tight py-1"
+                            placeholder="질문 문항을 입력하세요"
+                            rows={1}
+                        />
+                        {(question.hint || question.max_length) && (
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400 font-bold ml-1">
+                                {question.hint && (
+                                    <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-lg text-slate-500">
+                                        <Sparkles className="h-3 w-3 text-blue-500" /> {question.hint}
+                                    </span>
+                                )}
+                                {question.max_length && (
+                                    <span className="flex items-center gap-1.5 px-1">
+                                        최대 {question.max_length}자
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full shrink-0"><Trash2 className="h-5 w-5" /></Button>
             </div>

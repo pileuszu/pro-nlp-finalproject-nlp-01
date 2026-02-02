@@ -28,8 +28,17 @@ class CoverLetterService:
 
     async def create_cover_letter(self, cl: schemas.CoverLetterCreate):
         try:
-            db_cl = models.CoverLetter(**cl.model_dump())
+            cl_dict = cl.model_dump()
+            questions_data = cl_dict.pop('questions', [])
+            
+            db_cl = models.CoverLetter(**cl_dict)
             self.db.add(db_cl)
+            await self.db.flush()
+            
+            for q_data in questions_data:
+                db_item = models.CoverLetterItem(**q_data, cover_letter_id=db_cl.id)
+                self.db.add(db_item)
+                
             await self.db.commit()
             
             # Explicitly load relationships to prevent MissingGreenlet error
@@ -51,8 +60,23 @@ class CoverLetterService:
             if not db_cl:
                 return None
             
+            questions_data = data.pop('questions', None)
+            
             for key, value in data.items():
                 setattr(db_cl, key, value)
+            
+            if questions_data is not None:
+                # Simple replacement logic for questions
+                # 1. Delete existing items
+                from sqlalchemy import delete
+                await self.db.execute(
+                    delete(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
+                )
+                
+                # 2. Add new items
+                for q_data in questions_data:
+                    db_item = models.CoverLetterItem(**q_data, cover_letter_id=cl_id)
+                    self.db.add(db_item)
                 
             await self.db.commit()
             await self.db.refresh(db_cl)

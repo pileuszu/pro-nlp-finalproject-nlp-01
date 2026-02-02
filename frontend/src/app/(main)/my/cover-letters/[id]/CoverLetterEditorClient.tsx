@@ -27,6 +27,8 @@ interface QuestionItem {
     id: number;
     question: string;
     answer: string;
+    hint?: string;
+    max_length?: number;
     key_points?: string[];
     suggested_improvements?: string[];
 }
@@ -136,6 +138,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         id: item.id || Date.now() + Math.random(),
                         question: item.question,
                         answer: item.content,
+                        hint: item.hint,
+                        max_length: item.max_length,
                         key_points: item.key_points,
                         suggested_improvements: item.suggested_improvements
                     })));
@@ -163,6 +167,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                             id: item.id || Date.now() + Math.random(),
                             question: item.question,
                             answer: item.content,
+                            hint: item.hint,
+                            max_length: item.max_length,
                             key_points: item.key_points,
                             suggested_improvements: item.suggested_improvements
                         })));
@@ -210,7 +216,12 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         try {
             const body = {
                 title,
-                questions: questions.map(q => ({ question: q.question, content: q.answer })),
+                questions: questions.map(q => ({
+                    question: q.question,
+                    content: q.answer,
+                    hint: q.hint,
+                    max_length: q.max_length
+                })),
                 recruit_id: linkedRecruit?.id
             };
             const res = await fetchWithAuth(isNew ? getApiUrl('/cover-letters') : getApiUrl(`/cover-letters/${id}`), {
@@ -295,6 +306,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     id: item.id || Date.now() + Math.random(),
                                     question: item.question,
                                     answer: item.content,
+                                    hint: item.hint,
+                                    max_length: item.max_length,
                                     key_points: item.key_points,
                                     suggested_improvements: item.suggested_improvements
                                 })));

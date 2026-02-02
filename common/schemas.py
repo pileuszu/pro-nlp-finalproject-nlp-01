@@ -177,6 +177,7 @@ class CoverLetterItem(CoverLetterItemBase):
 
 class CoverLetterCreate(CoverLetterBase):
     user_id: int
+    questions: Optional[List[CoverLetterItemCreate]] = []
 
 class CoverLetterSummary(CoverLetterBase):
     id: int
@@ -200,11 +201,12 @@ class CoverLetterListResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class CoverLetterCreateRequest(CoverLetterBase):
-    pass
+    questions: Optional[List[CoverLetterItemCreate]] = []
 
 class CoverLetterUpdateRequest(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    questions: Optional[List[CoverLetterItemCreate]] = None
 
 # AI Related Schemas
 class PortfolioAnalyzeRequest(BaseModel):
