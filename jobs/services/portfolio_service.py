@@ -139,31 +139,48 @@ class PortfolioService:
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
 
-            # 2. Process each extracted project
-            # First one updates the existing portfolio, others create new ones
+            # 2. Pre-create records for all projects to get IDs and show progress in UI
+            project_records_meta = []
             for i, proj_data in enumerate(extracted_projects):
-                proj_text = proj_data["content"]
-                proj_title = proj_data["title"]
                 proj_url = proj_data["url"]
-
-                # Refine single project (more accurate & cost effective)
-                # If only one project was extracted, we can use the old method which extracts profile too, 
-                # but for batch, we use refine_single_project.
-                project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
+                proj_title = proj_data["title"] or (f"{p_type} Project {i+1}")
                 
-                target_portfolio = None
                 if i == 0:
-                    target_portfolio = portfolio
+                    portfolio.project_name = proj_title
+                    portfolio.source_url = proj_url
+                    target = portfolio
                 else:
-                    # Create a new portfolio record for subsequent projects
-                    target_portfolio = Portfolio(
+                    target = Portfolio(
                         user_id=portfolio.user_id,
                         type=portfolio.type,
                         source_url=proj_url,
+                        project_name=proj_title,
                         processing_status=ProcessingStatus.PROCESSING
                     )
-                    self.db.add(target_portfolio)
-                    await self.db.flush() # Get ID
+                    self.db.add(target)
+                project_records_meta.append({"id": None, "target": target, "data": proj_data})
+            
+            await self.db.flush()
+            for item in project_records_meta:
+                item["id"] = item["target"].id
+            
+            await self.db.commit()
+            logger.info(f"Pre-created {len(project_records_meta)} portfolio records. Starting LLM refinement...")
+
+            # 3. Process each project with LLM
+            for i, item in enumerate(project_records_meta):
+                target_id = item["id"]
+                proj_data = item["data"]
+                proj_text = proj_data["content"]
+                proj_title = proj_data["title"]
+
+                # Re-fetch the portfolio record to avoid expired object issues after commit
+                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                res = await self.db.execute(stmt)
+                target_portfolio = res.scalar_one()
+
+                # Refine single project
+                project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
 
                 # Update portfolio data
                 target_portfolio.project_name = project_refined.project_name
@@ -365,16 +382,47 @@ class PortfolioService:
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
 
-            # 2. Process each extracted project
-            # First one updates the existing portfolio, others create new ones
+            # 2. Pre-create records for all projects to get IDs and show progress in UI
+            project_records_meta = []
             for i, proj_data in enumerate(extracted_projects):
+                proj_url = proj_data["url"]
+                proj_title = proj_data["title"] or (f"{p_type} Project {i+1}")
+                
+                if i == 0:
+                    portfolio.project_name = proj_title
+                    portfolio.source_url = proj_url
+                    target = portfolio
+                else:
+                    target = Portfolio(
+                        user_id=portfolio.user_id,
+                        type=portfolio.type,
+                        source_url=proj_url,
+                        project_name=proj_title,
+                        processing_status=ProcessingStatus.PROCESSING
+                    )
+                    self.db.add(target)
+                project_records_meta.append({"id": None, "target": target, "data": proj_data})
+            
+            await self.db.flush()
+            for item in project_records_meta:
+                item["id"] = item["target"].id
+            
+            await self.db.commit()
+            logger.info(f"Pre-created {len(project_records_meta)} portfolio records (Analysis). Starting...")
+
+            # 3. Process each project with LLM
+            for i, item in enumerate(project_records_meta):
+                target_id = item["id"]
+                proj_data = item["data"]
                 proj_text = proj_data["content"]
                 proj_title = proj_data["title"]
-                proj_url = proj_data["url"]
 
-                target_portfolio = None
+                # Re-fetch the portfolio record
+                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                res = await self.db.execute(stmt)
+                target_portfolio = res.scalar_one()
+
                 if i == 0:
-                    target_portfolio = portfolio
                     # For the first one, we extract profile AND project data
                     combined_result = await self.llm_refiner.extract_user_data_and_queries(proj_text)
                     user_data = combined_result.user_data
@@ -388,16 +436,6 @@ class PortfolioService:
                         # Fallback if AI didn't find specific projects in first chunk
                         project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
                 else:
-                    # Create a new portfolio record for subsequent projects
-                    target_portfolio = Portfolio(
-                        user_id=portfolio.user_id,
-                        type=portfolio.type,
-                        source_url=proj_url,
-                        processing_status=ProcessingStatus.PROCESSING
-                    )
-                    self.db.add(target_portfolio)
-                    await self.db.flush() # Get ID
-                    
                     # Refine single project
                     project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
 

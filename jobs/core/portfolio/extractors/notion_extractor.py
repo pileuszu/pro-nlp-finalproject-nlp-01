@@ -114,13 +114,11 @@ class NotionExtractor(BaseExtractor):
         content = ""
 
         if b_type == "child_page":
-            # Pages are usually separate portfolios, but user wants everything recursive.
-            # We'll include a link or a summary if it's too deep.
-            # For "all" mode, search will find it anyway.
-            # Avoid deep recursion here to prevent huge single files.
-            pass 
+            # Recursively process child pages
+            content += self._process_node(block["id"], "page")
         elif b_type == "child_database":
-            pass
+            # Recursively process child databases
+            content += self._process_node(block["id"], "database")
         elif b_type in [
             "paragraph", "heading_1", "heading_2", "heading_3",
             "bulleted_list_item", "numbered_list_item", "quote", "code", "to_do"
