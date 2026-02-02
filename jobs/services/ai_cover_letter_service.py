@@ -62,7 +62,7 @@ class AICoverLetterService:
             relevant_docs = retriever.search(query_text, query_embedding, top_k=SEARCH_TOP_K)
             
             # 5. Format experiences with metadata (llm-pipeline 방식)
-            context_text = generator._format_experiences(relevant_docs)
+            context_text = self.generator._format_experiences(relevant_docs)
 
             # 6. Gap Analysis
             gap_result = self.generator.analyze_gap(context_text, query_text)
