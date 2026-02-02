@@ -5,6 +5,7 @@ Gap Analysis 모듈
 - HyperCLOVA OpenAI 호환 API 사용
 """
 from typing import List, Dict, Any
+import time
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
@@ -294,6 +295,11 @@ def run_full_analysis(user_id: str, subheading: bool = False) -> Dict[str, Any]:
                 "max_length": question.get("max_length"),
                 "resume": resume
             })
+            
+            # API Rate Limit 방지를 위한 대기
+            from rich import print as rprint
+            rprint(f"[dim]⏳ API 호출 제한 방지를 위해 5초 대기합니다... ({question.get('id')}/{len(resume_questions)})[/dim]")
+            time.sleep(5)
     else:
         # 문항이 없으면 기본 자소서 생성
         resume = generate_resume(relevant_experiences, gap_result, company_data, subheading=subheading)

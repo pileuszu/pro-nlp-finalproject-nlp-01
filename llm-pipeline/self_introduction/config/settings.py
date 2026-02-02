@@ -30,7 +30,7 @@ EMBEDDING_MODEL = "bge-m3"
 
 # LLM 설정 (HyperCLOVA X)
 LLM_MODEL = "HCX-007"
-LLM_TEMPERATURE = 0.5   # 사실 기반 생성 (API 기본값과 동일하나, 품질 유지를 위해 명시적 고정)
+LLM_TEMPERATURE = 0.5   # 사실 기반 생성 (할루시네이션 원천 차단을 위해 0.0 설정)
 LLM_TOP_P = 0.8        # 안정적 어휘 (API 기본값과 동일하나, 명시적 고정)
 LLM_REPETITION_PENALTY = 1.2  # 문장 반복 방지 (기본값 1.1보다 높게 설정하여 반복 억제 강화)
 LLM_MAX_TOKENS = 32768  # 긴 자소서 생성을 위해 최대치 설정
