@@ -20,22 +20,22 @@ logger.info("Importing endpoints...")
 from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications, integrations
 
 from contextlib import asynccontextmanager
+import threading
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize Database on startup
-    logger.info("Lifespan: Starting database initialization...")
+    logger.info("Lifespan: Starting database initialization (Background Thread)...")
     try:
         from common.db_init import init_db
-        # init_db is synchronous, so we just call it here. 
-        # For non-blocking behavior in async context, strictly speaking we might want run_in_executor, 
-        # but since this is startup, blocking the event loop briefly is acceptable *as long as* uvicorn has started initialization.
-        # However, FastAPI lifespan runs *before* serving requests but *after* app creation.
-        # To strictly pass Cloud Run checks if they probe immediately, we rely on lifespan logic.
-        init_db()
-        logger.info("Lifespan: Database initialization completed.")
+        
+        # Run init_db in a separate thread so it doesn't block startup
+        db_thread = threading.Thread(target=init_db, daemon=True)
+        db_thread.start()
+        
+        logger.info("Lifespan: Database initialization thread started.")
     except Exception as e:
-        logger.error(f"Lifespan: Database initialization failed: {e}")
+        logger.error(f"Lifespan: Failed to start database initialization thread: {e}")
     
     yield
     
