@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Github, Upload, Loader2, BookOpen, Settings, Database, Library } from "lucide-react";
+import { ArrowLeft, Github, Upload, Loader2, BookOpen, Settings, Database, Library, ExternalLink, RefreshCw, Sparkles } from "lucide-react";
 import { portfolioApi } from "@/lib/portfolioApi";
-import { integrationApi, IntegrationRepo, UserIntegration } from "@/lib/integrationApi";
+import { integrationApi, IntegrationRepo, UserIntegration, NotionPage } from "@/lib/integrationApi";
 import { useToast } from "@/components/ui/toast-context";
 import { useEffect, useCallback } from "react";
+import { cn } from "@/lib/utils";
 
 export default function NewPortfolioPage() {
     const router = useRouter();
@@ -27,17 +28,30 @@ export default function NewPortfolioPage() {
     // Integration States
     const [integrations, setIntegrations] = useState<UserIntegration[]>([]);
     const [githubRepos, setGithubRepos] = useState<IntegrationRepo[]>([]);
-    const [isLoadingRepos, setIsLoadingRepos] = useState(false);
+    const [notionPages, setNotionPages] = useState<NotionPage[]>([]);
+    const [isLoadingIntegrations, setIsLoadingIntegrations] = useState(false);
 
     const loadGithubRepos = useCallback(async () => {
-        setIsLoadingRepos(true);
+        setIsLoadingIntegrations(true);
         try {
             const repos = await integrationApi.fetchGithubRepos();
             setGithubRepos(repos);
         } catch (err) {
             console.error(err);
         } finally {
-            setIsLoadingRepos(false);
+            setIsLoadingIntegrations(false);
+        }
+    }, []);
+
+    const loadNotionPages = useCallback(async () => {
+        setIsLoadingIntegrations(true);
+        try {
+            const pages = await integrationApi.fetchNotionPages();
+            setNotionPages(pages);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setIsLoadingIntegrations(false);
         }
     }, []);
 
@@ -48,10 +62,13 @@ export default function NewPortfolioPage() {
             if (data.find(i => i.provider === 'github')) {
                 loadGithubRepos();
             }
+            if (data.find(i => i.provider === 'notion')) {
+                loadNotionPages();
+            }
         } catch (err) {
             console.error("Failed to load integrations", err);
         }
-    }, [loadGithubRepos]);
+    }, [loadGithubRepos, loadNotionPages]);
 
     useEffect(() => {
         loadIntegrations();
@@ -68,6 +85,7 @@ export default function NewPortfolioPage() {
     };
 
     const githubIntegration = integrations.find(i => i.provider === 'github');
+    const notionIntegration = integrations.find(i => i.provider === 'notion');
 
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,20 +215,9 @@ export default function NewPortfolioPage() {
                                 <div className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
                                     <div className="flex justify-between items-center mb-1">
                                         <Label className="font-bold text-slate-700">리포지토리 또는 프로필 URL</Label>
-                                        {!githubIntegration && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="rounded-full border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white h-8"
-                                                onClick={handleGithubConnect}
-                                            >
-                                                <Github className="h-4 w-4 mr-2" />
-                                                GitHub 계정 연동 (Private 분석 지원)
-                                            </Button>
-                                        )}
                                         {githubIntegration && (
                                             <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-50">
-                                                연동됨
+                                                계정 연동됨
                                             </Badge>
                                         )}
                                     </div>
@@ -227,37 +234,62 @@ export default function NewPortfolioPage() {
                                             className="bg-blue-600 hover:bg-blue-700 text-white font-bold h-11 px-6 rounded-xl transition-all"
                                         >
                                             {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                            심층 분석 및 연동
+                                            URL 분석 및 등록
                                         </Button>
                                     </div>
+
+                                    {!githubIntegration && (
+                                        <div className="p-4 mt-2 bg-blue-50/50 border border-blue-100 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                                            <div className="text-sm text-blue-700 font-medium">
+                                                <Sparkles className="h-4 w-4 inline mr-2 text-blue-500" />
+                                                GitHub 계정을 연동하면 **모든 Repository(Private 포함)**를 한눈에 보고 선택할 수 있습니다.
+                                            </div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="rounded-xl border-blue-500 text-blue-600 hover:bg-blue-50 h-10 w-full sm:w-auto shrink-0 font-bold bg-white"
+                                                onClick={handleGithubConnect}
+                                            >
+                                                <Github className="h-4 w-4 mr-2" />
+                                                GitHub 연동하기
+                                            </Button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {githubIntegration && githubRepos.length > 0 && (
                                     <div className="space-y-3">
-                                        <Label className="font-bold text-slate-700 flex items-center gap-2">
-                                            <Library className="h-4 w-4" /> 내 저장소 목록 (추천)
-                                        </Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label className="font-bold text-slate-700 flex items-center gap-2">
+                                                <Library className="h-4 w-4" /> 내 저장소 목록 (분석 선택)
+                                            </Label>
+                                            <Button variant="ghost" size="sm" onClick={loadGithubRepos} className="h-8 text-xs text-slate-400 hover:text-blue-600">
+                                                <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingIntegrations && "animate-spin")} /> 새로고침
+                                            </Button>
+                                        </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
                                             {githubRepos.map(repo => (
                                                 <div
                                                     key={repo.url}
-                                                    className="p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-400 cursor-pointer transition-all group"
+                                                    className="p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-400 cursor-pointer transition-all group relative"
                                                     onClick={() => handleGithubAnalyze(repo.url)}
                                                 >
                                                     <div className="flex items-start justify-between">
                                                         <div className="font-medium text-slate-900 group-hover:text-blue-600 truncate mr-2">{repo.name}</div>
                                                         {repo.private && <Badge variant="secondary" className="bg-slate-100 text-[10px] h-4">Private</Badge>}
                                                     </div>
-                                                    <div className="text-xs text-slate-400 mt-1 truncate">{repo.description || "설명 없음"}</div>
+                                                    <div className="text-xs text-slate-400 mt-1 truncate pr-6">{repo.description || "설명 없음"}</div>
+                                                    <ExternalLink className="absolute bottom-4 right-4 h-3 w-3 text-slate-200 group-hover:text-blue-400 transition-colors" />
                                                 </div>
                                             ))}
                                         </div>
                                     </div>
                                 )}
 
-                                {githubIntegration && isLoadingRepos && (
-                                    <div className="flex justify-center p-8">
-                                        <Loader2 className="h-6 w-6 animate-spin text-slate-300" />
+                                {githubIntegration && isLoadingIntegrations && githubRepos.length === 0 && (
+                                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-100 rounded-3xl">
+                                        <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+                                        <p className="text-sm font-bold text-slate-400">레포지토리 목록을 불러오는 중...</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -315,45 +347,119 @@ export default function NewPortfolioPage() {
                                 </div>
                             </CardHeader>
                             <CardContent className="px-8 pb-8 space-y-6">
-                                <div className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4 text-center">
+                                <div className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
                                     <div className="max-w-md mx-auto space-y-6 py-4">
-                                        <div className="flex flex-col items-center gap-2">
-                                            <Database className="h-10 w-10 text-blue-500 mb-2" />
-                                            <h3 className="font-bold text-lg text-slate-900">워크스페이스 전체 분석</h3>
-                                            <p className="text-sm text-slate-500">연동된 모든 페이지를 재귀적으로 탐색하여 포트폴리오 데이터를 추출합니다.</p>
-                                        </div>
-                                        <Button
-                                            size="lg"
-                                            onClick={() => handleNotionAnalyze("all")}
-                                            className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold h-12"
-                                            disabled={isAnalyzing}
-                                        >
-                                            {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                            워크스페이스 전체 동기화 시작
-                                        </Button>
+                                        {notionIntegration ? (
+                                            <div className="flex flex-col items-center gap-4">
+                                                <div className="flex flex-col items-center gap-2 mb-2">
+                                                    <Database className="h-10 w-10 text-slate-900" />
+                                                    <h3 className="font-bold text-lg text-slate-900">워크스페이스 전체 분석</h3>
+                                                    <p className="text-sm text-slate-500">연동된 모든 페이지를 재귀적으로 탐색하여 포트폴리오 데이터를 추출합니다.</p>
+                                                    <div className="flex gap-2 items-center mt-1">
+                                                        <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-50">Notion 연동됨</Badge>
+                                                        <Button variant="ghost" size="sm" onClick={handleNotionConnect} className="text-xs text-slate-400 hover:text-blue-600 h-7 px-2">
+                                                            워크스페이스 재선택
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="lg"
+                                                    onClick={() => handleNotionAnalyze("all")}
+                                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold h-12 shadow-lg shadow-slate-200"
+                                                    disabled={isAnalyzing}
+                                                >
+                                                    {isAnalyzing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                                    워크스페이스 전체 동기화 시작
+                                                </Button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col items-center gap-6 py-4">
+                                                <div className="flex flex-col items-center gap-2 text-center">
+                                                    <Settings className="h-10 w-10 text-slate-300 mb-2" />
+                                                    <h3 className="font-bold text-lg text-slate-900">Notion 계정 연동 필요</h3>
+                                                    <p className="text-sm text-slate-500">계정을 연동하면 워크스페이스의 페이지들을 불러오거나<br />한 번에 모든 데이터를 가져올 수 있습니다.</p>
+                                                </div>
+                                                <Button
+                                                    size="lg"
+                                                    onClick={handleNotionConnect}
+                                                    className="w-full bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold h-12"
+                                                >
+                                                    <Settings className="h-5 w-5 mr-2" />
+                                                    Notion 워크스페이스 연동하기
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
 
-                                    <div className="relative py-4">
-                                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
-                                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 px-2 text-slate-400 font-bold">또는 특정 페이지 URL</span></div>
-                                    </div>
+                                    {notionIntegration && (
+                                        <>
+                                            <div className="relative py-4">
+                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
+                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 px-2 text-slate-400 font-bold">또는 특정 페이지 목록</span></div>
+                                            </div>
 
-                                    <div className="flex gap-2">
-                                        <Input
-                                            placeholder="https://www.notion.so/..."
-                                            className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
-                                            value={notionUrl}
-                                            onChange={(e) => setNotionUrl(e.target.value)}
-                                        />
-                                        <Button
-                                            onClick={() => handleNotionAnalyze(notionUrl)}
-                                            disabled={isAnalyzing || !notionUrl}
-                                            variant="outline"
-                                            className="border-slate-200 hover:bg-slate-100 text-slate-700 font-bold h-11 px-6 rounded-xl transition-all"
-                                        >
-                                            분석
-                                        </Button>
-                                    </div>
+                                            <div className="space-y-3">
+                                                <div className="flex items-center justify-between">
+                                                    <Label className="font-bold text-slate-700 flex items-center gap-2">
+                                                        <BookOpen className="h-4 w-4" /> 연동된 페이지 목록 (추천)
+                                                    </Label>
+                                                    <Button variant="ghost" size="sm" onClick={loadNotionPages} className="h-8 text-xs text-slate-400 hover:text-blue-600">
+                                                        <RefreshCw className={cn("h-3 w-3 mr-1", isLoadingIntegrations && "animate-spin")} /> 새로고침
+                                                    </Button>
+                                                </div>
+
+                                                {isLoadingIntegrations && notionPages.length === 0 ? (
+                                                    <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed border-slate-100 rounded-3xl">
+                                                        <Loader2 className="h-8 w-8 animate-spin text-slate-300 mb-4" />
+                                                        <p className="text-sm font-bold text-slate-400">Notion 페이지 목록을 불러오는 중...</p>
+                                                    </div>
+                                                ) : notionPages.length > 0 ? (
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+                                                        {notionPages.map(page => (
+                                                            <div
+                                                                key={page.id}
+                                                                className="p-4 rounded-xl border border-slate-100 bg-white hover:border-blue-400 cursor-pointer transition-all group relative"
+                                                                onClick={() => handleNotionAnalyze(page.id)}
+                                                            >
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="font-medium text-slate-900 group-hover:text-blue-600 truncate mr-2">{page.title}</div>
+                                                                </div>
+                                                                <div className="text-[10px] text-slate-400 mt-1 truncate pr-6 uppercase underline decoration-slate-200">View in Notion</div>
+                                                                <ExternalLink className="absolute bottom-4 right-4 h-3 w-3 text-slate-200 group-hover:text-blue-400 transition-colors" />
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="p-4 bg-slate-100/50 rounded-xl text-center text-xs text-slate-400 border border-dashed">
+                                                        워크스페이스에 연동된 페이지가 없거나 불러오지 못했습니다. <br />
+                                                        워크스페이스 재선택을 통해 페이지 권한을 다시 설정해보세요.
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="relative py-4 mt-4">
+                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100 border-dashed"></span></div>
+                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 px-2 text-slate-300 font-bold italic">직접 URL 입력</span></div>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    placeholder="https://www.notion.so/..."
+                                                    className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
+                                                    value={notionUrl}
+                                                    onChange={(e) => setNotionUrl(e.target.value)}
+                                                />
+                                                <Button
+                                                    onClick={() => handleNotionAnalyze(notionUrl)}
+                                                    disabled={isAnalyzing || !notionUrl}
+                                                    variant="outline"
+                                                    className="border-slate-200 hover:bg-slate-100 text-slate-700 font-bold h-11 px-6 rounded-xl transition-all"
+                                                >
+                                                    분석
+                                                </Button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

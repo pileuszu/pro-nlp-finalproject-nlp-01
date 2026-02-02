@@ -5,29 +5,60 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 import { User } from "@/types";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Target, Sparkles, User as UserIcon, Mail, Calendar, Briefcase } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Loader2, Target, Sparkles, User as UserIcon, Mail, Calendar, Briefcase, Github, Settings as NotionIcon, Unlink, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { integrationApi, UserIntegration } from "@/lib/integrationApi";
+import { cn } from "@/lib/utils";
 
 export default function ProfilePage() {
     const { isAuthenticated } = useAuthStore();
     const [profile, setProfile] = useState<User | null>(null);
+    const [integrations, setIntegrations] = useState<UserIntegration[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDisconnecting, setIsDisconnecting] = useState<number | null>(null);
 
     useEffect(() => {
         if (!isAuthenticated) return;
 
-        fetchWithAuth(getApiUrl("/auth/me"))
-            .then(res => res.json())
-            .then(data => {
-                setProfile(data);
-                setLoading(false);
-            })
-            .catch(err => {
+        const loadData = async () => {
+            try {
+                const [profRes, intRes] = await Promise.all([
+                    fetchWithAuth(getApiUrl("/auth/me")),
+                    integrationApi.fetchIntegrations()
+                ]);
+
+                if (profRes.ok) {
+                    const profData = await profRes.json();
+                    setProfile(profData);
+                }
+                setIntegrations(intRes);
+            } catch (err) {
                 console.error(err);
+            } finally {
                 setLoading(false);
-            });
+            }
+        };
+
+        loadData();
     }, [isAuthenticated]);
+
+    const handleDisconnect = async (id: number) => {
+        if (!confirm("정말 연동을 해제하시겠습니까? 관련 데이터 동기화가 중단됩니다.")) return;
+
+        setIsDisconnecting(id);
+        try {
+            const success = await integrationApi.removeIntegration(id);
+            if (success) {
+                setIntegrations(prev => prev.filter(i => i.id !== id));
+            }
+        } catch (err) {
+            console.error("Failed to disconnect", err);
+        } finally {
+            setIsDisconnecting(null);
+        }
+    };
 
     if (loading) return <div className="flex h-[calc(100vh-64px)] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-blue-600" /></div>;
     if (!profile) return <div className="text-center py-20 font-bold text-slate-500">로그인이 필요합니다.</div>;
@@ -119,6 +150,69 @@ export default function ProfilePage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Integration Management */}
+                <Card className="border-2 border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/40 overflow-hidden bg-white">
+                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
+                        <CardTitle className="flex items-center gap-3 text-xl font-black text-slate-800">
+                            <div className="p-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-900">
+                                <NotionIcon className="h-5 w-5" />
+                            </div>
+                            연동된 서비스 관리
+                        </CardTitle>
+                        <CardDescription className="text-slate-500 font-medium">외부 계정 연동 현황을 확인하고 관리할 수 있습니다.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-8 space-y-4">
+                        {[
+                            { id: 'github', name: 'GitHub', icon: <Github className="h-5 w-5" />, color: 'bg-slate-900' },
+                            { id: 'notion', name: 'Notion', icon: <NotionIcon className="h-5 w-5" />, color: 'bg-slate-100 text-slate-900' }
+                        ].map(provider => {
+                            const integration = integrations.find(i => i.provider === provider.id);
+                            return (
+                                <div key={provider.id} className="flex items-center justify-between p-5 rounded-3xl border border-slate-100 bg-slate-50/30 transition-all hover:bg-slate-50">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn("p-3 rounded-2xl flex items-center justify-center text-white shadow-sm", provider.color)}>
+                                            {provider.icon}
+                                        </div>
+                                        <div>
+                                            <div className="font-bold text-slate-800">{provider.name}</div>
+                                            <div className="flex items-center gap-1.5 mt-0.5">
+                                                {integration ? (
+                                                    <span className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
+                                                        <CheckCircle2 className="h-3 w-3" /> 연동됨
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-[10px] font-bold text-slate-300">연동되지 않음</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {integration ? (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleDisconnect(integration.id)}
+                                            disabled={isDisconnecting === integration.id}
+                                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl font-bold gap-2 h-9"
+                                        >
+                                            {isDisconnecting === integration.id ? (
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                            ) : (
+                                                <Unlink className="h-4 w-4" />
+                                            )}
+                                            연동 해제
+                                        </Button>
+                                    ) : (
+                                        <Badge variant="outline" className="border-slate-100 bg-white text-slate-300 font-bold text-[10px] px-3 h-7">
+                                            미연동
+                                        </Badge>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </CardContent>
+                </Card>
             </div>
 
             <p className="text-center text-xs text-slate-400 leading-relaxed font-medium pb-10">
