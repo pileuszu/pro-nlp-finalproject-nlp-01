@@ -2,20 +2,19 @@ import pandas as pd
 import requests
 from PIL import Image
 from io import BytesIO
-from surya.ocr import run_ocr
-from surya.model.detection import segformer
-from surya.model.recognition.model import load_model as load_rec_model
-from surya.model.recognition.processor import load_processor as load_rec_processor
+from surya.detection import DetectionPredictor
+from surya.foundation import FoundationPredictor
+from surya.recognition import RecognitionPredictor
+from surya.common.surya.schema import TaskNames
 import warnings
-import time
-
-warnings.filterwarnings("ignore")
+import pandas as pd
 
 class OCRProcessor:
     def __init__(self):
         print("Loading Surya OCR models...")
-        self.det_processor, self.det_model = segformer.load_processor(), segformer.load_model()
-        self.rec_model, self.rec_processor = load_rec_model(), load_rec_processor()
+        self.foundation_predictor = FoundationPredictor()
+        self.det_predictor = DetectionPredictor()
+        self.rec_predictor = RecognitionPredictor(self.foundation_predictor)
         print("Models loaded.")
 
     def process_csv(self, input_csv, output_csv):
@@ -31,8 +30,7 @@ class OCRProcessor:
             return
 
         # Filter rows needing OCR
-        # Need to handle Needs_OCR being boolean or string "True"/"False" depending on how pandas loaded it
-        # Let's force proper boolean interpretation
+        # Handle various boolean/string representations
         df['Needs_OCR'] = df['Needs_OCR'].astype(str).str.lower() == 'true'
         
         ocr_indices = df[df['Needs_OCR']].index.tolist()
@@ -60,14 +58,15 @@ class OCRProcessor:
                     
                     # Run OCR
                     print(f"  Running OCR on {url}...")
-                    predictions = run_ocr([image], [self.language], self.det_model, self.det_processor, self.rec_model, self.rec_processor)
+                    predictions = self.rec_predictor(
+                        [image], 
+                        [TaskNames.ocr_with_boxes], 
+                        det_predictor=self.det_predictor
+                    )
                     
-                    # Surya returns a list of OCRResult objects. We want the text lines.
-                    # predictions[0] is for the first (and only) image
-                    text_lines = [line.text for line in predictions[0].text_lines]
-                    full_text = "\n".join(text_lines)
-                    
-                    extracted_texts.append(full_text)
+                    if predictions and predictions[0].text_lines:
+                        full_text = "\n".join([line.text for line in predictions[0].text_lines])
+                        extracted_texts.append(full_text)
                     
                 except Exception as e:
                     print(f"  Error processing image {url}: {e}")
@@ -81,9 +80,7 @@ class OCRProcessor:
                 else:
                     df.loc[idx, 'Full_Context'] = current_context + "\n" + new_text
                 
-                # Mark as processed (optional, or separate status?)
-                # User asked to just "read text and combine to Full_Context"
-                # We can set Needs_OCR to False to indicate completion
+                # Mark as processed
                 df.loc[idx, 'Needs_OCR'] = False
                 print(f"  Updated Full_Context for Job {row.get('Job ID', 'Unknown')}.")
 
@@ -91,12 +88,7 @@ class OCRProcessor:
         df.to_csv(output_csv, index=False, encoding='utf-8-sig')
         print(f"Processing complete. Saved to {output_csv}")
     
-    # Surya's run_ocr doesn't take language arg in the simplified call, 
-    # but the full pipeline does. The pip version might be different.
-    # Let's check the imported run_ocr signature or just use the defaults.
-    # Actually, run_ocr signature: (images, langs, det_model, det_processor, rec_model, rec_processor)
-    # So we need to pass langs.
-    language = ["ko", "en"] 
+ 
 
 if __name__ == "__main__":
     import argparse

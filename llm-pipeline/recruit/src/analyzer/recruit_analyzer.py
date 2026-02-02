@@ -38,7 +38,11 @@ def get_row_content(row):
     company = row.get('company', '') or row.get('Company', '')
     title = row.get('title', '') or row.get('Title', '')
     url = row.get('url', '') or row.get('Link', '')
-    apply_url = row.get('apply_url', '') # Saramin은 Link 자체가 지원 링크일 수 있음
+    apply_url = row.get('apply_url', '')
+    
+    # apply_url이 비어있다면 원본 url로 대체 (Saramin 등)
+    if not apply_url:
+        apply_url = url
     
     # 2. 본문 텍스트 통합
     content_text = ""
@@ -49,8 +53,14 @@ def get_row_content(row):
     
     # CASE B: Saramin (Main Text, Qualifications, Preferred)
     parts = []
-    if 'Main Text' in row and pd.notna(row['Main Text']) and row['Main Text'] != 'N/A':
-        parts.append(f"[상세 본문]\n{row['Main Text']}")
+    # CASE B: Saramin (Main Text or Full_Context, Qualifications, Preferred)
+    parts = []
+    
+    # Saramin Scraper는 'Full_Context'를 사용, 일부 버전이나 다른 크롤러가 'Main Text'를 쓸 수 있으므로 둘 다 확인
+    main_text = row.get('Main Text') or row.get('Full_Context')
+    
+    if main_text and pd.notna(main_text) and main_text != 'N/A':
+        parts.append(f"[상세 본문]\n{main_text}")
     if 'Qualifications' in row and pd.notna(row['Qualifications']) and row['Qualifications'] != 'N/A':
         parts.append(f"[자격 요건]\n{row['Qualifications']}")
     if 'Preferred' in row and pd.notna(row['Preferred']) and row['Preferred'] != 'N/A':
@@ -98,7 +108,8 @@ def main():
     args = parser.parse_args()
 
     # 기본값 설정
-    input_csv = Path(args.input) if args.input else DATA_DIR / "recruitment_results_full_ocr.csv"
+    # 기본값 설정 (기본적으로 InThisWork의 OCR 결과 파일을 바라봄)
+    input_csv = Path(args.input) if args.input else DATA_DIR / "in_this_work_ocr.csv"
     output_json = Path(args.output) if args.output else DATA_DIR / "final_recruitment_all_items.json"
 
     if not input_csv.exists():
@@ -133,7 +144,7 @@ def main():
             elif isinstance(job_data, dict):
                 final_json_results.append(job_data)
             else:
-                print(f"  -> 파싱 실패: 리스트나 객체가 아님. ({json_str[:50]}...)")
+                print(f"  -> 파싱 실패: 리스트나 객체가 아님. ({json_str[:500]}...)")
         except json.JSONDecodeError:
             print(f"  -> JSON 디코딩 에러. 응답 내용: {json_str[:100]}...")
         except Exception as e:

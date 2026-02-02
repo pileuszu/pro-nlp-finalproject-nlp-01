@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime
 import re
 from urllib.parse import urljoin, urlparse
+from pathlib import Path
 
 class SaraminScraper:
     def __init__(self):
@@ -259,10 +260,17 @@ class SaraminScraper:
         print(f"Saved {len(data)} jobs to {filename}")
 
 if __name__ == "__main__":
+    # 프로젝트 구조에 따른 기본 저장 경로 설정
+    # 위치: recruit/src/crawler/saramin_scraper.py -> recruit/data/recruit_data/
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    DATA_DIR = BASE_DIR / "data" / "recruit_data"
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    DEFAULT_OUTPUT = DATA_DIR / "saramin.csv"
+
     parser = argparse.ArgumentParser(description="Saramin Job Scraper")
     parser.add_argument("--keyword", type=str, required=True, help="Search keyword")
     parser.add_argument("--pages", type=int, default=1, help="Number of pages to scrape")
-    parser.add_argument("--output", type=str, default="saramin_jobs.csv", help="Output CSV filename")
+    parser.add_argument("--output", type=str, default=str(DEFAULT_OUTPUT), help="Output CSV filename")
     
     args = parser.parse_args()
     
