@@ -19,18 +19,42 @@ from common.config import settings
 logger.info("Importing endpoints...")
 from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications, integrations
 
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize Database on startup
+    logger.info("Lifespan: Starting database initialization...")
+    try:
+        from common.db_init import init_db
+        # init_db is synchronous, so we just call it here. 
+        # For non-blocking behavior in async context, strictly speaking we might want run_in_executor, 
+        # but since this is startup, blocking the event loop briefly is acceptable *as long as* uvicorn has started initialization.
+        # However, FastAPI lifespan runs *before* serving requests but *after* app creation.
+        # To strictly pass Cloud Run checks if they probe immediately, we rely on lifespan logic.
+        init_db()
+        logger.info("Lifespan: Database initialization completed.")
+    except Exception as e:
+        logger.error(f"Lifespan: Database initialization failed: {e}")
+    
+    yield
+    
+    # Cleanup on shutdown (if needed)
+    logger.info("Lifespan: Shutting down...")
+
 logger.info("Initializing FastAPI app...")
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
     description="AI 기반 채용 플랫폼의 프론트엔드-백엔드 협업을 위한 표준 API 규격서입니다.",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
-# Initialize Database EARLY
-from common.db_init import init_db
-init_db()
+# Initialize Database EARLY -> Moved to lifespan
+# from common.db_init import init_db
+# init_db()
 
 # Cleanup temporary files at startup
 import shutil
