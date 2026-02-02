@@ -377,7 +377,8 @@ def generate_outline(
     user_experiences: List[Document],
     gap_result: GapAnalysisResult,
     company_data: Dict[str, Any],
-    question: Dict[str, Any]
+    question: Dict[str, Any],
+    used_experiences: List[str] = None  # 이전 문항에서 사용한 경험 목록
 ) -> ResumeOutlineResult:
     """
     자소서 가이드라인(Outline) 생성
@@ -391,11 +392,16 @@ def generate_outline(
     # 경험 텍스트 결합
     experiences_text = format_experiences(user_experiences)
     
+    # 이전 사용 경험 정보 추가
+    used_exp_text = ""
+    if used_experiences:
+        used_exp_text = f"\n⚠️ 다음 경험/프로젝트는 이전 문항에서 이미 사용했으므로 다른 경험을 우선 사용하세요: {', '.join(used_experiences)}"
+    
     input_vars = {
         "company_name": company_info.get("company_name", ""),
         "core_values": ", ".join(company_info.get("core_values", [])),
         "job_title": job_position.get("title", ""),
-        "user_experiences": experiences_text,
+        "user_experiences": experiences_text + used_exp_text,
         "question": question.get("question", ""),
         "hint": question.get("hint", ""),
         "matching_points": ", ".join(gap_result.matching_points) if gap_result.matching_points else "해당 없음",
@@ -448,8 +454,34 @@ def run_full_outline_analysis(user_id: str) -> Dict[str, Any]:
     outlines = []
     
     if resume_questions:
+        # 문항별 경험 분배: 이전 문항에서 사용한 경험 추적
+        used_experiences = []
+        
         for question in resume_questions:
-            outline = generate_outline(relevant_experiences, gap_result, company_data, question)
+            # 각 문항에 사용할 경험 선택 (이전에 사용하지 않은 것 우선)
+            available_experiences = [
+                exp for exp in relevant_experiences 
+                if exp.metadata.get("project_name") not in used_experiences
+            ]
+            
+            # 사용 가능한 경험이 없으면 전체에서 선택
+            if not available_experiences:
+                available_experiences = relevant_experiences
+                
+            # 첫 번째 사용 가능한 경험의 프로젝트명 기록 (경험이 있는 경우만)
+            if available_experiences:
+                primary_project = available_experiences[0].metadata.get("project_name", "")
+                if primary_project:
+                    used_experiences.append(primary_project)
+            
+            # 문항별로 할당된 경험 정보 전달 (현재 제외한 이전 사용 경험 목록 전달)
+            outline = generate_outline(
+                available_experiences, 
+                gap_result, 
+                company_data, 
+                question,
+                used_experiences=used_experiences[:-1]
+            )
             outlines.append({
                 "question_id": question.get("id"),
                 "question": question.get("question"),
