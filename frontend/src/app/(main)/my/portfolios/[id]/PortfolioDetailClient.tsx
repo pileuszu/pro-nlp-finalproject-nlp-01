@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePolling } from "@/hooks/usePolling";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ArrowLeft, ExternalLink, FileText, Github, Calendar, Trash2, Edit, Sparkles, User, Code } from "lucide-react";
 import Link from "next/link";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
-import { Portfolio } from "@/types";
+import { Portfolio, NotificationEventDetail } from "@/types";
 import { useToast } from "@/components/ui/toast-context";
 
 export default function PortfolioDetailClient({ params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +31,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
     // Use polledData as the source of truth when available, otherwise fall back to initial fetch state
     const displayPortfolio = polledData || portfolio;
 
-    useEffect(() => {
+    const fetchPortfolio = useCallback(() => {
         fetchWithAuth(getApiUrl(`/portfolios/${id}`))
             .then(res => {
                 if (!res.ok) throw new Error("Not Found");
@@ -47,6 +47,27 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                 toast("포트폴리오를 불러오는데 실패했습니다.", "error");
             });
     }, [id, toast]);
+
+    useEffect(() => {
+        fetchPortfolio();
+    }, [fetchPortfolio]);
+
+    // Real-time update listener
+    useEffect(() => {
+        const handleNotification = (e: Event) => {
+            const customEvent = e as CustomEvent<NotificationEventDetail>;
+            const { type, data } = customEvent.detail;
+            if (type === 'PORTFOLIO_READY' || type === 'PORTFOLIO_COMPLETED') {
+                if (data.target_id === parseInt(id)) {
+                    console.log("Real-time portfolio update triggered in Detail");
+                    fetchPortfolio();
+                }
+            }
+        };
+
+        window.addEventListener('notification_event', handleNotification);
+        return () => window.removeEventListener('notification_event', handleNotification);
+    }, [id, fetchPortfolio]);
 
     const handleDelete = async () => {
         if (confirm("정말로 삭제하시겠습니까?")) {

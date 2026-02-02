@@ -18,6 +18,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
+    # is_admin = Column(Boolean, default=False, nullable=False)  # 관리자 권한 (미사용)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # User Profile Fields (extracted from portfolios)
@@ -26,6 +27,7 @@ class User(Base):
 
     portfolios = relationship("Portfolio", back_populates="owner")
     cover_letters = relationship("CoverLetter", back_populates="owner")
+    integrations = relationship("UserIntegration", back_populates="user", cascade="all, delete-orphan")
 
 class Recruitment(Base):
     __tablename__ = "recruitments"
@@ -45,6 +47,7 @@ class Recruitment(Base):
     key_responsibilities = Column(Text, nullable=True)
     required_qualifications = Column(Text, nullable=True)
     preferred_qualifications = Column(Text, nullable=True)
+    company_description = Column(Text, nullable=True)  # 기업 인재상/핵심 가치
     tags = Column(JSON, nullable=True)  # List of strings
     embedding = Column(Vector(1024), nullable=True)  # Unified 1:1 embedding storage
     view_count = Column(Integer, default=0) # View count for popularity sorting
@@ -118,6 +121,8 @@ class CoverLetterItem(Base):
     question = Column(Text, nullable=False)
     content = Column(Text, nullable=True)
     category = Column(String, nullable=True) # motivation, growth, capability, etc.
+    hint = Column(Text, nullable=True)  # 작성 힌트/가이드
+    max_length = Column(Integer, nullable=True, default=1000)  # 글자 수 제한
     
     # AI Analysis
     key_points = Column(JSON, nullable=True) # List of strings
@@ -153,3 +158,17 @@ class Notification(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
+
+class UserIntegration(Base):
+    __tablename__ = "user_integrations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    provider = Column(String, nullable=False)  # 'github', 'notion'
+    access_token = Column(String, nullable=False)
+    refresh_token = Column(String, nullable=True)
+    provider_user_id = Column(String, nullable=True) # ID from the provider
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    user = relationship("User", back_populates="integrations")

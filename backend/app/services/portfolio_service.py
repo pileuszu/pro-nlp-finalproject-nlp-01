@@ -75,15 +75,15 @@ class PortfolioService:
                 file_path.unlink()
             raise
 
-    async def create_portfolio_from_github(self, user_id: int, title: str, github_url: str) -> Portfolio:
+    async def create_portfolio_from_github(self, user_id: int, project_name: str, github_url: str) -> Portfolio:
         """
         Trigger a GitHub extraction job.
         """
-        logger.info(f"Creating portfolio from GitHub for user {user_id}: {title} ({github_url})")
+        logger.info(f"Creating portfolio from GitHub for user {user_id}: {project_name} ({github_url})")
         
         try:
             portfolio = Portfolio(
-                project_name=title,
+                project_name=project_name,
                 type="github",
                 source_url=github_url,
                 user_id=user_id,
@@ -91,7 +91,11 @@ class PortfolioService:
             )
             self.db.add(portfolio)
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
             
             job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
             return portfolio
@@ -100,15 +104,15 @@ class PortfolioService:
             await self.db.rollback()
             raise
 
-    async def create_portfolio_from_notion(self, user_id: int, title: str, notion_url: str) -> Portfolio:
+    async def create_portfolio_from_notion(self, user_id: int, project_name: str, notion_url: str) -> Portfolio:
         """
         Trigger a Notion extraction job.
         """
-        logger.info(f"Creating portfolio from Notion for user {user_id}: {title} ({notion_url})")
+        logger.info(f"Creating portfolio from Notion for user {user_id}: {project_name} ({notion_url})")
         
         try:
             portfolio = Portfolio(
-                project_name=title,
+                project_name=project_name,
                 type="notion",
                 source_url=notion_url,
                 user_id=user_id,
@@ -116,12 +120,45 @@ class PortfolioService:
             )
             self.db.add(portfolio)
             await self.db.commit()
-            await self.db.refresh(portfolio)
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
             
             job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
             return portfolio
         except Exception as e:
             logger.error(f"Notion portfolio creation failed: {e}")
+            await self.db.rollback()
+            raise
+
+    async def create_portfolio_from_blog(self, user_id: int, project_name: str, blog_url: str) -> Portfolio:
+        """
+        Trigger a Blog extraction job.
+        """
+        logger.info(f"Creating portfolio from Blog for user {user_id}: {project_name} ({blog_url})")
+        
+        try:
+            portfolio = Portfolio(
+                project_name=project_name,
+                type="blog",
+                source_url=blog_url,
+                user_id=user_id,
+                processing_status=ProcessingStatus.PENDING
+            )
+            self.db.add(portfolio)
+            await self.db.commit()
+            
+            # Explicitly load relationships to prevent MissingGreenlet error
+            stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(selectinload(Portfolio.job_queries))
+            result = await self.db.execute(stmt)
+            portfolio = result.scalar_one()
+            
+            job_service.trigger_job(task="portfolio_extraction", target_id=portfolio.id)
+            return portfolio
+        except Exception as e:
+            logger.error(f"Blog portfolio creation failed: {e}")
             await self.db.rollback()
             raise
 
@@ -140,14 +177,22 @@ class PortfolioService:
         
         self.db.add(portfolio)
         await self.db.commit()
-        await self.db.refresh(portfolio)
+        
+        # Explicitly load relationships to prevent MissingGreenlet error
+        stmt = select(Portfolio).where(Portfolio.id == portfolio.id).options(
+            selectinload(Portfolio.job_queries)
+        )
+        result = await self.db.execute(stmt)
+        portfolio = result.scalar_one()
         
         job_service.trigger_job(task="recruit_update", target_id=user_id)
         
         return portfolio
 
     async def get_portfolios(self, user_id: int):
-        stmt = select(Portfolio).where(Portfolio.user_id == user_id)
+        stmt = select(Portfolio).where(Portfolio.user_id == user_id).options(
+            selectinload(Portfolio.job_queries)
+        )
         result = await self.db.execute(stmt)
         return result.scalars().all()
 
