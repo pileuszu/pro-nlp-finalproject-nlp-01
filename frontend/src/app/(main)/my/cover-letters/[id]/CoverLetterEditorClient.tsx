@@ -83,6 +83,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const [aiMode, setAiMode] = useState<AiMode>('draft');
     const [aiTone, setAiTone] = useState<ToneType>('professional');
     const [aiFocus, setAiFocus] = useState("");
+    const [subheading, setSubheading] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Polling logic for AI generation result
@@ -262,7 +263,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     recruit_id: linkedRecruit?.id,
                     cover_letter_id: isNew ? undefined : parseInt(id),
                     portfolio_ids: [],
-                    questions: allQuestions
+                    questions: allQuestions,
+                    subheading: subheading
                 })
             });
 
@@ -445,6 +447,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     setAiTone={setAiTone}
                     aiFocus={aiFocus}
                     setAiFocus={setAiFocus}
+                    subheading={subheading}
+                    setSubheading={setSubheading}
                     isGenerating={isGenerating}
                     onRunGeneration={runAiGeneration}
                 />

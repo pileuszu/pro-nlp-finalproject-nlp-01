@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from common.models import Portfolio, PortfolioJobQuery, ProcessingStatus
+from common.models import Portfolio, PortfolioJobQuery, PortfolioChunk, ProcessingStatus
 from common import schemas
 from common.gcs_utils import gcs_utils
 from jobs.services.notification_service import NotificationService
@@ -29,6 +29,23 @@ class PortfolioService:
         if not text:
             return ""
         return text.replace("\x00", "")
+
+    def _chunk_text(self, text: str, chunk_size: int = 800, overlap: int = 160) -> List[str]:
+        """Splits text into chunks with overlap."""
+        if not text:
+            return []
+        
+        chunks = []
+        start = 0
+        while start < len(text):
+            end = start + chunk_size
+            chunks.append(text[start:end])
+            start += chunk_size - overlap
+            
+            # Prevent infinite loop if overlap >= chunk_size
+            if start >= len(text) or chunk_size <= overlap:
+                break
+        return chunks
 
     @property
     def file_extractor(self):
@@ -83,7 +100,7 @@ class PortfolioService:
             portfolio = result.scalar_one_or_none()
             
             if not portfolio:
-                logger.error(f"Portfolio {portfolio_id} not found")
+                logger.info(f"Portfolio {portfolio_id} not found or already deleted. Skipping job.")
                 return
 
             portfolio.processing_status = ProcessingStatus.PROCESSING
@@ -193,14 +210,9 @@ class PortfolioService:
                 target_portfolio.role = project_refined.role
                 target_portfolio.description = project_refined.description_for_embedding
                 target_portfolio.tech_stack = project_refined.tech_stack
-                target_portfolio.content = self._sanitize_text(proj_text)
+                target_portfolio.strengths = [s.model_dump() for s in project_refined.strengths]
                 
-                # Generate embedding
-                if target_portfolio.description:
-                    try:
-                        target_portfolio.embedding = await self.vector_store.get_embedding(target_portfolio.description)
-                    except Exception as e:
-                        logger.error(f"Embedding failed for {target_portfolio.id}: {e}")
+                # Add Job Queries
 
                 # Add Job Queries
                 # Clear existing if any (for i=0)
@@ -221,6 +233,30 @@ class PortfolioService:
                             embedding=q_emb
                         )
                     )
+
+                # We chunk the refined description
+                chunk_source = (target_portfolio.description or "")
+                
+                if chunk_source:
+                    chunks = self._chunk_text(chunk_source, chunk_size=800, overlap=160)
+                    
+                    # Portfolio model now has 'chunks' relationship with cascade delete
+                    # target_portfolio.chunks = [] # This might be enough if we want to clear
+                    
+                    for idx, chunk_text in enumerate(chunks):
+                        c_emb = None
+                        try:
+                            c_emb = await self.vector_store.get_embedding(chunk_text)
+                        except Exception as e:
+                            logger.error(f"Chunk embedding failed for portfolio {target_portfolio.id} chunk {idx}: {e}")
+                            
+                        target_portfolio.chunks.append(
+                            PortfolioChunk(
+                                chunk_content=chunk_text,
+                                embedding=c_emb,
+                                chunk_index=idx
+                            )
+                        )
 
                 target_portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 await self.db.commit()
@@ -450,9 +486,6 @@ class PortfolioService:
                     combined_result = await self.llm_refiner.extract_user_data_and_queries(proj_text)
                     user_data = combined_result.user_data
                     
-                    target_portfolio.extracted_summary = user_data.profile.summary
-                    target_portfolio.extracted_job_title = user_data.profile.job_title
-                    
                     if user_data.projects:
                         project_refined = user_data.projects[0]
                     else:
@@ -468,14 +501,9 @@ class PortfolioService:
                 target_portfolio.role = project_refined.role
                 target_portfolio.description = project_refined.description_for_embedding
                 target_portfolio.tech_stack = project_refined.tech_stack
-                target_portfolio.content = self._sanitize_text(proj_text)
+                target_portfolio.strengths = [s.model_dump() for s in project_refined.strengths]
                 
-                # Generate embedding
-                if target_portfolio.description:
-                    try:
-                        target_portfolio.embedding = await self.vector_store.get_embedding(target_portfolio.description)
-                    except Exception as e:
-                        logger.error(f"Embedding failed for {target_portfolio.id}: {e}")
+                # Add Job Queries
 
                 # Add Job Queries
                 # Clear existing if any (for i=0)
@@ -508,6 +536,15 @@ class PortfolioService:
                     message=f"[{target_portfolio.project_name or '새 포트폴리오'}] 분석이 완료되었습니다. 내용을 검토해 주세요.",
                     link=f"/my/portfolios/{target_portfolio.id}",
                     notification_type="PORTFOLIO_READY",
+                    target_id=target_portfolio.id
+                )
+
+                # Trigger UI Refresh
+                await NotificationService.create_and_notify(
+                    db=self.db,
+                    user_id=target_portfolio.user_id,
+                    title="", message="",
+                    notification_type="REFRESH",
                     target_id=target_portfolio.id
                 )
 

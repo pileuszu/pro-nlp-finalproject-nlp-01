@@ -28,6 +28,13 @@ export interface PortfolioJobQuery {
     evidence: string[];
 }
 
+export interface PortfolioStrength {
+    tag: string;
+    claim: string;
+    evidence: string[];
+    level: 'low' | 'medium' | 'high';
+}
+
 export interface Portfolio {
     id: number;
     project_name: string;
@@ -44,6 +51,7 @@ export interface Portfolio {
     role?: string;
     description?: string;
     tech_stack?: string[];
+    strengths?: PortfolioStrength[];
     job_queries?: PortfolioJobQuery[];
 }
 

@@ -16,7 +16,7 @@ def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
     
     from app.services.job_service import job_service
     # Trigger the scraping job
-    success = job_service.trigger_job(task="recruit_update")
+    success = job_service.trigger_recommendation_update()
     if not success:
         raise HTTPException(status_code=500, detail="Failed to trigger crawling job (Infrastructure error)")
         
@@ -93,7 +93,7 @@ async def generate_embeddings(
         from app.services.job_service import job_service
         
         # Job 트리거 (recruit_indexing task가 임베딩 생성 포함)
-        job_service.trigger_job(task="recruit_indexing")
+        job_service.trigger_recruit_indexing()
         
         return {
             "success": True,

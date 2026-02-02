@@ -115,7 +115,7 @@ async def trigger_indexing(
         raise HTTPException(status_code=403, detail="Not authorized for internal trigger")
         
     from app.services.job_service import job_service
-    success = job_service.trigger_job(task="recruit_indexing") 
+    success = job_service.trigger_recruit_indexing() 
     if not success:
         raise HTTPException(status_code=500, detail="Failed to trigger indexing job")
         
