@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, BackgroundTasks, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict
 from common.database import get_async_db
@@ -120,6 +120,7 @@ async def trigger_indexing(
         raise HTTPException(status_code=500, detail="Failed to trigger indexing job")
         
     return {"message": "Recruitment indexing job triggered via internal auth"}
+
 
 @router.post("/index", status_code=201)
 

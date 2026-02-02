@@ -8,14 +8,14 @@ import { Label } from "@/components/ui/label";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
     ArrowLeft, Save, Sparkles, Loader2, Building,
-    Plus, Trash2, LayoutList
+    Plus, Trash2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
-import { CoverLetterItem, GapAnalysisResult } from "@/types";
+import { CoverLetterItem, GapAnalysisResult, NotificationEventDetail } from "@/types";
 
 // --- Sub-Components ---
 import { RecruitInfoPanel } from "./components/RecruitInfoPanel";
@@ -27,6 +27,8 @@ interface QuestionItem {
     id: number;
     question: string;
     answer: string;
+    hint?: string;
+    max_length?: number;
     key_points?: string[];
     suggested_improvements?: string[];
 }
@@ -136,6 +138,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         id: item.id || Date.now() + Math.random(),
                         question: item.question,
                         answer: item.content,
+                        hint: item.hint,
+                        max_length: item.max_length,
                         key_points: item.key_points,
                         suggested_improvements: item.suggested_improvements
                     })));
@@ -163,6 +167,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                             id: item.id || Date.now() + Math.random(),
                             question: item.question,
                             answer: item.content,
+                            hint: item.hint,
+                            max_length: item.max_length,
                             key_points: item.key_points,
                             suggested_improvements: item.suggested_improvements
                         })));
@@ -210,7 +216,12 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         try {
             const body = {
                 title,
-                questions: questions.map(q => ({ question: q.question, content: q.answer })),
+                questions: questions.map(q => ({
+                    question: q.question,
+                    content: q.answer,
+                    hint: q.hint,
+                    max_length: q.max_length
+                })),
                 recruit_id: linkedRecruit?.id
             };
             const res = await fetchWithAuth(isNew ? getApiUrl('/cover-letters') : getApiUrl(`/cover-letters/${id}`), {
@@ -227,7 +238,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     const addQuestion = () => setQuestions([...questions, { id: Date.now(), question: "", answer: "" }]);
     const removeQuestion = (qId: number) => setQuestions(questions.filter(q => q.id !== qId));
-    const updateQuestion = (qId: number, field: 'question' | 'answer', value: string) =>
+    const updateQuestion = (qId: number, field: 'question' | 'answer' | 'hint', value: string) =>
         setQuestions(questions.map(q => q.id === qId ? { ...q, [field]: value } : q));
 
     // Unused togglePortfolio removed
@@ -249,6 +260,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     mode: aiMode === 'strategy' ? 'outline' : 'full',
                     tone: aiTone,
                     recruit_id: linkedRecruit?.id,
+                    cover_letter_id: isNew ? undefined : parseInt(id),
                     portfolio_ids: [],
                     questions: allQuestions
                 })
@@ -258,13 +270,13 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             const data = await res.json();
             // Start polling for this specific cover letter
-            // Assuming data contains the cover letter ID
             if (data.id) {
                 setPollingTarget(`/cover-letters/${data.id}`);
                 // Fix: Redirect to the real ID so subsequent actions (like Confirm) work
                 if (isNew) {
                     router.replace(`/my/cover-letters/${data.id}`);
                 }
+                setStatus('PENDING');
             } else {
                 throw new Error("Invalid response from server");
             }
@@ -276,6 +288,42 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         }
     };
 
+    // Real-time update listener
+    useEffect(() => {
+        const handleNotification = (e: Event) => {
+            const customEvent = e as CustomEvent<NotificationEventDetail>;
+            const { type, data } = customEvent.detail;
+            if (type === 'COVER_LETTER_READY' || type === 'COVER_LETTER_COMPLETED') {
+                if (data.target_id === parseInt(id) || (isNew && status === 'PENDING')) {
+                    console.log("Real-time cover letter update triggered in Editor");
+                    // Force refresh data
+                    fetchWithAuth(getApiUrl(`/cover-letters/${data.target_id || id}`))
+                        .then(res => res.json())
+                        .then(updated => {
+                            setStatus(updated.processing_status || updated.status);
+                            if (updated.items) {
+                                setQuestions(updated.items.map((item: CoverLetterItem) => ({
+                                    id: item.id || Date.now() + Math.random(),
+                                    question: item.question,
+                                    answer: item.content,
+                                    hint: item.hint,
+                                    max_length: item.max_length,
+                                    key_points: item.key_points,
+                                    suggested_improvements: item.suggested_improvements
+                                })));
+                            }
+                            if (updated.gap_analysis) setGapAnalysis(updated.gap_analysis);
+                            setIsGenerating(false);
+                            setPollingTarget("");
+                        });
+                }
+            }
+        };
+
+        window.addEventListener('notification_event', handleNotification);
+        return () => window.removeEventListener('notification_event', handleNotification);
+    }, [id, isNew, status]);
+
     const applySuggestion = (qId: number, suggestion: string) => {
         const q = questions.find(item => item.id === qId);
         if (q) {
@@ -286,10 +334,10 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex justify-center min-h-[calc(100vh-64px)] bg-slate-50/10 overflow-x-hidden relative">
-            <div className={cn("flex relative transition-all duration-500", showRecruitPanel ? "w-full max-w-[1700px]" : "w-full max-w-5xl")}>
+        <div className="flex justify-center h-[calc(100vh-64px)] bg-slate-50/10 overflow-hidden relative">
+            <div className={cn("flex relative h-full w-full transition-all duration-500", showRecruitPanel ? "max-w-[1700px]" : "max-w-5xl")}>
                 {/* Editor Content */}
-                <div className="flex-1 p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
+                <div className="flex-1 overflow-y-auto h-full p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 scrollbar-hide">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                         <div className="space-y-3 font-pretendard">
                             <div className="flex items-center gap-3">
@@ -311,7 +359,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     onClick={() => setShowRecruitPanel(!showRecruitPanel)}
                                     className={cn("h-8 gap-1.5 text-xs border-slate-200 transition-all", showRecruitPanel && "bg-slate-900 text-white border-slate-900 shadow-md")}
                                 >
-                                    <LayoutList className="h-3.5 w-3.5" /> 분석 패널 {showRecruitPanel ? "닫기" : "열기"}
+                                    <Sparkles className="h-3.5 w-3.5" /> 스튜디오 {showRecruitPanel ? "닫기" : "열기"}
                                 </Button>
                             </div>
                         </div>
