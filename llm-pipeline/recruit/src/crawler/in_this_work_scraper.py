@@ -32,8 +32,8 @@ RECRUIT_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = RECRUIT_DIR / "data" / "recruit_data"
 
 # 파일명 설정
-SAVE_FILE_CSV = DATA_DIR / "recruitment_results_full.csv"
-SAVE_FILE_OCR_CSV = DATA_DIR / "recruitment_results_full_ocr.csv"
+SAVE_FILE_CSV = DATA_DIR / "in_this_work.csv"
+SAVE_FILE_OCR_CSV = DATA_DIR / "in_this_work_ocr.csv"
 
 # 디렉토리 생성
 DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -41,7 +41,7 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 # -----------------------------------------------------
 # 설정 및 모델 로드
 # -----------------------------------------------------
-TARGET_PAGES = 1
+TARGET_PAGES = 3
 
 # Surya OCR 모델 로드 (전역 로드)
 print("Surya OCR 모델 로딩 중...")
@@ -80,58 +80,71 @@ def get_job_list(pages=1):
         else:
             url = f"https://inthiswork.com/it/?paged1={page}"
             
-        time.sleep(random.uniform(2, 4))
+        time.sleep(random.uniform(20, 45))
         print(f"[{page}페이지] 목록 수집 중... ({url})")
         
-        try:
-            resp = session.get(url, headers=get_headers(), timeout=15)
-            if resp.status_code != 200:
-                print(f"  → 에러: 접속 실패 (상태 코드 {resp.status_code})")
-                continue
+        success = False
+        for attempt in range(3):
+            try:
+                resp = session.get(url, headers=get_headers(), timeout=15)
+                if resp.status_code == 200:
+                    success = True
+                    break
+                elif resp.status_code == 429:
+                    wait_time = random.uniform(40, 70)
+                    print(f"  → [429] 너무 많은 요청. {wait_time:.1f}초 대기 후 재시도... ({attempt + 1}/3)")
+                    time.sleep(wait_time)
+                else:
+                    print(f"  → 에러: 접속 실패 (상태 코드 {resp.status_code}) ({attempt + 1}/3)")
+                    time.sleep(random.uniform(5, 10))
+            except Exception as e:
+                print(f"  → 에러 발생: {e} ({attempt + 1}/3)")
+                time.sleep(random.uniform(5, 10))
                 
-            soup = BeautifulSoup(resp.text, 'html.parser')
-            entries = soup.select('.sub-entry')
-            if not entries:
-                entries = soup.select('.dpt-entry')
-            if not entries:
-                entries = soup.select('.dpt-entry-wrapper')
+        if not success:
+            print(f"  → {url} 접속에 3회 실패하여 건너뜁니다.")
+            continue
             
-            print(f"  → {len(entries)}개 공고 발견")
-            for entry in entries:
-                link_obj = entry.select_one('a.dpt-title-link') or entry.select_one('.dpt-title a')
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        entries = soup.select('.sub-entry')
+        if not entries:
+            entries = soup.select('.dpt-entry')
+        if not entries:
+            entries = soup.select('.dpt-entry-wrapper')
+        
+        print(f"  → {len(entries)}개 공고 발견")
+        for entry in entries:
+            link_obj = entry.select_one('a.dpt-title-link') or entry.select_one('.dpt-title a')
+            
+            if link_obj and link_obj.get('href'):
+                full_url = link_obj.get('href')
+                full_text = link_obj.get_text(strip=True)
                 
-                if link_obj and link_obj.get('href'):
-                    full_url = link_obj.get('href')
-                    full_text = link_obj.get_text(strip=True)
-                    
-                    if '/archives/' not in full_url: 
-                        continue
-                    
-                    if '｜' in full_text:
-                        parts = full_text.split('｜', 1)
-                    elif '|' in full_text:
-                        parts = full_text.split('|', 1)
-                    else:
-                        parts = ["-", full_text]
-                    
-                    company = parts[0].strip() if len(parts) > 1 else "-"
-                    title = parts[1].strip() if len(parts) > 1 else parts[0].strip()
+                if '/archives/' not in full_url: 
+                    continue
+                
+                if '｜' in full_text:
+                    parts = full_text.split('｜', 1)
+                elif '|' in full_text:
+                    parts = full_text.split('|', 1)
+                else:
+                    parts = ["-", full_text]
+                
+                company = parts[0].strip() if len(parts) > 1 else "-"
+                title = parts[1].strip() if len(parts) > 1 else parts[0].strip()
 
-                    # 회사명이 없거나(-) 혹은 "IN THIS WORK"를 포함하는 경우(인터뷰/콘텐츠) 제외
-                    if company == "-" or "IN THIS WORK" in company.upper():
-                        print(f"  → 제외: {company} | {title}") # 제외되는 공고 로그 출력 (선택 사항)
-                        continue
+                # 회사명이 없거나(-) 혹은 "IN THIS WORK"를 포함하는 경우(인터뷰/콘텐츠) 제외
+                if company == "-" or "IN THIS WORK" in company.upper():
+                    print(f"  → 제외: {company} | {title}") # 제외되는 공고 로그 출력 (선택 사항)
+                    continue
+                
+                if not any(j['url'] == full_url for j in all_jobs):
+                    all_jobs.append({
+                        'company': company,
+                        'title': title,
+                        'url': full_url
+                    })
                     
-                    if not any(j['url'] == full_url for j in all_jobs):
-                        all_jobs.append({
-                            'company': company,
-                            'title': title,
-                            'url': full_url
-                        })
-                        
-        except Exception as e:
-            print(f"  → 에러 발생: {e}")
-            
     return all_jobs
 
 def get_job_detail(url, max_retries=3):
