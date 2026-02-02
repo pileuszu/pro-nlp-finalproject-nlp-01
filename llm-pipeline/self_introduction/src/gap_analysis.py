@@ -118,7 +118,8 @@ def generate_resume(
     gap_result: GapAnalysisResult,
     company_data: Dict[str, Any],
     question: Dict[str, Any] = None,
-    used_experiences: List[str] = None  # 이전 문항에서 사용한 경험 목록
+    used_experiences: List[str] = None,  # 이전 문항에서 사용한 경험 목록
+    subheading: bool = False
 ) -> ResumeGenerationResult:
     """
     자소서 생성
@@ -141,6 +142,11 @@ def generate_resume(
     if used_experiences:
         used_exp_text = f"\n⚠️ 다음 경험/프로젝트는 이전 문항에서 이미 사용했으므로 다른 경험을 우선 사용하세요: {', '.join(used_experiences)}"
     
+    # 소제목 지침 설정
+    subheading_instruction = ""
+    if subheading:
+        subheading_instruction = "- 반드시 답변의 시작 부분에 전체 내용을 매력적으로 요약하는 [소제목] 형태의 소제목을 작성하세요. (예: [데이터 기반의 의사결정으로 결제 전환율 15% 개선])"
+    
     # 문항이 주어진 경우 해당 문항에 맞는 프롬프트 사용
     if question:
         template = QUESTION_BASED_RESUME_PROMPT
@@ -153,7 +159,8 @@ def generate_resume(
             "max_length": question.get("max_length", 1000),
             "hint": question.get("hint", ""),
             "matching_points": ", ".join(gap_result.matching_points) if gap_result.matching_points else "해당 없음",
-            "missing_elements": ", ".join(gap_result.missing_elements) if gap_result.missing_elements else "해당 없음"
+            "missing_elements": ", ".join(gap_result.missing_elements) if gap_result.missing_elements else "해당 없음",
+            "subheading_instruction": subheading_instruction
         }
     elif gap_result.is_gap_found:
         template = RESUME_GENERATION_PROMPT
@@ -164,7 +171,8 @@ def generate_resume(
             "user_experiences": experiences_text,
             "max_length": 1000,  # 기본값 또는 대표값
             "matching_points": ", ".join(gap_result.matching_points),
-            "missing_elements": ", ".join(gap_result.missing_elements)
+            "missing_elements": ", ".join(gap_result.missing_elements),
+            "subheading_instruction": subheading_instruction
         }
     else:
         template = SIMPLE_RESUME_PROMPT
@@ -173,7 +181,8 @@ def generate_resume(
             "core_values": ", ".join(company_info.get("core_values", [])),
             "job_title": job_position.get("title", ""),
             "user_experiences": experiences_text,
-            "max_length": 1000  # 기본값 또는 대표값
+            "max_length": 1000,  # 기본값 또는 대표값
+            "subheading_instruction": subheading_instruction
         }
     
     prompt = PromptTemplate(
@@ -192,7 +201,7 @@ def generate_resume(
     return parse_json_response(response_text, ResumeGenerationResult)
 
 
-def run_full_analysis(user_id: str) -> Dict[str, Any]:
+def run_full_analysis(user_id: str, subheading: bool = False) -> Dict[str, Any]:
     """
     전체 분석 파이프라인 실행
     1. 데이터 로드
@@ -257,7 +266,8 @@ def run_full_analysis(user_id: str) -> Dict[str, Any]:
                 gap_result, 
                 company_data, 
                 question,
-                used_experiences=used_experiences[:-1]  # 현재 제외한 이전 사용 경험
+                used_experiences=used_experiences[:-1],  # 현재 제외한 이전 사용 경험
+                subheading=subheading
             )
             resumes.append({
                 "question_id": question.get("id"),
@@ -267,7 +277,7 @@ def run_full_analysis(user_id: str) -> Dict[str, Any]:
             })
     else:
         # 문항이 없으면 기본 자소서 생성
-        resume = generate_resume(relevant_experiences, gap_result, company_data)
+        resume = generate_resume(relevant_experiences, gap_result, company_data, subheading=subheading)
         resumes.append({
             "question_id": 0,
             "question": "자기소개서",
@@ -285,7 +295,7 @@ def run_full_analysis(user_id: str) -> Dict[str, Any]:
     }
 
 
-def run_single_question_analysis(user_id: str, question_id: int) -> Dict[str, Any]:
+def run_single_question_analysis(user_id: str, question_id: int, subheading: bool = False) -> Dict[str, Any]:
     """
     특정 문항에 대한 분석 및 자소서 생성
     """
@@ -327,7 +337,7 @@ def run_single_question_analysis(user_id: str, question_id: int) -> Dict[str, An
         raise ValueError(f"문항 {question_id}을 찾을 수 없습니다.")
     
     # 6. 해당 문항 자소서 생성
-    resume = generate_resume(relevant_experiences, gap_result, company_data, target_question)
+    resume = generate_resume(relevant_experiences, gap_result, company_data, target_question, subheading=subheading)
     
     return {
         "user_id": user_id,

@@ -182,6 +182,11 @@ def main():
         action="store_true",
         help="자소서 본문 대신 가이드라인(Outline) 생성"
     )
+    parser.add_argument(
+        "--subheading",
+        action="store_true",
+        help="각 문항 답변에 소제목([소제목]) 추가"
+    )
     
     args = parser.parse_args()
     
@@ -214,10 +219,10 @@ def main():
                 result = run_full_outline_analysis(args.user)
             elif args.question:
                 # 특정 문항 자소서 생성
-                result = run_single_question_analysis(args.user, args.question)
+                result = run_single_question_analysis(args.user, args.question, subheading=args.subheading)
             else:
                 # 전체 자소서 생성
-                result = run_full_analysis(args.user)
+                result = run_full_analysis(args.user, subheading=args.subheading)
         
         # 결과 표시
         console.print(f"\n[bold]👤 지원자:[/bold] {result['user_name']}")
