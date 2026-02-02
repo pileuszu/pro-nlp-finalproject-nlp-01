@@ -171,7 +171,9 @@ class CoverLetterGenerator:
         max_length: int = 1000,
         used_experiences: List[str] = None,
         hint: str = "",
-        subheading: bool = False
+        hint: str = "",
+        subheading: bool = False,
+        temperature: float = 0.0
     ) -> Dict[str, Any]:
         """
         Generates a cover letter answer for a specific question.

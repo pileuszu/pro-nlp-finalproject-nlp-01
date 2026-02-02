@@ -237,6 +237,7 @@ class CoverLetterGenerateRequest(BaseModel):
     tone: str = "professional"
     mode: str = "full" # 'full' or 'outline'
     subheading: bool = False
+    temperature: float = 0.0
 
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view

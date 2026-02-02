@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
 type AiMode = 'draft' | 'strategy' | 'refine';
-type ToneType = 'professional' | 'passionate' | 'humble' | 'confident';
 
 interface RecruitInfoPanelProps {
     isOpen: boolean;
@@ -21,12 +20,9 @@ interface RecruitInfoPanelProps {
     // AI Studio Props
     aiMode: AiMode;
     setAiMode: (mode: AiMode) => void;
-    aiTone: ToneType;
-    setAiTone: (tone: ToneType) => void;
-    aiFocus: string;
-    setAiFocus: (focus: string) => void;
-    subheading: boolean;
-    setSubheading: (val: boolean) => void;
+    // Removed Tone/Focus/Subheading props
+    temperature: number;
+    setTemperature: (val: number) => void;
     isGenerating: boolean;
     onRunGeneration: () => void;
 }
@@ -39,12 +35,8 @@ export function RecruitInfoPanel({
     setPanelTab,
     aiMode,
     setAiMode,
-    aiTone,
-    setAiTone,
-    aiFocus,
-    setAiFocus,
-    subheading,
-    setSubheading,
+    temperature,
+    setTemperature,
     isGenerating,
     onRunGeneration
 }: RecruitInfoPanelProps) {
@@ -167,55 +159,31 @@ export function RecruitInfoPanel({
                                         </div>
                                     </div>
 
-                                    {/* Tone Selection */}
-                                    <div className="space-y-3">
+                                    {/* Temperature Control */}
+                                    <div className="space-y-4">
                                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                                            <Brain className="h-3.5 w-3.5 text-blue-500" /> 커스텀 말투
+                                            <Brain className="h-3.5 w-3.5 text-blue-500" /> 창의성 (Temperature): {temperature.toFixed(1)}
                                         </Label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {[
-                                                { id: 'professional', label: '전문적인' },
-                                                { id: 'passionate', label: '열정적인' },
-                                                { id: 'humble', label: '성실한' },
-                                                { id: 'confident', label: '매력적인' }
-                                            ].map(tone => (
-                                                <Button key={tone.id} variant="outline" size="sm" onClick={() => setAiTone(tone.id as ToneType)} className={cn("h-10 rounded-xl border-2 px-3 text-[11px] font-bold transition-all", aiTone === tone.id ? "border-blue-600 bg-blue-50/50 text-blue-900" : "bg-slate-50 border-slate-50 hover:bg-white")}>
-                                                    <div className={cn("h-2 w-2 rounded-full mr-2", aiTone === tone.id ? "bg-blue-600" : "bg-slate-200")} />
-                                                    {tone.label}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
-                                            <Target className="h-3.5 w-3.5 text-blue-500" /> 커스텀 요청
-                                        </Label>
-                                        <Textarea placeholder="예: 구체적인 수치를 포함해줘..." value={aiFocus} onChange={e => setAiFocus(e.target.value)} className="min-h-[100px] resize-none border-2 border-slate-50 bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] font-medium leading-relaxed" />
-                                    </div>
-
-                                    {/* Subheading Toggle */}
-                                    <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border-2 border-slate-50 transition-all hover:border-slate-100">
-                                        <div className="space-y-0.5">
-                                            <Label className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
-                                                <LayoutList className="h-4 w-4 text-blue-500" /> 답변 내 소제목 포함
-                                            </Label>
-                                            <p className="text-[11px] text-slate-400 font-medium">가독성을 높여주는 소제목을 자동으로 생성합니다.</p>
-                                        </div>
-                                        <button
-                                            onClick={() => setSubheading(!subheading)}
-                                            className={cn(
-                                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
-                                                subheading ? "bg-blue-600" : "bg-slate-200"
-                                            )}
-                                        >
-                                            <span
-                                                className={cn(
-                                                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
-                                                    subheading ? "translate-x-5" : "translate-x-0"
-                                                )}
+                                        <div className="px-1">
+                                            <input
+                                                type="range"
+                                                min="0.0"
+                                                max="1.0"
+                                                step="0.1"
+                                                value={temperature}
+                                                onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                                                className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                                             />
-                                        </button>
+                                            <div className="flex justify-between text-[10px] text-slate-400 font-bold mt-2">
+                                                <span>정확함 (0.0)</span>
+                                                <span>균형 (0.5)</span>
+                                                <span>창의적 (1.0)</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 font-medium leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                            정확한 사실 기반 작성이 필요하면 <b>0.0</b>,
+                                            더 다채로운 표현을 원하면 <b>0.5 이상</b>으로 설정하세요.
+                                        </p>
                                     </div>
 
                                     {/* Action Button */}

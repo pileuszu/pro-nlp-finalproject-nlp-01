@@ -84,7 +84,8 @@ class AICoverLetterService:
             tone=generate_req.tone,
             mode=generate_req.mode,
             portfolio_ids=generate_req.portfolio_ids,
-            subheading=generate_req.subheading
+            subheading=generate_req.subheading,
+            temperature=generate_req.temperature
         )
         
         if not success:
