@@ -77,7 +77,8 @@ async def create_portfolio(
     # Trigger background recommendation update
     background_tasks.add_task(recruit_service.run_bg_recalc_for_user, current_user.id)
     # Trigger background profile update
-    background_tasks.add_task(job_service.trigger_job, task="profile_update", target_id=saved_portfolio.id)
+    from app.services.job_service import job_service
+    background_tasks.add_task(job_service.trigger_profile_update, saved_portfolio.id)
     return saved_portfolio
 
 @router.post("/upload", response_model=schemas.PortfolioDetail, status_code=201)
@@ -165,7 +166,6 @@ async def update_portfolio(
     return updated_portfolio
 
 @router.delete("/{portfolio_id}")
-@router.delete("/{portfolio_id}")
 async def delete_portfolio(
     portfolio_id: int, 
     db: AsyncSession = Depends(get_async_db),
@@ -209,6 +209,7 @@ async def analyze_portfolio_file(
 @router.patch("/{portfolio_id}/confirm", response_model=schemas.PortfolioDetail)
 async def confirm_portfolio(
     portfolio_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
@@ -223,16 +224,9 @@ async def confirm_portfolio(
     await db.commit()
     await db.refresh(portfolio)
     
-    # Update recommendations and profile
-    background_tasks = BackgroundTasks() # We need to inject BackgroundTasks if not present, but better to use job_service directly or request injection.
-    # Wait, confirm_portfolio signature doesn't have background_tasks. Let's add it. 
-    # Actually, simpler to just fire and forget via job_service directly if we don't want to change signature too much, 
-    # BUT job_service.trigger_job is synchronous (encapsulates logic), so we can just call it.
-    # Ideally should use BackgroundTasks for non-blocking HTTP response if possible, but let's change signature to be correct.
-    # Since I cannot see the signature change here, I will modify the signature in a separate step or just call job_service if it returns fast (it spawns process or makes http call, so pretty fast).
-    # Let's check imports. job_service is imported.
+    # Update recommendations and profile in background (non-blocking)
     from app.services.job_service import job_service
-    job_service.trigger_job(task="recruit_update", target_id=current_user.id)
-    job_service.trigger_job(task="profile_update", target_id=portfolio.id)
+    background_tasks.add_task(job_service.trigger_recommendation_update, current_user.id)
+    background_tasks.add_task(job_service.trigger_profile_update, portfolio_id)
     
     return portfolio

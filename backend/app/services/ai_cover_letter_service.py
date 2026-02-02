@@ -79,12 +79,12 @@ class AICoverLetterService:
             raise e
         
         # 4. Trigger Job (Bulk)
-        success = job_service.trigger_job(
-            task="cover_letter_generation", 
-            target_id=cover_letter.id,
+        success = job_service.trigger_cover_letter_generation(
+            cover_letter_id=cover_letter.id,
             tone=generate_req.tone,
             mode=generate_req.mode,
-            portfolio_ids=generate_req.portfolio_ids
+            portfolio_ids=generate_req.portfolio_ids,
+            subheading=generate_req.subheading
         )
         
         if not success:

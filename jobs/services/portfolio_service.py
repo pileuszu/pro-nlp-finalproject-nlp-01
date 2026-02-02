@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from common.models import Portfolio, PortfolioJobQuery, ProcessingStatus
+from common.models import Portfolio, PortfolioJobQuery, PortfolioChunk, ProcessingStatus
 from common import schemas
 from common.gcs_utils import gcs_utils
 from jobs.services.notification_service import NotificationService
@@ -29,6 +29,23 @@ class PortfolioService:
         if not text:
             return ""
         return text.replace("\x00", "")
+
+    def _chunk_text(self, text: str, chunk_size: int = 800, overlap: int = 160) -> List[str]:
+        """Splits text into chunks with overlap."""
+        if not text:
+            return []
+        
+        chunks = []
+        start = 0
+        while start < len(text):
+            end = start + chunk_size
+            chunks.append(text[start:end])
+            start += chunk_size - overlap
+            
+            # Prevent infinite loop if overlap >= chunk_size
+            if start >= len(text) or chunk_size <= overlap:
+                break
+        return chunks
 
     @property
     def file_extractor(self):
@@ -83,7 +100,7 @@ class PortfolioService:
             portfolio = result.scalar_one_or_none()
             
             if not portfolio:
-                logger.error(f"Portfolio {portfolio_id} not found")
+                logger.info(f"Portfolio {portfolio_id} not found or already deleted. Skipping job.")
                 return
 
             portfolio.processing_status = ProcessingStatus.PROCESSING
@@ -127,7 +144,7 @@ class PortfolioService:
                     from notion_client import Client
                     self.notion_extractor.client = Client(auth=token)
                 
-                text = self.notion_extractor.extract(source)
+                text = await self.notion_extractor.extract(source)
                 extracted_projects = [{"title": portfolio.project_name or "Notion Page", "content": text, "url": source}]
             elif p_type == "github":
                 extracted_projects = self.github_extractor.extract_multi(source, token=token)
@@ -139,31 +156,53 @@ class PortfolioService:
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
 
-            # 2. Process each extracted project
-            # First one updates the existing portfolio, others create new ones
+            # 2. Pre-create records for all projects to get IDs and show progress in UI
+            project_records_meta = []
             for i, proj_data in enumerate(extracted_projects):
-                proj_text = proj_data["content"]
-                proj_title = proj_data["title"]
                 proj_url = proj_data["url"]
-
-                # Refine single project (more accurate & cost effective)
-                # If only one project was extracted, we can use the old method which extracts profile too, 
-                # but for batch, we use refine_single_project.
-                project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
+                proj_title = proj_data["title"] or (f"{p_type} Project {i+1}")
                 
-                target_portfolio = None
                 if i == 0:
-                    target_portfolio = portfolio
+                    portfolio.project_name = proj_title
+                    portfolio.source_url = proj_url
+                    target = portfolio
                 else:
-                    # Create a new portfolio record for subsequent projects
-                    target_portfolio = Portfolio(
+                    target = Portfolio(
                         user_id=portfolio.user_id,
                         type=portfolio.type,
                         source_url=proj_url,
+                        project_name=proj_title,
                         processing_status=ProcessingStatus.PROCESSING
                     )
-                    self.db.add(target_portfolio)
-                    await self.db.flush() # Get ID
+                    self.db.add(target)
+                project_records_meta.append({"id": None, "target": target, "data": proj_data})
+            
+            await self.db.flush()
+            for item in project_records_meta:
+                item["id"] = item["target"].id
+            
+            await self.db.commit()
+            logger.info(f"Pre-created {len(project_records_meta)} portfolio records. Starting LLM refinement...")
+
+            # 3. Process each project with LLM
+            import asyncio
+            for i, item in enumerate(project_records_meta):
+                # Add delay to prevent rate limiting in batch processing
+                if i > 0:
+                    await asyncio.sleep(1.0)
+                
+                target_id = item["id"]
+                proj_data = item["data"]
+                proj_text = proj_data["content"]
+                proj_title = proj_data["title"]
+
+                # Re-fetch the portfolio record to avoid expired object issues after commit
+                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                res = await self.db.execute(stmt)
+                target_portfolio = res.scalar_one()
+
+                # Refine single project
+                project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
 
                 # Update portfolio data
                 target_portfolio.project_name = project_refined.project_name
@@ -171,14 +210,9 @@ class PortfolioService:
                 target_portfolio.role = project_refined.role
                 target_portfolio.description = project_refined.description_for_embedding
                 target_portfolio.tech_stack = project_refined.tech_stack
-                target_portfolio.content = self._sanitize_text(proj_text)
+                target_portfolio.strengths = [s.model_dump() for s in project_refined.strengths]
                 
-                # Generate embedding
-                if target_portfolio.description:
-                    try:
-                        target_portfolio.embedding = await self.vector_store.get_embedding(target_portfolio.description)
-                    except Exception as e:
-                        logger.error(f"Embedding failed for {target_portfolio.id}: {e}")
+                # Add Job Queries
 
                 # Add Job Queries
                 # Clear existing if any (for i=0)
@@ -199,6 +233,30 @@ class PortfolioService:
                             embedding=q_emb
                         )
                     )
+
+                # We chunk the refined description
+                chunk_source = (target_portfolio.description or "")
+                
+                if chunk_source:
+                    chunks = self._chunk_text(chunk_source, chunk_size=800, overlap=160)
+                    
+                    # Portfolio model now has 'chunks' relationship with cascade delete
+                    # target_portfolio.chunks = [] # This might be enough if we want to clear
+                    
+                    for idx, chunk_text in enumerate(chunks):
+                        c_emb = None
+                        try:
+                            c_emb = await self.vector_store.get_embedding(chunk_text)
+                        except Exception as e:
+                            logger.error(f"Chunk embedding failed for portfolio {target_portfolio.id} chunk {idx}: {e}")
+                            
+                        target_portfolio.chunks.append(
+                            PortfolioChunk(
+                                chunk_content=chunk_text,
+                                embedding=c_emb,
+                                chunk_index=idx
+                            )
+                        )
 
                 target_portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 await self.db.commit()
@@ -250,30 +308,43 @@ class PortfolioService:
             raise
 
     async def _update_user_global_profile(self, user_id: int, project_name: str, role: str, tech_stack: str, description: str):
-        try:
-            from common.models import User
-            stmt = select(User).where(User.id == user_id)
-            res = await self.db.execute(stmt)
-            user = res.scalar_one_or_none()
-            
-            if not user: return
+        import random
+        import asyncio
+        max_retries = 3
+        
+        for attempt in range(max_retries + 1):
+            try:
+                from common.models import User
+                # Use with_for_update() to lock the user row and prevent race conditions
+                stmt = select(User).where(User.id == user_id).with_for_update()
+                res = await self.db.execute(stmt)
+                user = res.scalar_one_or_none()
+                
+                if not user: return
 
-            new_info = f"프로젝트명: {project_name}\n역할: {role}\n기술스택: {tech_stack}\n내용: {description}"
-            
-            updated_profile = await self.llm_refiner.update_global_user_profile(
-                current_summary=user.profile_summary or "",
-                current_job_title=user.desired_job_title or "",
-                new_project_info=new_info
-            )
-            
-            user.profile_summary = updated_profile.get("summary", user.profile_summary)
-            user.desired_job_title = updated_profile.get("job_title", user.desired_job_title)
-            
-            await self.db.commit()
-            logger.info(f"Updated global profile for User {user_id}")
-            
-        except Exception as e:
-            logger.error(f"Failed to update global profile for user {user_id}: {e}")
+                new_info = f"프로젝트명: {project_name}\n역할: {role}\n기술스택: {tech_stack}\n내용: {description}"
+                
+                updated_profile = await self.llm_refiner.update_global_user_profile(
+                    current_summary=user.profile_summary or "",
+                    current_job_title=user.desired_job_title or "",
+                    new_project_info=new_info
+                )
+                
+                user.profile_summary = updated_profile.get("summary", user.profile_summary)
+                user.desired_job_title = updated_profile.get("job_title", user.desired_job_title)
+                
+                await self.db.commit()
+                logger.info(f"Updated global profile for User {user_id}")
+                return # Successful update
+                
+            except Exception as e:
+                await self.db.rollback()
+                if attempt < max_retries:
+                    delay = 0.5 * (2 ** attempt) + random.uniform(0, 0.5)
+                    logger.warning(f"Profile update conflict for User {user_id}, retrying in {delay:.2f}s... Error: {e}")
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"Failed to update global profile for user {user_id} after {max_retries} attempts: {e}")
 
     async def update_user_profile_from_portfolio(self, portfolio_id: int):
         """
@@ -353,7 +424,7 @@ class PortfolioService:
                     self.notion_extractor.access_token = token
                     from notion_client import Client
                     self.notion_extractor.client = Client(auth=token)
-                text = self.notion_extractor.extract(source)
+                text = await self.notion_extractor.extract(source)
                 extracted_projects = [{"title": portfolio.project_name or "Notion Page", "content": text, "url": source}]
             elif p_type == "github":
                 extracted_projects = self.github_extractor.extract_multi(source, token=token)
@@ -365,22 +436,55 @@ class PortfolioService:
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
 
-            # 2. Process each extracted project
-            # First one updates the existing portfolio, others create new ones
+            # 2. Pre-create records for all projects to get IDs and show progress in UI
+            project_records_meta = []
             for i, proj_data in enumerate(extracted_projects):
+                proj_url = proj_data["url"]
+                proj_title = proj_data["title"] or (f"{p_type} Project {i+1}")
+                
+                if i == 0:
+                    portfolio.project_name = proj_title
+                    portfolio.source_url = proj_url
+                    target = portfolio
+                else:
+                    target = Portfolio(
+                        user_id=portfolio.user_id,
+                        type=portfolio.type,
+                        source_url=proj_url,
+                        project_name=proj_title,
+                        processing_status=ProcessingStatus.PROCESSING
+                    )
+                    self.db.add(target)
+                project_records_meta.append({"id": None, "target": target, "data": proj_data})
+            
+            await self.db.flush()
+            for item in project_records_meta:
+                item["id"] = item["target"].id
+            
+            await self.db.commit()
+            logger.info(f"Pre-created {len(project_records_meta)} portfolio records (Analysis). Starting...")
+
+            # 3. Process each project with LLM
+            import asyncio
+            for i, item in enumerate(project_records_meta):
+                # Add delay to prevent rate limiting in batch processing
+                if i > 0:
+                    await asyncio.sleep(1.0)
+                
+                target_id = item["id"]
+                proj_data = item["data"]
                 proj_text = proj_data["content"]
                 proj_title = proj_data["title"]
-                proj_url = proj_data["url"]
 
-                target_portfolio = None
+                # Re-fetch the portfolio record
+                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                res = await self.db.execute(stmt)
+                target_portfolio = res.scalar_one()
+
                 if i == 0:
-                    target_portfolio = portfolio
                     # For the first one, we extract profile AND project data
                     combined_result = await self.llm_refiner.extract_user_data_and_queries(proj_text)
                     user_data = combined_result.user_data
-                    
-                    target_portfolio.extracted_summary = user_data.profile.summary
-                    target_portfolio.extracted_job_title = user_data.profile.job_title
                     
                     if user_data.projects:
                         project_refined = user_data.projects[0]
@@ -388,16 +492,6 @@ class PortfolioService:
                         # Fallback if AI didn't find specific projects in first chunk
                         project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
                 else:
-                    # Create a new portfolio record for subsequent projects
-                    target_portfolio = Portfolio(
-                        user_id=portfolio.user_id,
-                        type=portfolio.type,
-                        source_url=proj_url,
-                        processing_status=ProcessingStatus.PROCESSING
-                    )
-                    self.db.add(target_portfolio)
-                    await self.db.flush() # Get ID
-                    
                     # Refine single project
                     project_refined = await self.llm_refiner.refine_single_project(proj_text, project_name_hint=proj_title)
 
@@ -407,14 +501,9 @@ class PortfolioService:
                 target_portfolio.role = project_refined.role
                 target_portfolio.description = project_refined.description_for_embedding
                 target_portfolio.tech_stack = project_refined.tech_stack
-                target_portfolio.content = self._sanitize_text(proj_text)
+                target_portfolio.strengths = [s.model_dump() for s in project_refined.strengths]
                 
-                # Generate embedding
-                if target_portfolio.description:
-                    try:
-                        target_portfolio.embedding = await self.vector_store.get_embedding(target_portfolio.description)
-                    except Exception as e:
-                        logger.error(f"Embedding failed for {target_portfolio.id}: {e}")
+                # Add Job Queries
 
                 # Add Job Queries
                 # Clear existing if any (for i=0)
@@ -447,6 +536,15 @@ class PortfolioService:
                     message=f"[{target_portfolio.project_name or '새 포트폴리오'}] 분석이 완료되었습니다. 내용을 검토해 주세요.",
                     link=f"/my/portfolios/{target_portfolio.id}",
                     notification_type="PORTFOLIO_READY",
+                    target_id=target_portfolio.id
+                )
+
+                # Trigger UI Refresh
+                await NotificationService.create_and_notify(
+                    db=self.db,
+                    user_id=target_portfolio.user_id,
+                    title="", message="",
+                    notification_type="REFRESH",
                     target_id=target_portfolio.id
                 )
 

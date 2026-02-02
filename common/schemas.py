@@ -41,7 +41,6 @@ class RecruitmentBase(BaseModel):
     required_qualifications: Optional[str] = None
     preferred_qualifications: Optional[str] = None
     company_description: Optional[str] = None  # 기업 인재상/핵심 가치
-    tags: Optional[List[str]] = None
     reason: Optional[str] = None
     view_count: Optional[int] = 0
 
@@ -53,21 +52,36 @@ class Recruitment(RecruitmentBase):
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator('tags', mode='before')
+    @classmethod
+    def transform_tags(cls, v):
+        if isinstance(v, list) and len(v) > 0 and not isinstance(v[0], str):
+            # Transform Tag objects to string names
+            return [t.name for t in v]
+        return v
+
 class RecruitmentListResponse(BaseModel):
     items: List[Recruitment]
     meta: dict
     model_config = ConfigDict(from_attributes=True)
 
+# Portfolio Strength Schema
+class PortfolioStrength(BaseModel):
+    tag: str
+    claim: str
+    evidence: List[str] = []
+    level: str # low, medium, high
+
 # Portfolio Schemas
 class PortfolioBase(BaseModel):
     type: str
     source_url: Optional[str] = None
-    content: Optional[str] = None
     project_name: Optional[str] = None
     period: Optional[str] = None
     role: Optional[str] = None
     description: Optional[str] = None
     tech_stack: Optional[List[str]] = None
+    strengths: Optional[List[PortfolioStrength]] = None
 
 class PortfolioCreate(PortfolioBase):
     user_id: int
@@ -94,6 +108,7 @@ class PortfolioSummary(PortfolioBase):
     role: Optional[str] = None
     description: Optional[str] = None
     tech_stack: Optional[List[str]] = None
+    strengths: Optional[List[PortfolioStrength]] = None
     
     model_config = ConfigDict(from_attributes=True)
 
@@ -148,6 +163,7 @@ class PortfolioUpdateRequest(BaseModel):
     role: Optional[str] = None
     description: Optional[str] = None
     tech_stack: Optional[List[str]] = None
+    strengths: Optional[List[dict]] = None
 
 # Cover Letter Schemas
 class CoverLetterBase(BaseModel):
@@ -220,6 +236,7 @@ class CoverLetterGenerateRequest(BaseModel):
     questions: List[str]
     tone: str = "professional"
     mode: str = "full" # 'full' or 'outline'
+    subheading: bool = False
 
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view

@@ -25,6 +25,8 @@ interface RecruitInfoPanelProps {
     setAiTone: (tone: ToneType) => void;
     aiFocus: string;
     setAiFocus: (focus: string) => void;
+    subheading: boolean;
+    setSubheading: (val: boolean) => void;
     isGenerating: boolean;
     onRunGeneration: () => void;
 }
@@ -41,6 +43,8 @@ export function RecruitInfoPanel({
     setAiTone,
     aiFocus,
     setAiFocus,
+    subheading,
+    setSubheading,
     isGenerating,
     onRunGeneration
 }: RecruitInfoPanelProps) {
@@ -183,12 +187,35 @@ export function RecruitInfoPanel({
                                         </div>
                                     </div>
 
-                                    {/* Focus Request */}
                                     <div className="space-y-3">
                                         <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 ml-1">
                                             <Target className="h-3.5 w-3.5 text-blue-500" /> 커스텀 요청
                                         </Label>
                                         <Textarea placeholder="예: 구체적인 수치를 포함해줘..." value={aiFocus} onChange={e => setAiFocus(e.target.value)} className="min-h-[100px] resize-none border-2 border-slate-50 bg-slate-50/50 rounded-2xl px-4 py-3 text-[13px] font-medium leading-relaxed" />
+                                    </div>
+
+                                    {/* Subheading Toggle */}
+                                    <div className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border-2 border-slate-50 transition-all hover:border-slate-100">
+                                        <div className="space-y-0.5">
+                                            <Label className="text-[13px] font-bold text-slate-900 flex items-center gap-2">
+                                                <LayoutList className="h-4 w-4 text-blue-500" /> 답변 내 소제목 포함
+                                            </Label>
+                                            <p className="text-[11px] text-slate-400 font-medium">가독성을 높여주는 소제목을 자동으로 생성합니다.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSubheading(!subheading)}
+                                            className={cn(
+                                                "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                subheading ? "bg-blue-600" : "bg-slate-200"
+                                            )}
+                                        >
+                                            <span
+                                                className={cn(
+                                                    "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                    subheading ? "translate-x-5" : "translate-x-0"
+                                                )}
+                                            />
+                                        </button>
                                     </div>
 
                                     {/* Action Button */}

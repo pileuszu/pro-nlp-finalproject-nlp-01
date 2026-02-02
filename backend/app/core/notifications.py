@@ -83,7 +83,7 @@ class NotificationBroadcaster:
             except Exception as e:
                 logger.error(f"Error closing pubsub for user {user_id}: {e}")
 
-    async def broadcast(self, user_id: int, data: dict):
+    async def broadcast(self, user_id: int, data: dict, increment_unread: bool = True):
         """
         Publishes message to user-specific Redis channel.
         This works from ANY instance to ANY instance.
@@ -102,8 +102,9 @@ class NotificationBroadcaster:
 
         try:
             await redis.publish(channel, payload)
-            # Also increment unread count in Redis
-            await self.incr_unread_count(user_id)
+            # Also increment unread count in Redis (if requested)
+            if increment_unread:
+                await self.incr_unread_count(user_id)
             logger.info(f"Broadcasted to Redis channel {channel}: {payload}")
         except Exception as e:
             logger.error(f"Redis publish error for user {user_id}: {e}", exc_info=True)
