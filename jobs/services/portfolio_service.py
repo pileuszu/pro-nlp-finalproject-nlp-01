@@ -168,7 +168,12 @@ class PortfolioService:
             logger.info(f"Pre-created {len(project_records_meta)} portfolio records. Starting LLM refinement...")
 
             # 3. Process each project with LLM
+            import asyncio
             for i, item in enumerate(project_records_meta):
+                # Add delay to prevent rate limiting in batch processing
+                if i > 0:
+                    await asyncio.sleep(1.0)
+                
                 target_id = item["id"]
                 proj_data = item["data"]
                 proj_text = proj_data["content"]
@@ -411,7 +416,12 @@ class PortfolioService:
             logger.info(f"Pre-created {len(project_records_meta)} portfolio records (Analysis). Starting...")
 
             # 3. Process each project with LLM
+            import asyncio
             for i, item in enumerate(project_records_meta):
+                # Add delay to prevent rate limiting in batch processing
+                if i > 0:
+                    await asyncio.sleep(1.0)
+                
                 target_id = item["id"]
                 proj_data = item["data"]
                 proj_text = proj_data["content"]

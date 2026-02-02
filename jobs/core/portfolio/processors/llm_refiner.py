@@ -127,15 +127,50 @@ class LLMRefiner:
             }
         
         import httpx
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            res_json = response.json()
+        import asyncio
+        import random
+
+        max_retries = 3
+        base_delay = 2.0 # seconds
+        
+        for attempt in range(max_retries + 1):
+            try:
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    response = await client.post(url, headers=headers, json=payload)
+                    
+                    # Handle Rate Limit (429) or Server Errors (5xx)
+                    if response.status_code == 429 or response.status_code >= 500:
+                        if attempt < max_retries:
+                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                            logger.warning(f"NCP API returned {response.status_code}. Retrying in {delay:.2f}s... (Attempt {attempt + 1}/{max_retries})")
+                            await asyncio.sleep(delay)
+                            continue
+                        else:
+                            response.raise_for_status() # Final attempt failed
+                    
+                    response.raise_for_status()
+                    res_json = response.json()
+                    
+                    if res_json.get("status", {}).get("code") == "20000":
+                        return res_json.get("result", {}).get("message", {}).get("content", "")
+                    else:
+                        status_code = res_json.get("status", {}).get("code")
+                        # Some business logic errors might also be retriable
+                        if status_code == "42901" and attempt < max_retries:
+                             delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                             logger.warning(f"NCP API business error {status_code}. Retrying in {delay:.2f}s...")
+                             await asyncio.sleep(delay)
+                             continue
+                        
+                        raise RuntimeError(f"NCP API Error: {res_json}")
             
-            if res_json.get("status", {}).get("code") == "20000":
-                return res_json.get("result", {}).get("message", {}).get("content", "")
-            else:
-                raise RuntimeError(f"NCP API Error: {res_json}")
+            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                    logger.warning(f"NCP connection error: {e}. Retrying in {delay:.2f}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    raise
 
 
     async def extract_user_data_and_queries(self, text: str) -> CombinedResult:
