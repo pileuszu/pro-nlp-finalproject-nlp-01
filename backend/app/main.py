@@ -205,4 +205,24 @@ async def app_base_exception_handler(request: Request, exc: AppBaseException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={"success": False, "detail": "Validation Error", "errors": exc.errors()})
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    error_trace = traceback.format_exc()
+    logger.error(f"UNHANDLED ERROR: {exc}\n{error_trace}")
+    
+    # Check if it's a database column error specifically to guide the user
+    detail = "Internal Server Error"
+    if "column" in str(exc) and "does not exist" in str(exc):
+        detail = f"Database Schema Out of Sync: {str(exc)}"
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={
+            "success": False, 
+            "detail": detail,
+            "type": type(exc).__name__
+        }
+    )
+
 print(f"STDOUT: FastAPI App initiation finished in {time.time() - _app_definition_start:.4f}s. Waiting for port bind.", flush=True)

@@ -103,10 +103,36 @@ def init_db():
                     "job_analysis": "JSON"
                 })
                 
+                # Heal 'cover_letter_items'
+                heal_table("cover_letter_items", {
+                    "category": "VARCHAR",
+                    "hint": "TEXT",
+                    "max_length": "INTEGER DEFAULT 1000",
+                    "key_points": "JSON",
+                    "suggested_improvements": "JSON",
+                    "order_index": "INTEGER"
+                })
+                
                 # Heal 'portfolios'
                 heal_table("portfolios", {
                     "processing_status": "processingstatus DEFAULT 'PENDING'",
-                    "embedding": "vector(1024)"
+                    "embedding": "vector(1024)",
+                    "content": "TEXT",
+                    "strengths": "JSON",
+                    "tech_stack": "JSON",
+                    "period": "VARCHAR",
+                    "role": "VARCHAR"
+                })
+
+                # Heal 'portfolio_job_queries'
+                heal_table("portfolio_job_queries", {
+                    "evidence": "JSON"
+                })
+
+                # Heal 'users'
+                heal_table("users", {
+                    "profile_summary": "TEXT",
+                    "desired_job_title": "VARCHAR"
                 })
 
                 # Heal 'recruitments'
