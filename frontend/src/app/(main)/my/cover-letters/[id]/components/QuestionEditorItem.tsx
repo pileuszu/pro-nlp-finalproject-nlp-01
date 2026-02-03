@@ -76,21 +76,22 @@ export function QuestionEditorItem({
                         </div>
                     </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={onRemove} className="text-muted-foreground hover:text-red-500 hover:bg-red-50/10 transition-colors h-10 w-10 rounded-full shrink-0"><Trash2 className="h-5 w-5" /></Button>
-            </div>
-
-            {/* Answer Section */}
-            <div className="space-y-3">
-                <div className="flex justify-end">
+                <div className="flex items-center gap-2 ml-4 self-start">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={onGenerateHeadline}
-                        className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 h-8 gap-1.5 rounded-lg px-3 transition-colors"
+                        className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-950/30 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-700 h-9 gap-1.5 rounded-xl px-3 transition-colors"
                     >
                         <Sparkles className="h-3.5 w-3.5" /> 소제목 생성
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={onRemove} className="text-muted-foreground hover:text-red-500 hover:bg-red-50/10 transition-colors h-9 w-9 rounded-full shrink-0"><Trash2 className="h-4 w-4" /></Button>
                 </div>
+            </div>
+
+            {/* Answer Section */}
+            <div className="space-y-3">
+
                 <div className="relative group/textarea">
                     <Textarea
                         value={question.answer}

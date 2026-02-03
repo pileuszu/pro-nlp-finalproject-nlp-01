@@ -26,42 +26,51 @@
     }
 
     .dark {
-        /* Base Background: Deep Blue-Gray (Premium Dark) */
-        --background: 222 47% 11%;     /* #0f172a - Slate 900 */
-        --foreground: 210 40% 98%;     /* #f8fafc - Slate 50 */
+        /* Base Background: Zinc 950 (True Dark Neutral) */
+        --background: 240 10% 3.9%;
+        /* #09090b */
+        --foreground: 0 0% 98%;
+        /* #fafafa */
 
-        /* Card: Slightly lighter than background to create depth */
-        --card: 222 47% 10%;           /* Darker than BG to make content pop or similar */
-        --card-foreground: 210 40% 98%;
+        /* Card: Matches Background or slightly lighter for subtle depth */
+        --card: 240 10% 3.9%;
+        /* #09090b - Clean, border-based depth */
+        --card-foreground: 0 0% 98%;
 
-        /* Popover: Distinct from card/bg */
-        --popover: 222 47% 11%;
-        --popover-foreground: 210 40% 98%;
+        /* Popover */
+        --popover: 240 10% 3.9%;
+        --popover-foreground: 0 0% 98%;
 
-        /* Primary: Vibrant Blue to match brand */
-        --primary: 217 91% 60%;        /* #3b82f6 - Blue 500 */
-        --primary-foreground: 222 47.4% 11.2%;
+        /* Primary: Vibrant Blue (Brand Color) */
+        --primary: 217 91% 60%;
+        /* #3b82f6 - Blue 500 */
+        --primary-foreground: 222.2 47.4% 11.2%;
 
-        /* Secondary: Muted Blue-Gray */
-        --secondary: 217 32% 17%;      /* #1e293b - Slate 800 */
-        --secondary-foreground: 210 40% 98%;
+        /* Secondary: Zinc 800 (Subtle Gray) */
+        --secondary: 240 3.7% 15.9%;
+        /* #27272a */
+        --secondary-foreground: 0 0% 98%;
 
-        /* Muted: Subtle backgrounds for separators/dimmed areas */
-        --muted: 217 32% 17%;          /* Slate 800 */
-        --muted-foreground: 215 20% 65%; /* Slate 400 */
+        /* Muted: Zinc 800/900 mix */
+        --muted: 240 3.7% 15.9%;
+        /* #27272a */
+        --muted-foreground: 240 5% 64.9%;
+        /* #a1a1aa - Zinc 400 */
 
         /* Accent: Hover states */
-        --accent: 217 32% 17%;
-        --accent-foreground: 210 40% 98%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
 
         /* Destructive */
         --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 210 40% 98%;
+        --destructive-foreground: 0 0% 98%;
 
-        /* Border/Input: Subtle contrast against dark bg */
-        --border: 217 32% 17%;         /* Slate 800 */
-        --input: 217 32% 17%;
-        --ring: 224 76% 48%;
+        /* Border/Input: Zinc 800 - Crisp borders */
+        --border: 240 3.7% 15.9%;
+        /* #27272a */
+        --input: 240 3.7% 15.9%;
+        --ring: 240 4.9% 83.9%;
+        /* #d4d4d8 */
     }
 }
 

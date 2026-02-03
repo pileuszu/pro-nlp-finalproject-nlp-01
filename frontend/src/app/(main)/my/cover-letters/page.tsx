@@ -181,7 +181,8 @@ export default function CoverLettersPage() {
                                         {/* Status Tag */}
                                         <StatusBadge
                                             status={cl.processing_status || 'COMPLETED'}
-                                            variant="card-tag"
+                                            variant="ribbon"
+                                            showIcon={false}
                                         />
 
                                         {/* Whole Card Link (Active only in normal mode) */}

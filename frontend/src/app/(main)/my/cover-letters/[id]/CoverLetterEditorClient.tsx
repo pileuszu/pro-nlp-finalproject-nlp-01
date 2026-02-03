@@ -451,7 +451,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 {/* Editor Content */}
                 <div className="flex-1 space-y-8 animate-in fade-in slide-in-from-bottom-4 h-full overflow-y-auto scrollbar-hide">
                     <div className="p-4 md:p-8 space-y-8">
-                        <div className="flex items-center justify-between border-b border-border pb-6">
+                        <div className="flex items-end justify-between border-b border-border pb-6">
                             <div className="space-y-3 font-pretendard">
                                 <div className="flex items-center gap-3">
                                     <Button variant="ghost" size="icon" onClick={() => router.back()} className="rounded-full hover:bg-muted"><ArrowLeft className="h-5 w-5" /></Button>
