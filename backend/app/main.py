@@ -157,18 +157,16 @@ app.openapi = custom_openapi
 origins = [
     "http://localhost:3000",
     "http://localhost:8080",
-    "https://pro-nlp-finalproject-nlp-01.vercel.app",
-    "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
-    "https://pro-nlp-finalproject-nlp-01-pileuszu.vercel.app",
 ]
 
-if settings.FRONTEND_URL:
-    # Support multiple origins separated by comma
-    if "," in settings.FRONTEND_URL:
-        extra_origins = [o.strip() for o in settings.FRONTEND_URL.split(",") if o.strip()]
-        origins.extend(extra_origins)
-    else:
-        origins.append(settings.FRONTEND_URL)
+# Add Environment-based Frontend URLs
+for url_setting in [settings.FRONTEND_URL, settings.PREVIEW_FRONTEND_URL, settings.PROD_FRONTEND_URL]:
+    if url_setting:
+        if "," in url_setting:
+            extra_origins = [o.strip() for o in url_setting.split(",") if o.strip()]
+            origins.extend(extra_origins)
+        else:
+            origins.append(url_setting)
 
 # Remove duplicates and empty strings
 origins = list(set([o for o in origins if o]))
