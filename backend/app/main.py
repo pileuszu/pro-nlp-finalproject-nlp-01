@@ -2,96 +2,93 @@ import logging
 import sys
 import threading
 import shutil
+import time
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-# 1. Early Logging Setup
+# --- 1. Immediate STDOUT Debugging ---
+print("STDOUT: main.py loading started", flush=True)
+_start_time = time.time()
+
+try:
+    from fastapi import FastAPI, Request, status
+    from fastapi.exceptions import RequestValidationError
+    from fastapi.responses import JSONResponse
+    from fastapi.middleware.cors import CORSMiddleware
+    from common.config import settings
+    from app.core.exceptions import AppBaseException
+    print(f"STDOUT: Core libraries imported ({time.time() - _start_time:.2f}s)", flush=True)
+except Exception as e:
+    print(f"STDOUT: ERROR during early imports: {e}", flush=True)
+    raise
+
+# --- 2. Logging Setup (Delayed slightly to ensure core imports work) ---
 from app.core.logging_utils import setup_structured_logging
 setup_structured_logging()
 logger = logging.getLogger("main")
-
-# Suppress noisy logs
 logging.getLogger("pdfminer").setLevel(logging.ERROR)
 
-from fastapi import FastAPI, Request, status
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-
-from common.config import settings
-from app.core.exceptions import AppBaseException
-
-# --- Background Startup Tasks ---
+# --- 3. Background Tasks ---
 
 def run_db_initialization():
-    """Heavy DB tasks run in background thread to avoid blocking port binding."""
-    logger.info("Background: Starting database initialization...")
+    print("STDOUT: Background DB init starting", flush=True)
     try:
         from common.db_init import init_db
         init_db()
-        logger.info("Background: Database initialization complete.")
+        print("STDOUT: Background DB init complete", flush=True)
     except Exception as e:
+        print(f"STDOUT: Background DB init ERROR: {e}", flush=True)
         logger.error(f"Background: Database initialization failed: {e}")
 
 def run_startup_cleanup():
-    """Cleanup temporary files in background."""
-    logger.info("Background: Starting temporary file cleanup...")
+    print("STDOUT: Background cleanup starting", flush=True)
     try:
         upload_dir = Path("/tmp/uploads")
         if upload_dir.exists():
             for item in upload_dir.iterdir():
                 try:
-                    if item.is_file():
-                        item.unlink()
-                    elif item.is_dir():
-                        shutil.rmtree(item)
-                except Exception as e:
-                    logger.warning(f"Background Cleanup: Failed to delete {item}: {e}")
+                    if item.is_file(): item.unlink()
+                    elif item.is_dir(): shutil.rmtree(item)
+                except Exception: pass
         else:
             upload_dir.mkdir(parents=True, exist_ok=True)
-        logger.info("Background: Temporary file cleanup complete.")
+        print("STDOUT: Background cleanup complete", flush=True)
     except Exception as e:
-        logger.error(f"Background: Cleanup task failed: {e}")
+        print(f"STDOUT: Background cleanup ERROR: {e}", flush=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Fire off background tasks
-    logger.info("Lifespan: Starting background initialization tasks...")
-    
-    db_thread = threading.Thread(target=run_db_initialization, daemon=True)
-    cleanup_thread = threading.Thread(target=run_startup_cleanup, daemon=True)
-    
-    db_thread.start()
-    cleanup_thread.start()
-    
+    logger.info("Lifespan: Starting background tasks...")
+    threading.Thread(target=run_db_initialization, daemon=True).start()
+    threading.Thread(target=run_startup_cleanup, daemon=True).start()
     yield
-    
     logger.info("Lifespan: Shutting down...")
 
-# --- FastAPI App Initialization ---
+# --- 4. FastAPI App (PRE-ROUTER) ---
 
-logger.info("Express: Initializing FastAPI app...")
-
+print("STDOUT: Defining FastAPI app object", flush=True)
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
-    description="AI 기반 채용 플랫폼의 프론트엔드-백엔드 협업을 위한 표준 API 규격서입니다.",
-    version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    description="Pro-NLP Backend",
+    version="1.1.0",
     lifespan=lifespan
 )
 
-# CORS configuration
-origins = [
-    "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
-    "https://pro-nlp-finalproject-nlp-01.vercel.app",
-    "http://localhost:3000",
-]
+# Early Health Route (No dependencies)
+@app.get("/api/ping")
+async def ping():
+    return {"status": "pong", "timestamp": time.time()}
 
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "Pro-NLP Backend is ready", "docs": "/docs"}
+
+# CORS
+origins = ["*"] # Simplified for troubleshooting, can restore specific ones later
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://pro-nlp-finalproject-nlp-01-.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -100,50 +97,33 @@ app.add_middleware(
 # Exception Handlers
 @app.exception_handler(AppBaseException)
 async def app_base_exception_handler(request: Request, exc: AppBaseException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"success": False, "detail": exc.message, "data": exc.detail},
-    )
+    return JSONResponse(status_code=exc.status_code, content={"success": False, "detail": exc.message})
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"success": False, "detail": "입력값 검증에 실패했습니다.", "errors": exc.errors()},
-    )
+    return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={"success": False, "detail": "Validation Error", "errors": exc.errors()})
 
-@app.exception_handler(Exception)
-async def general_exception_handler(request: Request, exc: Exception):
-    logger.exception(f"Unhandled exception occurred: {exc}")
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={
-            "success": False,
-            "detail": "서버 내부 오류가 발생했습니다.",
-            "message": str(exc) if settings.ENV != "production" else "Internal Server Error"
-        },
-    )
+# --- 5. Routing (THE DANGEROUS PART) ---
 
-# --- Routes ---
+print("STDOUT: Starting router inclusion", flush=True)
+try:
+    from app.api.endpoints import auth, recruits, portfolios, cover_letters, health, notifications, integrations, admin
+    
+    app.include_router(health.router, prefix="/api/health", tags=["System"])
+    app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
+    app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+    app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
+    app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
+    app.include_router(cover_letters.router, prefix="/api/cover-letters", tags=["Cover Letters"])
+    app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
+    app.include_router(integrations.router, prefix="/api/integrations", tags=["Integrations"])
+    
+    print(f"STDOUT: Router inclusion complete ({time.time() - _start_time:.2f}s total)", flush=True)
+except Exception as e:
+    print(f"STDOUT: ERROR during router inclusion: {e}", flush=True)
+    # Don't raise here, let the app start with partial routes if possible for debugging, 
+    # but actually it's better to raise so we know it's broken.
+    raise
 
-# Import routers locally to avoid module-level circular imports or slow loads if they import heavy services
-from app.api.endpoints import (
-    auth, recruits, portfolios, cover_letters, 
-    health, notifications, integrations, admin
-)
-
-@app.get("/")
-async def root():
-    return {"status": "ok", "message": "Pro-NLP Backend is running", "docs": "/docs"}
-
-app.include_router(health.router, prefix="/api/health", tags=["System"])
-app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
-app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
-app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
-app.include_router(cover_letters.router, prefix="/api/cover-letters", tags=["Cover Letters"])
-app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
-app.include_router(integrations.router, prefix="/api/integrations", tags=["Integrations"])
-
-logger.info("Express: FastAPI app definition complete. Port binding should occur now.")
+print("STDOUT: FastAPI initialization COMPLETE. Binding to port now.", flush=True)
 

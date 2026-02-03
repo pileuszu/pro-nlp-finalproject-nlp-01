@@ -21,6 +21,6 @@ COPY common/ ./common/
 COPY backend/ .
 
 ENV PYTHONPATH=/app
-# PORT env var is injected by Cloud Run (default 8080)
-
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Cloud Run injects the PORT environment variable (default 8080)
+# Use the shell to expand PORT, but keep it efficient.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]

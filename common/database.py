@@ -21,43 +21,50 @@ if url.drivername == "postgres":
     url = url.set(drivername="postgresql")
 
 # 2. Sync Engine Configuration
-# Supabase Pooler (6543) needs sslmode=require
-sync_url = url
-if "supabase.com" in (sync_url.host or "") or "supabase.co" in (sync_url.host or ""):
-    if sync_url.port == 6543:
-        sync_url = sync_url.update_query_dict({"sslmode": "require"})
+def get_sync_engine():
+    # Supabase Pooler (6543) needs sslmode=require
+    sync_url = url
+    if "supabase.com" in (sync_url.host or "") or "supabase.co" in (sync_url.host or ""):
+        if sync_url.port == 6543:
+            sync_url = sync_url.update_query_dict({"sslmode": "require"})
 
-logger.info(f"Sync engine target: {sync_url.host}:{sync_url.port}")
-engine = create_engine(sync_url, poolclass=NullPool)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    logger.info(f"Sync engine target: {sync_url.host}:{sync_url.port}")
+    return create_engine(sync_url, poolclass=NullPool)
 
 # 3. Async Engine Configuration
-# Use postgresql+asyncpg driver
-async_url = url.set(drivername="postgresql+asyncpg")
+def get_async_engine():
+    # Use postgresql+asyncpg driver
+    async_url = url.set(drivername="postgresql+asyncpg")
 
-# asyncpg does not use 'sslmode' query param, but 'ssl' in connect_args or query.
-# We'll strip sslmode from query and use connect_args for SSL.
-query = dict(async_url.query)
-query.pop("sslmode", None)
-async_url = async_url.set(query=query)
+    # asyncpg does not use 'sslmode' query param, but 'ssl' in connect_args or query.
+    # We'll strip sslmode from query and use connect_args for SSL.
+    query = dict(async_url.query)
+    query.pop("sslmode", None)
+    async_url = async_url.set(query=query)
 
-logger.info(f"Async engine target: {async_url.host}:{async_url.port}")
+    logger.info(f"Async engine target: {async_url.host}:{async_url.port}")
 
-async_connect_args = {"statement_cache_size": 0}
-if "supabase.com" in (async_url.host or "") or "supabase.co" in (async_url.host or ""):
-    async_connect_args["ssl"] = "require"
+    async_connect_args = {"statement_cache_size": 0}
+    if "supabase.com" in (async_url.host or "") or "supabase.co" in (async_url.host or ""):
+        async_connect_args["ssl"] = "require"
 
-# Switch to standard pooling for better stability, but with aggressive recycling
-# Supabase/PgBouncer often closes idle connections, so pre_ping is essential.
-async_engine = create_async_engine(
-    async_url,
-    echo=False,
-    pool_pre_ping=True,       # Check connection health before use
-    pool_recycle=300,         # Recycle connections every 5 minutes
-    pool_size=5,              # Keep a small pool
-    max_overflow=10,          # Allow some burst
-    connect_args=async_connect_args
-)
+    # Switch to standard pooling for better stability, but with aggressive recycling
+    # Supabase/PgBouncer often closes idle connections, so pre_ping is essential.
+    return create_async_engine(
+        async_url,
+        echo=False,
+        pool_pre_ping=True,       # Check connection health before use
+        pool_recycle=300,         # Recycle connections every 5 minutes
+        pool_size=5,              # Keep a small pool
+        max_overflow=10,          # Allow some burst
+        connect_args=async_connect_args
+    )
+
+# Objects initialized on demand or at the end of the module
+engine = get_sync_engine()
+async_engine = get_async_engine()
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 AsyncSessionLocal = async_sessionmaker(async_engine, expire_on_commit=False)
 
 Base = declarative_base()
