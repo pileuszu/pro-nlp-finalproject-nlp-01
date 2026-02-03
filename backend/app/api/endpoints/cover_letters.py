@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from typing import Optional
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from common.database import get_async_db
 from common import schemas
-from common.exceptions import ResourceNotFoundError
-from common.exceptions import ResourceNotFoundError # This will be removed as HTTPException is used instead
+
 from app.api import deps
 from common import models
 from app.api.rate_limit import ai_gen_limiter
