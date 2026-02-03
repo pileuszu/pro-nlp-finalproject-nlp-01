@@ -27,6 +27,7 @@ async def list_recruits(
     db: AsyncSession = Depends(get_async_db),
     current_user: Optional[models.User] = Depends(deps.get_current_user_optional)
 ):
+    from app.services import recruit_service
     skip = (page - 1) * limit
     items, total = await recruit_service.get_recruitments(
         db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, tech_stack=techStack, sort_by=sort
@@ -60,6 +61,7 @@ async def get_recommendations(
     """
     Get AI-powered recruitment recommendations based on user portfolio.
     """
+    from app.services import recruit_service
     return await recruit_service.get_ai_recommendations(db, current_user.id, portfolio_id)
 
 @router.get("/{recruit_id}", response_model=schemas.Recruitment)
@@ -68,6 +70,7 @@ async def get_recruit(
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_db)
 ):
+    from app.services import recruit_service
     db_recruit = await recruit_service.get_recruitment(db, recruit_id)
     if not db_recruit:
         raise HTTPException(status_code=404, detail="Recruitment not found")
@@ -84,6 +87,7 @@ async def create_recruit(
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Admin endpoint to create a new recruitment posting."""
+    from app.services import recruit_service
     return await recruit_service.create_recruitment(db, recruit)
 
 @router.post("/trigger-index", status_code=202)
@@ -95,26 +99,13 @@ async def trigger_indexing(
     Authorized via X-Internal-Secret header.
     """
     from common.config import settings
+    from app.services.job_service import job_service
     import logging
     logger = logging.getLogger(__name__)
 
-    # Debug logging for 403 investigation
-    logger.info(f"Trigger Index Auth Check:")
-    logger.info(f"Received Secret Length: {len(internal_secret) if internal_secret else 'None'}")
-    logger.info(f"Expected Secret Length: {len(settings.INTERNAL_API_SECRET)}")
-    
-    if internal_secret:
-        masked_received = internal_secret[:3] + "***" if len(internal_secret) > 3 else "***"
-        logger.info(f"Received Secret (Masked): {masked_received}")
-    
-    masked_expected = settings.INTERNAL_API_SECRET[:3] + "***" if len(settings.INTERNAL_API_SECRET) > 3 else "***"
-    logger.info(f"Expected Secret (Masked): {masked_expected}")
-
     if internal_secret != settings.INTERNAL_API_SECRET:
-        logger.warning(f"Internal secret mismatch. Received: {internal_secret}, Expected: {settings.INTERNAL_API_SECRET}") # Be careful with this in prod, but needed for debug
         raise HTTPException(status_code=403, detail="Not authorized for internal trigger")
         
-    from app.services.job_service import job_service
     success = job_service.trigger_recruit_indexing() 
     if not success:
         raise HTTPException(status_code=500, detail="Failed to trigger indexing job")
@@ -132,6 +123,7 @@ async def update_recruit(
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Admin endpoint to update a recruitment posting."""
+    from app.services import recruit_service
     db_recruit = await recruit_service.update_recruitment(db, recruit_id, recruit)
     if not db_recruit:
         raise HTTPException(status_code=404, detail="Recruitment not found")

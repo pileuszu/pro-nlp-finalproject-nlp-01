@@ -4,8 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from common.database import get_async_db
 from common import schemas
 from common.exceptions import ResourceNotFoundError
-from app.services.cover_letter_service import CoverLetterService
-from app.services.ai_cover_letter_service import AICoverLetterService
+from common.exceptions import ResourceNotFoundError # This will be removed as HTTPException is used instead
 from app.api import deps
 from common import models
 from app.api.rate_limit import ai_gen_limiter
@@ -14,30 +13,32 @@ router = APIRouter()
 
 @router.get(
     "", 
-    response_model=schemas.CoverLetterListResponse,
+    response_model=List[schemas.CoverLetter], # Changed response_model
     summary="자기소개서 목록 조회",
     description="로그인한 사용자의 모든 자기소개서 목록을 조회합니다. 특정 채용 공고 ID로 필터링이 가능합니다."
 )
 async def list_cover_letters(
-    recruit_id: Optional[int] = Query(None, description="필터링할 채용 공고 ID"),
+    recruitment_id: Optional[int] = Query(None, description="필터링할 채용 공고 ID"), # Changed recruit_id to recruitment_id
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
-    items = await service.get_cover_letters(user_id=current_user.id, recruitment_id=recruit_id)
-    return {"items": items}
+    # Changed logic to directly return the result
+    return await service.get_cover_letters(current_user.id, recruitment_id)
 
 @router.post("", response_model=schemas.CoverLetterDetail, status_code=201)
-async def create_cover_letter(
-    cl: schemas.CoverLetterCreateRequest,
+async def create_cover_letter_placeholder( # Renamed function
+    cl_req: schemas.CoverLetterCreate, # Changed schema type
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    """Manually create a cover letter (placeholder)""" # Added docstring
+    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
-    # Convert Request schema to internal Create schema (adding user_id)
-    cl_data = cl.model_dump()
-    internal_cl = schemas.CoverLetterCreate(**cl_data, user_id=current_user.id)
-    return await service.create_cover_letter(internal_cl)
+    # Changed logic to assign user_id directly
+    cl_req.user_id = current_user.id
+    return await service.create_cover_letter(cl_req)
 
 @router.get("/{cl_id}", response_model=schemas.CoverLetterDetail)
 async def get_cover_letter(
@@ -45,26 +46,28 @@ async def get_cover_letter(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     db_cl = await service.get_cover_letter(cl_id, current_user.id)
     if not db_cl:
-        raise ResourceNotFoundError("CoverLetter", cl_id)
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
     return db_cl
 
 @router.patch("/{cl_id}", response_model=schemas.CoverLetterDetail)
 async def update_cover_letter(
     cl_id: int, 
-    cl: schemas.CoverLetterUpdateRequest, 
+    data: dict, # Changed schema type to dict
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
-    db_cl = await service.update_cover_letter(
-        cl_id, current_user.id, cl.model_dump(exclude_unset=True)
+    updated_cl = await service.update_cover_letter( # Changed variable name
+        cl_id, current_user.id, data # Changed argument
     )
-    if not db_cl:
-        raise ResourceNotFoundError("CoverLetter", cl_id)
-    return db_cl
+    if not updated_cl: # Changed variable name
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
+    return updated_cl # Changed variable name
 
 @router.delete("/{cl_id}")
 async def delete_cover_letter(
@@ -72,10 +75,11 @@ async def delete_cover_letter(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     success = await service.delete_cover_letter(cl_id, current_user.id)
     if not success:
-        raise ResourceNotFoundError("CoverLetter", cl_id)
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
     return {"success": True, "message": "Cover letter deleted"}
 
 @router.patch("/{cl_id}/confirm", response_model=schemas.CoverLetterDetail)
