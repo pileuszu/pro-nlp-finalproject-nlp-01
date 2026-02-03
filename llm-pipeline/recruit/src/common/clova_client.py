@@ -66,7 +66,7 @@ class ClovaStudioClient:
                     return ""
             else:
                 print(f"Clova Studio API Error: Status {response.status_code}, {response.text}")
-                return ""
+                return response.status_code
 
         except Exception as e:
             print(f"Clova Studio API Error: {e}")

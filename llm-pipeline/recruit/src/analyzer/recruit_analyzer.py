@@ -29,10 +29,11 @@ DATA_DIR = SRC_DIR.parent / "data" / "recruit_data"
 SYSTEM_PROMPT = """채용 공고 전문가로서 다음 지침에 따라 공고 데이터를 분석하여 JSON 리스트로 변환하세요.
 1. 한 공고 내에 여러 직무(백엔드, 프론트엔드 등)가 있다면 각각 독립된 JSON 객체로 분리하여 리스트로 만드세요. 이 경우, 공고 제목은 원래 공고제목 뒤에 세부직무 (공고명 - 세부직무) 형식으로 작성하세요.
 2. 표(Table) 형식의 데이터는 행과 열의 관계를 정확히 파악하여 각 직무에 맞게 할당하세요.
-3. deadline이 정확하게 표현되지 않은 경우 '상시채용'으로 반환하세요.
-4. 출력 형식은 반드시 아래 키를 포함하는 JSON 리스트여야 합니다 (Code Block 없이 순수 JSON만 출력):
+3. deadline이 정확하게 표현되지 않은 경우 '상시채용'으로 반환하세요. 날짜가 정확할 경우 'yyyy-mm-dd HH:mm' 형식으로 반환하세요.
+4. link에는 지원 링크를 반환하세요. 없을 경우에만 원본 링크를 반환하세요.
+5. 출력 형식은 반드시 아래 키를 포함하는 JSON 리스트여야 합니다 (Code Block 없이 순수 JSON만 출력):
    keys: [title, company, link, deadline, location, experience, education, employment_type, salary, job_sector, key_responsibilities, required_qualifications, preferred_qualifications]
-5. **중요**: 반드시 유효한 JSON 형식을 지키세요. 모든 문자열은 반드시 큰따옴표(")를 사용하고, 작은따옴표(')를 섞어서 사용하지 마세요. 리스트의 마지막 항목 뒤에 쉼표(,)를 붙이지 마세요.
+6. **중요**: 반드시 유효한 JSON 형식을 지키세요. 모든 문자열은 반드시 큰따옴표(")를 사용하고, 작은따옴표(')를 섞어서 사용하지 마세요. 리스트의 마지막 항목 뒤에 쉼표(,)를 붙이지 마세요.
 """
 
 def repair_json(s):
@@ -111,8 +112,28 @@ def analyze_job(client: ClovaStudioClient, row):
     {content_text}
     """
     
-    print(f"  -> Clova 분석 요청: {company} - {title}")
-    result_text = client.generate_content(SYSTEM_PROMPT, user_prompt)
+    max_retries = 3
+    result_text = ""
+    for attempt in range(max_retries):
+        print(f"  -> Clova 분석 요청: {company} - {title} (시도 {attempt + 1}/{max_retries})")
+        res = client.generate_content(SYSTEM_PROMPT, user_prompt)
+        
+        if res == 200: # 혹시 성공 시 200이 올 경우 대비 (기존 로직 호환성)
+            break
+        elif res == 429:
+            if attempt < max_retries - 1:
+                wait_time = random.randint(30, 60)
+                print(f"  -> [429 Error] Too Many Requests. {wait_time}초 대기 후 재시도합니다...")
+                time.sleep(wait_time)
+            else:
+                print("  -> [429 Error] 최대 재시도 횟수(3회)를 초과했습니다.")
+        elif isinstance(res, str):
+            result_text = res
+            if result_text: # 내용이 있으면 성공으로 간주
+                break
+        else:
+            # 기타 에러 코드 (500, 401 등)
+            break
     
     # JSON 파싱 전처리: 정규표현식을 사용하여 [ ] 사이의 내용만 추출
     try:
