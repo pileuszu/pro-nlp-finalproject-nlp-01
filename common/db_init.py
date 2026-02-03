@@ -15,6 +15,12 @@ def get_ddl_engine():
     it attempts to use the Direct Connection port (5432).
     """
     url = settings.DATABASE_URL
+    # Ensure synchronous driver even if DATABASE_URL contains +asyncpg
+    if "postgresql+asyncpg://" in url:
+        url = url.replace("postgresql+asyncpg://", "postgresql://")
+    elif url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+
     if "supabase.com:6543" in url or "supabase.co:6543" in url:
         logger.info("Supabase Pooler detected. Attempting to use direct port 5432 for DDL operations...")
         url = url.replace(":6543", ":5432")

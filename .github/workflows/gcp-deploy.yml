@@ -165,7 +165,13 @@ jobs:
             NOTION_OAUTH_CLIENT_ID=${{ steps.env-vars.outputs.NO_CLIENT_ID }}
             NOTION_OAUTH_CLIENT_SECRET=${{ steps.env-vars.outputs.NO_CLIENT_SECRET }}
             NOTION_OAUTH_REDIRECT_URI=${{ steps.env-vars.outputs.NO_REDIRECT_URI }}
-          flags: '--min-instances=0 --max-instances=5 --memory=1Gi --cpu=1 --timeout=300s --allow-unauthenticated'
+          flags: |-
+            --min-instances=0
+            --max-instances=5
+            --memory=2Gi
+            --cpu=2
+            --timeout=600s
+            --allow-unauthenticated
 
       - name: Update Cloud Run Job
         # Dynamic update/creation of the job

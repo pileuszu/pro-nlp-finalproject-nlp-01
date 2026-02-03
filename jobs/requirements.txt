@@ -14,6 +14,7 @@ langchain-community>=0.2.6
 langchain-naver>=0.1.1
 langchain-core>=0.2.10
 langchain-text-splitters>=0.2.0
+langchain-openai>=0.1.0
 google-genai
 google-cloud-vision
 google-cloud-storage

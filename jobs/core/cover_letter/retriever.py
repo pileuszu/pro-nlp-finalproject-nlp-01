@@ -25,18 +25,19 @@ class PGHybridRetriever:
         
     async def load_documents(self):
         """Load user's portfolio chunks and recruitment data for context"""
-        # Fetch Portfolio Chunks with Portfolio metadata
-        stmt = select(models.PortfolioChunk).join(models.Portfolio).where(models.Portfolio.user_id == self.user_id)
+        from sqlalchemy.orm import selectinload
+        # Fetch Portfolio Chunks with Portfolio eagerly loaded
+        stmt = (
+            select(models.PortfolioChunk)
+            .join(models.Portfolio)
+            .where(models.Portfolio.user_id == self.user_id)
+            .options(selectinload(models.PortfolioChunk.portfolio))
+        )
         result = await self.db.execute(stmt)
         chunks = result.scalars().all()
         
-        # We need to fetch portfolios to get metadata like project_name
-        p_stmt = select(models.Portfolio).where(models.Portfolio.user_id == self.user_id)
-        p_res = await self.db.execute(p_stmt)
-        portfolios = {p.id: p for p in p_res.scalars().all()}
-
         for c in chunks:
-            p = portfolios.get(c.portfolio_id)
+            p = c.portfolio
             if not p: continue
 
             # Chunks are already segments of the portfolio content/description

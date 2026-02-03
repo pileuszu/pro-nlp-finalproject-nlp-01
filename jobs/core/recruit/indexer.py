@@ -4,7 +4,7 @@ from datetime import date
 from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from common.models import Recruitment, Tag
+from common.models import Recruitment
 from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
 
 logger = logging.getLogger(__name__)
@@ -69,94 +69,83 @@ class RecruitIndexer:
     async def add_recruitments(self, db: AsyncSession, data_list: List[Dict]):
         """
         Processes and adds multiple recruitment items to BOTH SQL DB and vector store.
+        Processing is done individually per item to ensure robustness.
         """
         import datetime
-        documents = []
+        added_count = 0
+        
         for item in data_list:
-            # 1. SQL DB Insertion/Update
-            # Check if exists by title and company
-            stmt = select(Recruitment).where(
-                Recruitment.title == item.get('title'),
-                Recruitment.company == item.get('company')
-            )
-            result = await db.execute(stmt)
-            db_recruit = result.scalar_one_or_none()
-            
-            # Format deadline and start_date
-            deadline_val = item.get('deadline')
-            if deadline_val and isinstance(deadline_val, str):
-                 # Try common formats if needed, or just store as is if it matches date format
-                 # Minimal handling for common "YYYY-MM-DD"
-                 try:
-                     deadline_date = datetime.date.fromisoformat(deadline_val)
-                 except:
-                     deadline_date = None
-            else:
-                 deadline_date = None
-            
-            start_date_val = item.get('start_date')
-            if start_date_val and isinstance(start_date_val, str):
-                 try:
-                     start_date_obj = datetime.date.fromisoformat(start_date_val)
-                 except:
-                     start_date_obj = None
-            else:
-                 start_date_obj = None
+            try:
+                # 1. SQL DB Insertion/Update
+                # Check if exists by link (primary unique constraint)
+                link = item.get('link')
+                db_recruit = None
+                if link:
+                    stmt = select(Recruitment).where(Recruitment.link == link)
+                    result = await db.execute(stmt)
+                    db_recruit = result.scalar_one_or_none()
+                
+                # Format dates
+                deadline_val = item.get('deadline')
+                deadline_date = None
+                if deadline_val and isinstance(deadline_val, str):
+                     try: deadline_date = datetime.date.fromisoformat(deadline_val)
+                     except: pass
+                
+                start_date_val = item.get('start_date')
+                start_date_obj = None
+                if start_date_val and isinstance(start_date_val, str):
+                     try: start_date_obj = datetime.date.fromisoformat(start_date_val)
+                     except: pass
 
-            if not db_recruit:
-                db_recruit = Recruitment(
-                    title=item.get('title'),
-                    company=item.get('company'),
-                    link=item.get('link'),
-                    start_date=start_date_obj,
-                    deadline=deadline_date,
-                    location=item.get('location'),
-                    experience=item.get('experience'),
-                    education=item.get('education'),
-                    employment_type=item.get('employment_type'),
-                    salary=item.get('salary'),
-                    category=item.get('category'),
-                    key_responsibilities=sanitize_text(item.get('key_responsibilities')),
-                    required_qualifications=sanitize_text(item.get('required_qualifications')),
-                    preferred_qualifications=sanitize_text(item.get('preferred_qualifications')),
-                )
-                db.add(db_recruit)
-            else:
-                # Update existing
-                db_recruit.link = item.get('link', db_recruit.link)
-                db_recruit.deadline = deadline_date or db_recruit.deadline
-            
-            # Handle Tags (Many-to-Many Normalized)
-            tag_names = item.get('tags', [])
-            if tag_names:
-                db_tags = []
-                for tname in tag_names:
-                    # Get or Create Tag
-                    stmt_tag = select(Tag).where(Tag.name == tname)
-                    res_tag = await db.execute(stmt_tag)
-                    tag_obj = res_tag.scalar_one_or_none()
-                    if not tag_obj:
-                        tag_obj = Tag(name=tname)
-                        db.add(tag_obj)
-                    db_tags.append(tag_obj)
-                db_recruit.tags = db_tags
-            
-            await db.flush() # Get the ID for metadata
-            
-            # 2. Generate Embedding for 1:1 Storage (Only if new or missing embedding)
-            if not db_recruit.embedding:
-                try:
-                    doc = self.preprocess_recruitment(item)
-                    embedding = await self.vector_store.get_embedding(doc.page_content)
-                    db_recruit.embedding = embedding
-                    logger.info(f"Generated embedding for recruitment {db_recruit.id}")
-                except Exception as e:
-                    logger.error(f"Failed to generate embedding for recruitment {db_recruit.id}: {e}")
-            else:
-                logger.info(f"Skipping embedding generation for existing recruitment {db_recruit.id}")
-            
-        await db.commit()
-        return len(data_list)
+                if not db_recruit:
+                    db_recruit = Recruitment(
+                        title=item.get('title'),
+                        company=item.get('company'),
+                        link=link,
+                        start_date=start_date_obj,
+                        deadline=deadline_date,
+                        location=item.get('location'),
+                        experience=item.get('experience'),
+                        education=item.get('education'),
+                        employment_type=item.get('employment_type'),
+                        salary=item.get('salary'),
+                        category=item.get('category'),
+                        key_responsibilities=sanitize_text(item.get('key_responsibilities')),
+                        required_qualifications=sanitize_text(item.get('required_qualifications')),
+                        preferred_qualifications=sanitize_text(item.get('preferred_qualifications')),
+                        tags=item.get('tags', [])
+                    )
+                    db.add(db_recruit)
+                else:
+                    # Update existing record
+                    db_recruit.title = item.get('title', db_recruit.title)
+                    db_recruit.company = item.get('company', db_recruit.company)
+                    db_recruit.deadline = deadline_date or db_recruit.deadline
+                    db_recruit.tags = item.get('tags', db_recruit.tags)
+                
+                await db.flush() 
+                
+                # 2. Generate Embedding for 1:1 Storage (Only if missing)
+                if db_recruit.embedding is None:
+                    try:
+                        doc = self.preprocess_recruitment(item)
+                        embedding = await self.vector_store.get_embedding(doc.page_content)
+                        db_recruit.embedding = embedding
+                        logger.info(f"Generated embedding for recruitment {db_recruit.id}")
+                    except Exception as e:
+                        logger.error(f"Failed to generate embedding for recruitment {db_recruit.id}: {e}")
+                
+                # Commit each item individually
+                await db.commit()
+                added_count += 1
+                
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Failed to process recruitment item {item.get('link') or item.get('title')}: {e}")
+                continue
+                
+        return added_count
 
     async def search_by_vector(self, db: AsyncSession, embedding: List[float], k: int = 5):
         """
@@ -193,7 +182,6 @@ class RecruitIndexer:
                 "company": row.company,
                 "category": row.category,
                 "location": row.location,
-                "tags": row.tags,
                 "start_date": row.start_date.isoformat() if row.start_date else None,
                 "deadline": row.deadline.isoformat() if row.deadline else None,
                 "key_responsibilities": row.key_responsibilities,

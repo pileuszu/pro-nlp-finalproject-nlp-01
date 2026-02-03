@@ -47,6 +47,31 @@ class PortfolioService:
                 break
         return chunks
 
+    async def _calculate_and_save_chunks(self, portfolio: Portfolio, text: str):
+        """Splits text into chunks, gets embeddings, and saves to DB."""
+        if not text:
+            return
+        
+        # Clear existing chunks
+        portfolio.chunks = []
+        
+        chunks = self._chunk_text(text, chunk_size=800, overlap=160)
+        for idx, chunk_text in enumerate(chunks):
+            c_emb = None
+            try:
+                c_emb = await self.vector_store.get_embedding(chunk_text)
+            except Exception as e:
+                logger.error(f"Chunk embedding failed for portfolio {portfolio.id} chunk {idx}: {e}")
+            
+            portfolio.chunks.append(
+                PortfolioChunk(
+                    chunk_content=chunk_text,
+                    embedding=c_emb,
+                    chunk_index=idx
+                )
+            )
+        logger.info(f"Successfully saved {len(chunks)} chunks for portfolio {portfolio.id}")
+
     @property
     def file_extractor(self):
         if not self._file_extractor:
@@ -94,8 +119,15 @@ class PortfolioService:
         Core logic for processing a portfolio.
         """
         try:
-            # Fetch Portfolio with queries
-            stmt = select(Portfolio).where(Portfolio.id == portfolio_id).options(selectinload(Portfolio.job_queries))
+            # Fetch Portfolio with queries and chunks
+            stmt = (
+                select(Portfolio)
+                .where(Portfolio.id == portfolio_id)
+                .options(
+                    selectinload(Portfolio.job_queries),
+                    selectinload(Portfolio.chunks)
+                )
+            )
             result = await self.db.execute(stmt)
             portfolio = result.scalar_one_or_none()
             
@@ -197,7 +229,14 @@ class PortfolioService:
                 proj_title = proj_data["title"]
 
                 # Re-fetch the portfolio record to avoid expired object issues after commit
-                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                stmt = (
+                    select(Portfolio)
+                    .where(Portfolio.id == target_id)
+                    .options(
+                        selectinload(Portfolio.job_queries),
+                        selectinload(Portfolio.chunks)
+                    )
+                )
                 res = await self.db.execute(stmt)
                 target_portfolio = res.scalar_one()
 
@@ -234,29 +273,8 @@ class PortfolioService:
                         )
                     )
 
-                # We chunk the refined description
-                chunk_source = (target_portfolio.description or "")
-                
-                if chunk_source:
-                    chunks = self._chunk_text(chunk_source, chunk_size=800, overlap=160)
-                    
-                    # Portfolio model now has 'chunks' relationship with cascade delete
-                    # target_portfolio.chunks = [] # This might be enough if we want to clear
-                    
-                    for idx, chunk_text in enumerate(chunks):
-                        c_emb = None
-                        try:
-                            c_emb = await self.vector_store.get_embedding(chunk_text)
-                        except Exception as e:
-                            logger.error(f"Chunk embedding failed for portfolio {target_portfolio.id} chunk {idx}: {e}")
-                            
-                        target_portfolio.chunks.append(
-                            PortfolioChunk(
-                                chunk_content=chunk_text,
-                                embedding=c_emb,
-                                chunk_index=idx
-                            )
-                        )
+                # Calculate and save chunks with embeddings
+                await self._calculate_and_save_chunks(target_portfolio, target_portfolio.description)
 
                 target_portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 await self.db.commit()
@@ -376,7 +394,14 @@ class PortfolioService:
         Specialized task for 'Preview/Analysis' only.
         """
         try:
-            stmt = select(Portfolio).where(Portfolio.id == portfolio_id).options(selectinload(Portfolio.job_queries))
+            stmt = (
+                select(Portfolio)
+                .where(Portfolio.id == portfolio_id)
+                .options(
+                    selectinload(Portfolio.job_queries),
+                    selectinload(Portfolio.chunks)
+                )
+            )
             result = await self.db.execute(stmt)
             portfolio = result.scalar_one_or_none()
             
@@ -477,7 +502,14 @@ class PortfolioService:
                 proj_title = proj_data["title"]
 
                 # Re-fetch the portfolio record
-                stmt = select(Portfolio).where(Portfolio.id == target_id).options(selectinload(Portfolio.job_queries))
+                stmt = (
+                    select(Portfolio)
+                    .where(Portfolio.id == target_id)
+                    .options(
+                        selectinload(Portfolio.job_queries),
+                        selectinload(Portfolio.chunks)
+                    )
+                )
                 res = await self.db.execute(stmt)
                 target_portfolio = res.scalar_one()
 
@@ -524,6 +556,9 @@ class PortfolioService:
                             embedding=q_emb
                         )
                     )
+                
+                # Calculate and save chunks with embeddings (Missing logic added)
+                await self._calculate_and_save_chunks(target_portfolio, target_portfolio.description)
 
                 target_portfolio.processing_status = ProcessingStatus.REVIEW_REQUIRED
                 await self.db.commit()

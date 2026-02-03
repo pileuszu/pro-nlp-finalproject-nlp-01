@@ -10,6 +10,8 @@ class ManualRAG:
         url = os.getenv("DATABASE_URL")
         if "postgresql+asyncpg://" in url:
             url = url.replace("postgresql+asyncpg://", "postgresql://")
+        elif url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
         self.engine = create_engine(url)
         self.collection_name = collection_name
         self.api_key = os.getenv("NCP_CLOVASTUDIO_API_KEY")

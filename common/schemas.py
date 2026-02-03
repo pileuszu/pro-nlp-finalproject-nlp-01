@@ -43,6 +43,7 @@ class RecruitmentBase(BaseModel):
     company_description: Optional[str] = None  # 기업 인재상/핵심 가치
     reason: Optional[str] = None
     view_count: Optional[int] = 0
+    tags: List[str] = []
 
 class RecruitmentCreate(RecruitmentBase):
     pass
@@ -51,14 +52,6 @@ class Recruitment(RecruitmentBase):
     id: int
     created_at: datetime
     model_config = ConfigDict(from_attributes=True)
-
-    @field_validator('tags', mode='before')
-    @classmethod
-    def transform_tags(cls, v):
-        if isinstance(v, list) and len(v) > 0 and not isinstance(v[0], str):
-            # Transform Tag objects to string names
-            return [t.name for t in v]
-        return v
 
 class RecruitmentListResponse(BaseModel):
     items: List[Recruitment]
@@ -237,6 +230,7 @@ class CoverLetterGenerateRequest(BaseModel):
     tone: str = "professional"
     mode: str = "full" # 'full' or 'outline'
     subheading: bool = False
+    temperature: float = 0.0
 
 class RecruitmentDetail(Recruitment):
     # If we need recommendations or letters in detail view

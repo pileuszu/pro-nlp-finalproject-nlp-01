@@ -54,7 +54,8 @@ interface RecruitDetail {
 }
 
 type AiMode = 'draft' | 'strategy' | 'refine';
-type ToneType = 'professional' | 'passionate' | 'humble' | 'confident';
+// Removed ToneType
+// Removed ToneType
 
 export default function CoverLetterEditorPage({ params }: { params: Promise<{ id: string }> }) {
     const router = useRouter();
@@ -81,9 +82,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     // --- AI Studio State ---
     const [aiMode, setAiMode] = useState<AiMode>('draft');
-    const [aiTone, setAiTone] = useState<ToneType>('professional');
-    const [aiFocus, setAiFocus] = useState("");
-    const [subheading, setSubheading] = useState(false);
+    // Removed aiTone, aiFocus, subheading
+    const [temperature, setTemperature] = useState<number>(0.0);
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Polling logic for AI generation result
@@ -259,12 +259,13 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     mode: aiMode === 'strategy' ? 'outline' : 'full',
-                    tone: aiTone,
+                    tone: 'professional', // Default fixed tone
                     recruit_id: linkedRecruit?.id,
                     cover_letter_id: isNew ? undefined : parseInt(id),
                     portfolio_ids: [],
                     questions: allQuestions,
-                    subheading: subheading
+                    subheading: aiMode === 'refine',
+                    temperature: temperature
                 })
             });
 
@@ -443,12 +444,8 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
                     aiMode={aiMode}
                     setAiMode={setAiMode}
-                    aiTone={aiTone}
-                    setAiTone={setAiTone}
-                    aiFocus={aiFocus}
-                    setAiFocus={setAiFocus}
-                    subheading={subheading}
-                    setSubheading={setSubheading}
+                    temperature={temperature}
+                    setTemperature={setTemperature}
                     isGenerating={isGenerating}
                     onRunGeneration={runAiGeneration}
                 />

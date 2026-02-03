@@ -75,6 +75,7 @@ class AICoverLetterService:
             subheading = subheading_str == "true"
             tone = os.getenv("JOB_EXTRA_TONE", "professional")
             generation_mode = os.getenv("JOB_EXTRA_MODE", "full") # 'full' or 'outline'
+            temperature = float(os.getenv("JOB_EXTRA_TEMPERATURE", "0.0"))
             
             # Fetch items created as placeholders in the backend
             items_stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
@@ -103,7 +104,7 @@ class AICoverLetterService:
                     available_projects.append(p_name)
 
             for i, item in enumerate(items):
-                logger.info(f"Generating ({generation_mode}) for item {item.id} ({i+1}/{len(items)}): {item.question[:30]}... (Tone: {tone}, Subheading: {subheading})")
+                logger.info(f"Generating ({generation_mode}) for item {item.id} ({i+1}/{len(items)}): {item.question[:30]}... (Tone: {tone}, Subheading: {subheading}, Temp: {temperature})")
                 
                 # Add delay between requests to avoid Rate Limit (429)
                 if i > 0:
@@ -153,7 +154,8 @@ class AICoverLetterService:
                                 max_length=item.max_length or 1000,
                                 used_experiences=used_experiences.copy(),
                                 hint=item.hint or "",
-                                subheading=subheading
+                                subheading=subheading,
+                                temperature=temperature
                             )
 
                             item.content = answer_data.get("content")
