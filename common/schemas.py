@@ -45,6 +45,11 @@ class RecruitmentBase(BaseModel):
     view_count: Optional[int] = 0
     tags: List[str] = []
 
+    @field_validator('tags', mode='before')
+    @classmethod
+    def set_tags_default(cls, v):
+        return v or []
+
 class RecruitmentCreate(RecruitmentBase):
     pass
 
