@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Recruit as RecruitDetail, CoverLetterVersion } from "@/types";
 import { Label } from "@/components/ui/label";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 type AiMode = 'draft' | 'strategy' | 'refine';
 

@@ -66,7 +66,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     const isNew = id === 'new';
     const [title, setTitle] = useState("");
     const [versions, setVersions] = useState<CoverLetterVersion[]>([]);
-    const [showVersions, setShowVersions] = useState(false);
     const [questions, setQuestions] = useState<QuestionItem[]>([
         { id: 1, question: "1. 현재 회사에 지원한 이유와 앞으로 키워 나갈 커리어 계획을 작성해주시기 바랍니다.", answer: "" },
         { id: 2, question: "2. 지원 직무와 관련하여 어떠한 역량을(지식/기술 등) 강점으로 가지고 있는지, 그 역량을 갖추기 위해 무슨 노력과 경험을 했는지 구체적으로 작성해주시기 바랍니다.", answer: "" },
@@ -216,9 +215,9 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             setLoading(false);
         };
         loadData();
-    }, [id, isNew, jobId]);
+    }, [id, isNew, jobId, fetchVersions]);
 
-    const fetchVersions = async () => {
+    const fetchVersions = useCallback(async () => {
         if (isNew) return;
         try {
             const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}/versions`));
@@ -227,7 +226,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 setVersions(data);
             }
         } catch (e) { console.error("Failed to fetch versions", e); }
-    };
+    }, [id, isNew]);
 
     const handleSave = async () => {
         try {
@@ -272,7 +271,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             answer: snap.content || "",
             max_length: 1000
         })));
-        setShowVersions(false);
         setPreviewSnapshot(null);
         setPreviewVersionId(null);
         alert("버전이 복원되었습니다. 저장하기를 눌러 반영하세요.");
