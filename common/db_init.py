@@ -81,26 +81,29 @@ def init_db():
         # 4. Heal Columns for existing tables
         try:
             with ddl_engine.connect() as conn:
-                # Helper to check and add columns
-                def heal_table(table_name, columns_to_add):
-                    res = conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}'"))
-                    existing_cols = [r[0] for r in res.fetchall()]
+                # Helper to migrate JSON to JSONB for searchable columns
+                def migrate_json_to_jsonb(table_name, columns):
+                    res = conn.execute(text(f"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '{table_name}'"))
+                    col_info = {r[0]: r[1].lower() for r in res.fetchall()}
                     
-                    if existing_cols:
-                        for col_name, sql_type in columns_to_add.items():
-                            if col_name not in existing_cols:
-                                logger.info(f"Healing: Adding column '{col_name}' to '{table_name}'...")
-                                try:
-                                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {sql_type}"))
-                                except Exception as col_e:
-                                    logger.error(f"Failed to add column {col_name} to {table_name}: {col_e}")
-                        conn.commit()
+                    for col in columns:
+                        if col in col_info and col_info[col] == 'json':
+                            logger.info(f"MIGRATION: Casting column '{col}' in '{table_name}' from JSON to JSONB...")
+                            try:
+                                conn.execute(text(f"ALTER TABLE {table_name} ALTER COLUMN {col} TYPE JSONB USING {col}::jsonb"))
+                            except Exception as mig_e:
+                                logger.error(f"Failed to migrate {table_name}.{col} to JSONB: {mig_e}")
+                    conn.commit()
+
+                # Migrate existing JSON columns to JSONB for containment queries
+                migrate_json_to_jsonb("recruitments", ["tags"])
+                migrate_json_to_jsonb("portfolios", ["tech_stack", "strengths"])
 
                 # Heal 'cover_letters'
                 heal_table("cover_letters", {
                     "processing_status": "processingstatus DEFAULT 'PENDING'",
-                    "gap_analysis": "JSON",
-                    "job_analysis": "JSON"
+                    "gap_analysis": "JSONB",
+                    "job_analysis": "JSONB"
                 })
                 
                 # Heal 'cover_letter_items'
@@ -108,8 +111,8 @@ def init_db():
                     "category": "VARCHAR",
                     "hint": "TEXT",
                     "max_length": "INTEGER DEFAULT 1000",
-                    "key_points": "JSON",
-                    "suggested_improvements": "JSON",
+                    "key_points": "JSONB",
+                    "suggested_improvements": "JSONB",
                     "order_index": "INTEGER"
                 })
                 
@@ -118,15 +121,15 @@ def init_db():
                     "processing_status": "processingstatus DEFAULT 'PENDING'",
                     "embedding": "vector(1024)",
                     "content": "TEXT",
-                    "strengths": "JSON",
-                    "tech_stack": "JSON",
+                    "strengths": "JSONB",
+                    "tech_stack": "JSONB",
                     "period": "VARCHAR",
                     "role": "VARCHAR"
                 })
 
                 # Heal 'portfolio_job_queries'
                 heal_table("portfolio_job_queries", {
-                    "evidence": "JSON"
+                    "evidence": "JSONB"
                 })
 
                 # Heal 'users'
@@ -139,7 +142,7 @@ def init_db():
                 heal_table("recruitments", {
                     "view_count": "INTEGER DEFAULT 0",
                     "embedding": "vector(1024)",
-                    "tags": "JSON"
+                    "tags": "JSONB"
                 })
         except Exception as e:
             logger.error(f"Column healing failed: {e}")
