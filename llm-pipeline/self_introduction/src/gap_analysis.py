@@ -19,13 +19,14 @@ from config.settings import (
     LLM_TOP_P, LLM_REPETITION_PENALTY, LLM_MAX_TOKENS,
     LLM_USE_THINKING, LLM_THINKING_LEVEL
 )
-from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult
+from src.schemas import GapAnalysisResult, ResumeGenerationResult, JobAnalysisResult, ResumeOutlineResult, HeadlineGenerationResult
 from src.prompt_templates import (
     GAP_ANALYSIS_PROMPT,
     RESUME_GENERATION_PROMPT,
     SIMPLE_RESUME_PROMPT,
     QUESTION_BASED_RESUME_PROMPT,
-    QUESTION_BASED_OUTLINE_PROMPT
+    QUESTION_BASED_OUTLINE_PROMPT,
+    HEADLINE_GENERATION_PROMPT
 )
 from src.retrieval import HybridRetriever
 from src.data_loader import load_company_data, load_user_data
@@ -438,6 +439,30 @@ def generate_outline(
     return result
 
 
+@retry(
+    retry=retry_if_exception_type(openai.RateLimitError),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=20)
+)
+def generate_headline(content: str) -> str:
+    """
+    기존 텍스트에 대한 소제목 생성
+    """
+    llm = get_llm()
+    parser = PydanticOutputParser(pydantic_object=HeadlineGenerationResult)
+    
+    prompt = PromptTemplate(
+        template=HEADLINE_GENERATION_PROMPT,
+        input_variables=["content"],
+        partial_variables={"format_instructions": parser.get_format_instructions()}
+    )
+    
+    chain = prompt | llm | parser
+    result = chain.invoke({"content": content})
+    
+    return result.headline
+    
+    
 def run_full_outline_analysis(user_id: str) -> Dict[str, Any]:
     """
     자소서 가이드라인(Outline) 전체 분석 파이프라인
