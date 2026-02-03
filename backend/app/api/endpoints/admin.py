@@ -5,7 +5,12 @@ from common.config import settings
 
 router = APIRouter()
 
-@router.post("/crawl", status_code=202)
+@router.post(
+    "/crawl", 
+    status_code=202,
+    summary="채용 공고 크롤링 트리거",
+    description="배경 작업으로 채용 공고 크롤링을 시작합니다. 관리자 비밀번호가 필요합니다."
+)
 def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
     """
     Trigger the recruitment crawling process in the background.
@@ -22,7 +27,12 @@ def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
         
     return {"message": "Crawling job triggered successfully"}
 
-@router.delete("/clear", status_code=200)
+@router.delete(
+    "/clear", 
+    status_code=200,
+    summary="데이터베이스 초기화 (DROP & RECREATE)",
+    description="모든 테이블을 삭제하고 다시 생성합니다. 스키마 변경 시 유용하지만 모든 데이터가 삭제되니 주의하십시오."
+)
 async def clear_database(
     secret: str,
     db = Depends(get_async_db)  # Use dependency for session

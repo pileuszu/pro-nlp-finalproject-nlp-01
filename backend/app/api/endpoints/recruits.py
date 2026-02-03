@@ -63,7 +63,12 @@ async def get_recommendations(
     from app.services import recruit_service
     return await recruit_service.get_ai_recommendations(db, current_user.id, portfolio_id)
 
-@router.get("/{recruit_id}", response_model=schemas.Recruitment)
+@router.get(
+    "/{recruit_id}", 
+    response_model=schemas.Recruitment,
+    summary="채용 공고 상세 조회",
+    description="특정 ID의 채용 공고 상세 내용을 조회합니다. 조회수가 자동으로 증가합니다."
+)
 async def get_recruit(
     recruit_id: int, 
     background_tasks: BackgroundTasks,
@@ -79,7 +84,13 @@ async def get_recruit(
     
     return db_recruit
 
-@router.post("", response_model=schemas.Recruitment, status_code=201)
+@router.post(
+    "", 
+    response_model=schemas.Recruitment, 
+    status_code=201,
+    summary="새 채용 공고 작성 (Admin)",
+    description="관리자 권한을 가진 사용자가 새로운 채용 공고를 등록합니다."
+)
 async def create_recruit(
     recruit: schemas.RecruitmentCreate, 
     db: AsyncSession = Depends(get_async_db),
@@ -89,7 +100,12 @@ async def create_recruit(
     from app.services import recruit_service
     return await recruit_service.create_recruitment(db, recruit)
 
-@router.post("/trigger-index", status_code=202)
+@router.post(
+    "/trigger-index", 
+    status_code=202,
+    summary="채용 공고 인덱싱 트리거 (Internal)",
+    description="내부 서비스 또는 스케줄러를 위해 인덱싱 작업을 트리거합니다. X-Internal-Secret 헤더가 필요합니다."
+)
 async def trigger_indexing(
     internal_secret: str = Depends(deps.get_internal_secret_optional)
 ):
@@ -114,7 +130,12 @@ async def trigger_indexing(
 
 @router.post("/index", status_code=201)
 
-@router.put("/{recruit_id}", response_model=schemas.Recruitment)
+@router.put(
+    "/{recruit_id}", 
+    response_model=schemas.Recruitment,
+    summary="채용 공고 수정 (Admin)",
+    description="특정 ID의 채용 공고 정보를 수정합니다. 관리자 권한이 필요합니다."
+)
 async def update_recruit(
     recruit_id: int, 
     recruit: schemas.RecruitmentCreate, 
@@ -128,7 +149,11 @@ async def update_recruit(
         raise HTTPException(status_code=404, detail="Recruitment not found")
     return db_recruit
 
-@router.delete("/{recruit_id}")
+@router.delete(
+    "/{recruit_id}",
+    summary="채용 공고 삭제 (Admin)",
+    description="특정 ID의 채용 공고를 삭제합니다. 관리자 권한이 필요합니다."
+)
 async def delete_recruit(
     recruit_id: int, 
     db: AsyncSession = Depends(get_async_db),

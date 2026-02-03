@@ -61,8 +61,14 @@ def run_startup_cleanup():
 
 # --- 4. Router Logic (Moved inside lifespan for deferral) ---
 
+_routers_included = False
+
 def include_routers(app_obj: FastAPI):
     """Import and include routers with extreme diagnostic tracing."""
+    global _routers_included
+    if _routers_included:
+        return
+        
     print("STDOUT: Starting router inclusion process...", flush=True)
     _routers_total_start = time.time()
     
@@ -70,6 +76,7 @@ def include_routers(app_obj: FastAPI):
         s = time.time()
         print(f"DEBUG: Loading {name}...", flush=True)
         try:
+            # Import inside function to keep startup minimal
             if name == "auth": from app.api.endpoints import auth as m
             elif name == "recruits": from app.api.endpoints import recruits as m
             elif name == "portfolios": from app.api.endpoints import portfolios as m
@@ -78,6 +85,7 @@ def include_routers(app_obj: FastAPI):
             elif name == "notifications": from app.api.endpoints import notifications as m
             elif name == "integrations": from app.api.endpoints import integrations as m
             elif name == "admin": from app.api.endpoints import admin as m
+            else: return
             
             app_obj.include_router(m.router, prefix=prefix, tags=tags)
             print(f"STDOUT: Router '{name}' included in {time.time() - s:.3f}s", flush=True)
@@ -94,12 +102,31 @@ def include_routers(app_obj: FastAPI):
     load_router("integrations", "/api/integrations", ["Integrations"])
 
     print(f"STDOUT: All routers processed in {time.time() - _routers_total_start:.3f}s", flush=True)
+    _routers_included = True
+
+def custom_openapi():
+    """Ensure all routers are included before generating the OpenAPI schema."""
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    # Force router inclusion so Swagger shows everything
+    include_routers(app)
+    
+    from fastapi.openapi.utils import get_openapi
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("STDOUT: Lifespan starting. Port should be bound now.", flush=True)
     
-    # 1. Include Routers AFTER port bind
+    # 1. Include Routers (safely handled by global flag)
     include_routers(app)
     
     # 2. Fire off background tasks
@@ -119,9 +146,12 @@ _app_definition_start = time.time()
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
     description="Pro-NLP Backend",
-    version="1.1.2",
+    version="1.1.4",
     lifespan=lifespan
 )
+
+# Override the openapi method to use our custom one
+app.openapi = custom_openapi
 
 # CORS - Using * for troubleshooting
 app.add_middleware(
