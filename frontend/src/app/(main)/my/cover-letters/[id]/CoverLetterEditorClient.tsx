@@ -258,6 +258,10 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         } catch (e) { console.error(e); }
     };
 
+    // Preview State
+    const [previewSnapshot, setPreviewSnapshot] = useState<{ title: string; questions: QuestionItem[] } | null>(null);
+    const [previewVersionId, setPreviewVersionId] = useState<number | null>(null);
+
     const handleRestoreVersion = (version: CoverLetterVersion) => {
         if (!confirm("선택한 버전으로 복원하시겠습니까? 현재 작성 중인 내용은 사라집니다.")) return;
 
@@ -269,7 +273,36 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
             max_length: 1000
         })));
         setShowVersions(false);
+        setPreviewSnapshot(null);
+        setPreviewVersionId(null);
         alert("버전이 복원되었습니다. 저장하기를 눌러 반영하세요.");
+    };
+
+    const handlePreviewVersion = (version: CoverLetterVersion) => {
+        // If not already previewing, save snapshot
+        if (!previewSnapshot) {
+            setPreviewSnapshot({ title, questions });
+        }
+
+        setPreviewVersionId(version.id);
+        setTitle(version.title || "");
+        setQuestions(version.items_snapshot.map((snap, idx) => ({
+            id: Date.now() + idx, // Temp ID for UI
+            question: snap.question,
+            answer: snap.content || "",
+            max_length: 1000
+        })));
+        // Do not close panel (showVersions)
+        // No alert
+    };
+
+    const handleCancelPreview = () => {
+        if (previewSnapshot) {
+            setTitle(previewSnapshot.title);
+            setQuestions(previewSnapshot.questions);
+            setPreviewSnapshot(null);
+            setPreviewVersionId(null);
+        }
     };
 
     const addQuestion = () => setQuestions([...questions, { id: Date.now(), question: "", answer: "" }]);
@@ -445,43 +478,73 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 </Button>
                             </div>
                         </div>
-                        <div className="flex gap-2 items-center">
-                            {!isNew && (
-                                <Button
-                                    variant="ghost"
-                                    onClick={async () => {
-                                        if (confirm("정말 이 자기소개서를 삭제하시겠습니까?")) {
-                                            try {
-                                                const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}`), { method: 'DELETE' });
-                                                if (res.ok) {
-                                                    alert("삭제되었습니다.");
-                                                    router.push('/my/cover-letters');
-                                                }
-                                            } catch (e) { console.error(e); }
-                                        }
-                                    }}
-                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors h-10 px-4"
-                                >
-                                    <Trash2 className="h-4 w-4 mr-2" /> 삭제
-                                </Button>
-                            )}
+                        {previewSnapshot ? (
+                            <div className="flex items-center gap-3">
+                                <div className="px-4 py-2 bg-amber-50 rounded-xl border border-amber-200 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                                    <History className="h-4 w-4 text-amber-600" />
+                                    <span className="text-xs font-bold text-amber-700">
+                                        현재 과거 버전({versions.find(v => v.id === previewVersionId)?.created_at ? new Date(versions.find(v => v.id === previewVersionId)!.created_at).toLocaleString() : 'Loading...'})을 미리보고 있습니다.
+                                    </span>
+                                    <div className="h-4 w-px bg-amber-200 mx-1" />
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={handleCancelPreview}
+                                        className="h-7 text-xs font-bold text-amber-800 hover:bg-amber-100 px-3"
+                                    >
+                                        원래대로 돌아가기
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        onClick={() => {
+                                            const ver = versions.find(v => v.id === previewVersionId);
+                                            if (ver) handleRestoreVersion(ver);
+                                        }}
+                                        className="h-7 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm border-none px-3"
+                                    >
+                                        이 버전으로 복원
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 items-center">
+                                {!isNew && (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={async () => {
+                                            if (confirm("정말 이 자기소개서를 삭제하시겠습니까?")) {
+                                                try {
+                                                    const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}`), { method: 'DELETE' });
+                                                    if (res.ok) {
+                                                        alert("삭제되었습니다.");
+                                                        router.push('/my/cover-letters');
+                                                    }
+                                                } catch (e) { console.error(e); }
+                                            }
+                                        }}
+                                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors h-10 px-4"
+                                    >
+                                        <Trash2 className="h-4 w-4 mr-2" /> 삭제
+                                    </Button>
+                                )}
 
-                            {status === 'REVIEW_REQUIRED' ? (
-                                <>
-                                    <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
-                                    <Button variant="brand" onClick={handleConfirm} className="rounded-md h-10 px-8 font-black shadow-lg shadow-blue-500/20 animate-bounce">
-                                        <Sparkles className="mr-2 h-4 w-4 fill-white" /> 이 내용으로 최종 확정
-                                    </Button>
-                                </>
-                            ) : (
-                                <>
-                                    <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
-                                    <Button variant="default" onClick={handleSave} className="rounded-md h-10 px-6 font-bold shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700">
-                                        <Save className="mr-2 h-4 w-4" /> 저장하기
-                                    </Button>
-                                </>
-                            )}
-                        </div>
+                                {status === 'REVIEW_REQUIRED' ? (
+                                    <>
+                                        <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
+                                        <Button variant="brand" onClick={handleConfirm} className="rounded-md h-10 px-8 font-black shadow-lg shadow-blue-500/20 animate-bounce">
+                                            <Sparkles className="mr-2 h-4 w-4 fill-white" /> 이 내용으로 최종 확정
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button variant="outline" onClick={() => router.back()} className="border-slate-200 h-10 px-6 font-semibold">취소</Button>
+                                        <Button variant="default" onClick={handleSave} className="rounded-md h-10 px-6 font-bold shadow-lg shadow-blue-500/20 bg-blue-600 hover:bg-blue-700">
+                                            <Save className="mr-2 h-4 w-4" /> 저장하기
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-4">
@@ -531,6 +594,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
                     versions={versions}
                     onRestore={handleRestoreVersion}
+                    onPreview={handlePreviewVersion}
                 />
             </div>
         </div>

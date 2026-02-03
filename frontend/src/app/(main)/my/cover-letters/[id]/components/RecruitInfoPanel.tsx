@@ -29,6 +29,7 @@ interface RecruitInfoPanelProps {
     // Version History Props
     versions: CoverLetterVersion[];
     onRestore: (version: CoverLetterVersion) => void;
+    onPreview: (version: CoverLetterVersion) => void;
 }
 
 export function RecruitInfoPanel({
@@ -44,7 +45,8 @@ export function RecruitInfoPanel({
     isGenerating,
     onRunGeneration,
     versions,
-    onRestore
+    onRestore,
+    onPreview
 }: RecruitInfoPanelProps) {
     return (
         <aside className={cn(
@@ -57,15 +59,40 @@ export function RecruitInfoPanel({
                         <div className="p-8 pb-4 bg-white border-b border-slate-50">
                             <div className="flex justify-between items-center mb-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20 text-white">
-                                        {panelTab === 'history' ? <History className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                                    <div className="p-3 bg-blue-600 rounded-2xl shadow-lg shadow-blue-500/20 text-white relative overflow-hidden">
+                                        <AnimatePresence mode="wait">
+                                            <motion.div
+                                                key={panelTab}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -10 }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                {panelTab === 'history' ? <History className="h-5 w-5" /> :
+                                                    panelTab === 'ai_writing' ? <Sparkles className="h-5 w-5" /> :
+                                                        <FileText className="h-5 w-5" />}
+                                            </motion.div>
+                                        </AnimatePresence>
                                     </div>
                                     <div className="space-y-0.5">
-                                        <h2 className="font-black text-xl tracking-tight text-slate-900">
-                                            {panelTab === 'history' ? '버전 이력 관리' : 'AI 라이팅 스튜디오'}
-                                        </h2>
+                                        <AnimatePresence mode="wait">
+                                            <motion.h2
+                                                key={panelTab}
+                                                initial={{ opacity: 0, x: -10 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 10 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="font-black text-xl tracking-tight text-slate-900"
+                                            >
+                                                {panelTab === 'history' ? '버전 이력 관리' :
+                                                    panelTab === 'ai_writing' ? 'AI 라이팅 스튜디오' :
+                                                        '채용 공고 원문'}
+                                            </motion.h2>
+                                        </AnimatePresence>
                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-                                            {panelTab === 'history' ? 'Version History' : 'AI Writing Studio'}
+                                            {panelTab === 'history' ? 'Version History' :
+                                                panelTab === 'ai_writing' ? 'AI Writing Studio' :
+                                                    'Recruitment Detail'}
                                         </p>
                                     </div>
                                 </div>
@@ -122,6 +149,7 @@ export function RecruitInfoPanel({
                                         </div>
 
                                         <div className="space-y-8">
+                                            {/* ... (Existing Recruit Details) ... */}
                                             {recruit.key_responsibilities && (
                                                 <div className="space-y-3">
                                                     <div className="flex items-center gap-2 text-sm font-black text-slate-900"><div className="h-1.5 w-1.5 bg-blue-600 rounded-full" /> 주요 업무</div>
@@ -154,6 +182,7 @@ export function RecruitInfoPanel({
                             </TabsContent>
 
                             <TabsContent value="ai_writing" className="m-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
+                                {/* ... (AI Writing Content - Unchanged) ... */}
                                 <div className="bg-blue-600 p-6 rounded-3xl shadow-xl shadow-blue-500/20 mb-2 group relative overflow-hidden">
                                     <Sparkles className="absolute -top-4 -right-4 h-24 w-24 text-white/10 rotate-12" />
                                     <p className="text-white text-md font-black mb-1 flex items-center gap-2 relative z-10">
@@ -236,7 +265,7 @@ export function RecruitInfoPanel({
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                onClick={() => onRestore(ver)}
+                                                onClick={() => onPreview(ver)}
                                                 className="group bg-white border border-slate-100 rounded-2xl p-4 hover:border-blue-500 hover:ring-2 hover:ring-blue-500/20 hover:shadow-lg transition-all relative overflow-hidden cursor-pointer"
                                             >
                                                 <div className="flex justify-between items-start mb-3">
@@ -254,9 +283,18 @@ export function RecruitInfoPanel({
                                                             })}
                                                         </div>
                                                     </div>
-                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-blue-50 text-blue-600 rounded-lg p-1.5">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onRestore(ver);
+                                                        }}
+                                                        className=" bg-blue-50 text-blue-600 rounded-lg p-1.5 h-8 w-8 hover:bg-blue-100 opacity-60 group-hover:opacity-100 transition-opacity"
+                                                        title="이 버전으로 복원"
+                                                    >
                                                         <RotateCcw className="h-4 w-4" />
-                                                    </div>
+                                                    </Button>
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {ver.items_snapshot.map((it, i) => (

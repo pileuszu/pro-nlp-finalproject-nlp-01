@@ -1,7 +1,7 @@
 from fastapi import Depends, HTTPException, status, Header, Query
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from common.database import get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -38,7 +38,8 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
         
-    stmt = select(models.User).where(models.User.email == email)
+    # Eagerly load integrations to avoid MissingGreenlet error during Pydantic validation
+    stmt = select(models.User).options(selectinload(models.User.integrations)).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     
@@ -62,7 +63,7 @@ async def get_current_user_optional(
     except JWTError:
         return None
         
-    stmt = select(models.User).where(models.User.email == email)
+    stmt = select(models.User).options(selectinload(models.User.integrations)).where(models.User.email == email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     return user

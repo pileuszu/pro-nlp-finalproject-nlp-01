@@ -173,7 +173,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                                     <FileText className="h-4 w-4" /> 프로젝트 설명
                                 </h3>
-                                <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap antialiased">
+                                <p className="text-lg text-slate-700 leading-relaxed whitespace-pre-wrap antialiased font-pretendard">
                                     {displayPortfolio.description || "설명이 없습니다."}
                                 </p>
                             </div>
