@@ -7,6 +7,9 @@ from common import schemas
 from app.api import deps
 from common import models
 from app.api.rate_limit import ai_gen_limiter
+from app.services.cover_letter_service import CoverLetterService
+from app.services.ai_cover_letter_service import ai_service
+
 
 router = APIRouter()
 
@@ -21,7 +24,6 @@ async def list_cover_letters(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     # Changed logic to directly return the result
     return await service.get_cover_letters(current_user.id, recruitment_id)
@@ -33,7 +35,6 @@ async def create_cover_letter_placeholder( # Renamed function
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Manually create a cover letter (placeholder)""" # Added docstring
-    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     # Changed logic to assign user_id directly
     cl_req.user_id = current_user.id
@@ -45,7 +46,6 @@ async def get_cover_letter(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     db_cl = await service.get_cover_letter(cl_id, current_user.id)
     if not db_cl:
@@ -59,7 +59,6 @@ async def update_cover_letter(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     updated_cl = await service.update_cover_letter( # Changed variable name
         cl_id, current_user.id, data # Changed argument
@@ -74,7 +73,6 @@ async def delete_cover_letter(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    from app.services.cover_letter_service import CoverLetterService # Moved import inside
     service = CoverLetterService(db)
     success = await service.delete_cover_letter(cl_id, current_user.id)
     if not success:
@@ -119,6 +117,5 @@ async def generate_cover_letter(
     Generates a cover letter using AI (HyperCLOVA X).
     """
     await ai_gen_limiter.check(request)
-    from app.services.ai_cover_letter_service import ai_service
     return await ai_service.generate_cover_letter(db, current_user.id, req)
 
