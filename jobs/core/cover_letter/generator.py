@@ -6,14 +6,18 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from common.config import settings
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import openai
 from jobs.core.cover_letter.prompts import (
     GAP_ANALYSIS_PROMPT, 
     RESUME_GENERATION_PROMPT, 
     SIMPLE_RESUME_PROMPT,
     QUESTION_BASED_RESUME_PROMPT,
-    QUESTION_BASED_OUTLINE_PROMPT
+    QUESTION_BASED_OUTLINE_PROMPT,
+    HEADLINE_GENERATION_PROMPT,
+    SUBHEADING_REFINEMENT_PROMPT
 )
-from jobs.core.cover_letter.schemas import GapAnalysisResult, ResumeGenerationResult, ResumeOutlineResult
+from jobs.core.cover_letter.schemas import GapAnalysisResult, ResumeGenerationResult, ResumeOutlineResult, HeadlineGenerationResult
 from jobs.core.cover_letter.config import (
     LLM_MODEL,
     LLM_TEMPERATURE,
@@ -127,6 +131,11 @@ class CoverLetterGenerator:
         
         return "\n\n---\n\n".join(formatted_parts)
 
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=20)
+    )
     def analyze_gap(self, user_context: str, job_req: str) -> Dict[str, Any]:
         """
         Analyzes the gap between user experience and job requirements.
@@ -159,6 +168,11 @@ class CoverLetterGenerator:
                 "reasoning": "분석에 실패했습니다."
             }
 
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=20)
+    )
     def generate_answer(
         self, 
         company_name: str, 
@@ -170,7 +184,6 @@ class CoverLetterGenerator:
         core_values: str = "",
         max_length: int = 1000,
         used_experiences: List[str] = None,
-        hint: str = "",
         subheading: bool = False,
         temperature: float = 0.0
     ) -> Dict[str, Any]:
@@ -199,7 +212,6 @@ class CoverLetterGenerator:
                 "user_experiences": context + used_exp_warning,  # 경고 추가
                 "question": question,
                 "max_length": max_length,
-                "hint": hint,
                 "matching_points": ", ".join(gap_analysis.get("matching_points", [])) if gap_analysis.get("matching_points") else "해당 없음",
                 "missing_elements": ", ".join(gap_analysis.get("missing_elements", [])) if gap_analysis.get("missing_elements") else "해당 없음",
                 "subheading_instruction": subheading_instruction
@@ -248,6 +260,11 @@ class CoverLetterGenerator:
             logger.error(f"Generation failed: {e}")
             raise
 
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=20)
+    )
     def generate_outline(
         self, 
         company_name: str, 
@@ -255,8 +272,7 @@ class CoverLetterGenerator:
         question: str, 
         context: str, 
         gap_analysis: Dict[str, Any],
-        core_values: str = "",
-        hint: str = ""
+        core_values: str = ""
     ) -> Dict[str, Any]:
         """
         Generates a structural outline for the cover letter instead of full text.
@@ -269,7 +285,7 @@ class CoverLetterGenerator:
 
         prompt = PromptTemplate(
             template=QUESTION_BASED_OUTLINE_PROMPT,
-            input_variables=["company_name", "job_title", "question", "user_experiences", "matching_points", "missing_elements", "core_values", "hint"],
+            input_variables=["company_name", "job_title", "question", "user_experiences", "matching_points", "missing_elements", "core_values"],
             partial_variables={"format_instructions": parser.get_format_instructions()}
         )
         
@@ -284,12 +300,63 @@ class CoverLetterGenerator:
                 "user_experiences": context,
                 "matching_points": matching_points,
                 "missing_elements": missing_elements,
-                "core_values": core_values,
-                "hint": hint
+                "core_values": core_values
             })
             response_text = response.content if hasattr(response, 'content') else str(response)
             result = self._parse_json_response(response_text, ResumeOutlineResult)
             return result.model_dump()
         except Exception as e:
             logger.error(f"Outline generation failed: {e}")
+            raise
+
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=20)
+    )
+    def generate_headline(self, content: str) -> str:
+        """
+        Generates a compelling headline for a cover letter content.
+        """
+        parser = PydanticOutputParser(pydantic_object=HeadlineGenerationResult)
+        
+        prompt = PromptTemplate(
+            template=HEADLINE_GENERATION_PROMPT,
+            input_variables=["content"],
+            partial_variables={"format_instructions": parser.get_format_instructions()}
+        )
+        
+        chain = prompt | self.llm
+        
+        try:
+            response = chain.invoke({"content": content})
+            response_text = response.content if hasattr(response, 'content') else str(response)
+            result = self._parse_json_response(response_text, HeadlineGenerationResult)
+            return result.headline
+        except Exception as e:
+            logger.error(f"Headline generation failed: {e}")
+            raise
+
+    @retry(
+        retry=retry_if_exception_type(openai.RateLimitError),
+        stop=stop_after_attempt(5),
+        wait=wait_exponential(multiplier=1, min=4, max=20)
+    )
+    def refine_with_subheadings(self, text: str) -> str:
+        """
+        Refines the text by adding subheadings using AI.
+        Returns the refined text with markdown headers.
+        """
+        prompt = PromptTemplate(
+            template=SUBHEADING_REFINEMENT_PROMPT,
+            input_variables=["text"]
+        )
+        
+        chain = prompt | self.llm
+        
+        try:
+            response = chain.invoke({"text": text})
+            return response.content if hasattr(response, 'content') else str(response)
+        except Exception as e:
+            logger.error(f"Refinement with subheadings failed: {e}")
             raise

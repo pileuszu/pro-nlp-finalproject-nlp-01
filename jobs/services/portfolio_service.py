@@ -11,6 +11,7 @@ from common.models import Portfolio, PortfolioJobQuery, PortfolioChunk, Processi
 from common import schemas
 from common.gcs_utils import gcs_utils
 from jobs.services.notification_service import NotificationService
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -326,43 +327,41 @@ class PortfolioService:
             raise
 
     async def _update_user_global_profile(self, user_id: int, project_name: str, role: str, tech_stack: str, description: str):
-        import random
-        import asyncio
-        max_retries = 3
         
-        for attempt in range(max_retries + 1):
-            try:
-                from common.models import User
-                # Use with_for_update() to lock the user row and prevent race conditions
-                stmt = select(User).where(User.id == user_id).with_for_update()
-                res = await self.db.execute(stmt)
-                user = res.scalar_one_or_none()
-                
-                if not user: return
+        # Define internal function to be retried
+        @retry(
+            retry=retry_if_exception_type(Exception), # Broad retry for DB conflicts, could be more specific (e.g. OperationalError)
+            stop=stop_after_attempt(4),
+            wait=wait_exponential(multiplier=0.5, min=0.5, max=5)
+        )
+        async def _execute_update():
+            from common.models import User
+            # Use with_for_update() to lock the user row and prevent race conditions
+            stmt = select(User).where(User.id == user_id).with_for_update()
+            res = await self.db.execute(stmt)
+            user = res.scalar_one_or_none()
+            
+            if not user: return
 
-                new_info = f"프로젝트명: {project_name}\n역할: {role}\n기술스택: {tech_stack}\n내용: {description}"
-                
-                updated_profile = await self.llm_refiner.update_global_user_profile(
-                    current_summary=user.profile_summary or "",
-                    current_job_title=user.desired_job_title or "",
-                    new_project_info=new_info
-                )
-                
-                user.profile_summary = updated_profile.get("summary", user.profile_summary)
-                user.desired_job_title = updated_profile.get("job_title", user.desired_job_title)
-                
-                await self.db.commit()
-                logger.info(f"Updated global profile for User {user_id}")
-                return # Successful update
-                
-            except Exception as e:
-                await self.db.rollback()
-                if attempt < max_retries:
-                    delay = 0.5 * (2 ** attempt) + random.uniform(0, 0.5)
-                    logger.warning(f"Profile update conflict for User {user_id}, retrying in {delay:.2f}s... Error: {e}")
-                    await asyncio.sleep(delay)
-                else:
-                    logger.error(f"Failed to update global profile for user {user_id} after {max_retries} attempts: {e}")
+            new_info = f"프로젝트명: {project_name}\n역할: {role}\n기술스택: {tech_stack}\n내용: {description}"
+            
+            updated_profile = await self.llm_refiner.update_global_user_profile(
+                current_summary=user.profile_summary or "",
+                current_job_title=user.desired_job_title or "",
+                new_project_info=new_info
+            )
+            
+            user.profile_summary = updated_profile.get("summary", user.profile_summary)
+            user.desired_job_title = updated_profile.get("job_title", user.desired_job_title)
+            
+            await self.db.commit()
+            logger.info(f"Updated global profile for User {user_id}")
+        
+        try:
+            await _execute_update()
+        except Exception as e:
+            logger.error(f"Failed to update global profile for user {user_id} after retries: {e}")
+            await self.db.rollback()
 
     async def update_user_profile_from_portfolio(self, portfolio_id: int):
         """

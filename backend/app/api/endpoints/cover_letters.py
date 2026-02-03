@@ -119,3 +119,19 @@ async def generate_cover_letter(
     await ai_gen_limiter.check(request)
     return await ai_service.generate_cover_letter(db, current_user.id, req)
 
+@router.post(
+    "/items/{item_id}/refine",
+    response_model=schemas.CoverLetterItemDetail,
+    summary="자소서 문항 소제목 추가 (Refine)",
+    description="기존 작성된 자소서 문항의 답변을 분석하여 적절한 소제목을 추가하고 구조화합니다. (내용 유지)"
+)
+async def refine_cover_letter_item(
+    item_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Refines a specific cover letter item's content by adding subheadings.
+    """
+    return await ai_service.refine_cover_letter_item(db, item_id)
+

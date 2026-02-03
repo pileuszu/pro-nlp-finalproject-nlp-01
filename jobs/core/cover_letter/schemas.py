@@ -73,3 +73,7 @@ class ResumeOutlineResult(BaseModel):
     questions_for_user: List[str] = Field(
         description="Questions to ask the user to fill missing info (quantitative metrics, role details, etc.)"
     )
+
+class HeadlineGenerationResult(BaseModel):
+    """Headline generation result schema"""
+    headline: str = Field(description="A single, compelling headline (15 characters or less, noun phrase)")
