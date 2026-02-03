@@ -59,12 +59,48 @@ def run_startup_cleanup():
     except Exception as e:
         print(f"STDOUT: Background cleanup ERROR: {e}", flush=True)
 
+# --- 4. Router Logic (Moved inside lifespan for deferral) ---
+
+def include_routers(app_obj: FastAPI):
+    """Import and include routers with extreme diagnostic tracing."""
+    print("STDOUT: Starting router inclusion process...", flush=True)
+    _routers_total_start = time.time()
+    
+    def load_router(name, prefix, tags):
+        s = time.time()
+        print(f"DEBUG: Loading {name}...", flush=True)
+        try:
+            if name == "auth": from app.api.endpoints import auth as m
+            elif name == "recruits": from app.api.endpoints import recruits as m
+            elif name == "portfolios": from app.api.endpoints import portfolios as m
+            elif name == "cover_letters": from app.api.endpoints import cover_letters as m
+            elif name == "health": from app.api.endpoints import health as m
+            elif name == "notifications": from app.api.endpoints import notifications as m
+            elif name == "integrations": from app.api.endpoints import integrations as m
+            elif name == "admin": from app.api.endpoints import admin as m
+            
+            app_obj.include_router(m.router, prefix=prefix, tags=tags)
+            print(f"STDOUT: Router '{name}' included in {time.time() - s:.3f}s", flush=True)
+        except Exception as e:
+            print(f"STDOUT: ERROR loading router '{name}': {e}", flush=True)
+
+    load_router("auth", "/api/auth", ["Authentication"])
+    load_router("recruits", "/api/recruits", ["Recruitments"])
+    load_router("portfolios", "/api/portfolios", ["Portfolios"])
+    load_router("cover_letters", "/api/cover-letters", ["Cover Letters"])
+    load_router("health", "/api/health", ["System"])
+    load_router("admin", "/api/admin", ["Admin"])
+    load_router("notifications", "/api/notifications", ["Notifications"])
+    load_router("integrations", "/api/integrations", ["Integrations"])
+
+    print(f"STDOUT: All routers processed in {time.time() - _routers_total_start:.3f}s", flush=True)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("STDOUT: Lifespan starting. Port should be bound now.", flush=True)
     
-    # 1. Include Routers AFTER port bind (Lifespan starts after bind in uvicorn)
-    include_routers()
+    # 1. Include Routers AFTER port bind
+    include_routers(app)
     
     # 2. Fire off background tasks
     logger.info("Lifespan: Starting background workers...")
@@ -75,17 +111,19 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("Lifespan: Shutting down...")
 
-# --- 4. FastAPI App Definition ---
+# --- 5. FastAPI App Definition ---
 
 print("STDOUT: Initializing FastAPI app object...", flush=True)
+_app_definition_start = time.time()
+
 app = FastAPI(
     title="Pro-NLP AI Recruitment Platform API",
     description="Pro-NLP Backend",
-    version="1.1.1",
+    version="1.1.2",
     lifespan=lifespan
 )
 
-# CORS - Using * for troubleshooting to avoid any issues during startup
+# CORS - Using * for troubleshooting
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -94,13 +132,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Base routes defined BEFORE anything else
 @app.get("/api/ping")
-async def ping():
-    return {"status": "pong", "timestamp": time.time()}
+async def api_ping():
+    return {"status": "ok", "message": "ping", "timestamp": time.time()}
 
 @app.get("/")
-async def root():
-    return {"status": "ok", "message": "Pro-NLP Backend", "docs": "/docs"}
+async def root_ping():
+    return {
+        "status": "ok",
+        "message": "Backend is listening",
+        "timestamp": time.time(),
+        "version": "1.1.2"
+    }
 
 # Exception Handlers
 @app.exception_handler(AppBaseException)
@@ -111,42 +155,4 @@ async def app_base_exception_handler(request: Request, exc: AppBaseException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, content={"success": False, "detail": "Validation Error", "errors": exc.errors()})
 
-# --- 5. Lazy Router Inclusion ---
-
-def include_routers():
-    """Import and include routers with detailed tracing."""
-    print("STDOUT: Starting router inclusion process...", flush=True)
-    _routers_start = time.time()
-    
-    try:
-        print("DEBUG: Importing auth...", flush=True)
-        from app.api.endpoints import auth
-        app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
-        
-        print("DEBUG: Importing recruits...", flush=True)
-        from app.api.endpoints import recruits
-        app.include_router(recruits.router, prefix="/api/recruits", tags=["Recruitments"])
-        
-        print("DEBUG: Importing portfolios...", flush=True)
-        from app.api.endpoints import portfolios
-        app.include_router(portfolios.router, prefix="/api/portfolios", tags=["Portfolios"])
-        
-        print("DEBUG: Importing cover_letters...", flush=True)
-        from app.api.endpoints import cover_letters
-        app.include_router(cover_letters.router, prefix="/api/cover-letters", tags=["Cover Letters"])
-        
-        print("DEBUG: Importing system endpoints...", flush=True)
-        from app.api.endpoints import health, notifications, integrations, admin
-        app.include_router(health.router, prefix="/api/health", tags=["System"])
-        app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
-        app.include_router(notifications.router, prefix="/api/notifications", tags=["Notifications"])
-        app.include_router(integrations.router, prefix="/api/integrations", tags=["Integrations"])
-        
-        print(f"STDOUT: All routers included in {time.time() - _routers_start:.2f}s", flush=True)
-    except Exception as e:
-        print(f"STDOUT: ERROR during router inclusion: {e}", flush=True)
-        # Continue starting even if some routers fail, so we can at least ping the app
-        # raise e
-
-# Router inclusion moved to lifespan for faster port binding.
-
+print(f"STDOUT: FastAPI App initiation finished in {time.time() - _app_definition_start:.4f}s. Waiting for port bind.", flush=True)

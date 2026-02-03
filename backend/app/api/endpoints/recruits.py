@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List, Dict
 from common.database import get_async_db
 from common import schemas
-from app.services import recruit_service
 from app.api import deps
 from common import models
 
