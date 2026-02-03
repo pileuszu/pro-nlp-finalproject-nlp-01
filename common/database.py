@@ -38,8 +38,15 @@ def get_sync_engine():
     if _engine is None:
         if url is None:
             raise RuntimeError("Cannot create sync engine: DATABASE_URL is invalid or missing.")
-        # Supabase Pooler (6543) needs sslmode=require
+        # SQLAlchemy sync engine needs a synchronous driver (e.g., 'postgresql://')
+        # Even if settings.DATABASE_URL has '+asyncpg', we must strip it for the sync engine.
         sync_url = url
+        if "postgresql+asyncpg" in sync_url.drivername:
+            sync_url = sync_url.set(drivername="postgresql")
+        elif sync_url.drivername == "postgres":
+            sync_url = sync_url.set(drivername="postgresql")
+
+        # Supabase Pooler (6543) needs sslmode=require
         if "supabase.com" in (sync_url.host or "") or "supabase.co" in (sync_url.host or ""):
             if sync_url.port == 6543:
                 sync_url = sync_url.update_query_dict({"sslmode": "require"})
