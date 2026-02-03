@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from pgvector.sqlalchemy import Vector
 from common.database import Base
+from sqlalchemy.dialects.postgresql import JSONB
 import enum
 
 class ProcessingStatus(str, enum.Enum):
@@ -48,7 +49,7 @@ class Recruitment(Base):
     preferred_qualifications = Column(Text, nullable=True)
     company_description = Column(Text, nullable=True)  # 기업 인재상/핵심 가치
     embedding = Column(Vector(1024), nullable=True)  # Unified 1:1 embedding storage
-    tags = Column(JSON, nullable=True) # Direct JSON storage for tech stack tags
+    tags = Column(JSONB, nullable=True) # Direct JSON storage for tech stack tags
     view_count = Column(Integer, default=0) # View count for popularity sorting
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -73,8 +74,8 @@ class Portfolio(Base):
     role = Column(String, nullable=True)
     description = Column(Text, nullable=True) # Refined Description for Embedding
     content = Column(Text, nullable=True)     # Raw Extracted Content (Basis for Refinement)
-    tech_stack = Column(JSON, nullable=True) # List of strings
-    strengths = Column(JSON, nullable=True) # List of StrengthItem dicts
+    tech_stack = Column(JSONB, nullable=True) # List of strings
+    strengths = Column(JSONB, nullable=True) # List of StrengthItem dicts
 
     owner = relationship("User", back_populates="portfolios")
     job_queries = relationship("PortfolioJobQuery", back_populates="portfolio", cascade="all, delete-orphan")

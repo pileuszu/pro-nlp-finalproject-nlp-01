@@ -44,15 +44,10 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
                 models.Recruitment.company.ilike(f"%{keyword}%")
             )
             
-    if location:
-        stmt = stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
     if tech_stack:
         skills = [s.strip() for s in tech_stack.split(',') if s.strip()]
         if skills:
-            # Use JSON containment operator for PostgreSQL
-            # models.Recruitment.tags.contains(skills) often works if mapped correctly
-            # Or use explicit JSONB contains syntax via text or func
-            # For simplicity and robustness with SQLite/Postgres:
+            # Use JSONB containment operator (@>) via contains()
             for skill in skills:
                 stmt = stmt.where(models.Recruitment.tags.contains([skill]))
     
