@@ -10,7 +10,7 @@ from app.services.job_service import job_service
 
 logger = logging.getLogger(__name__)
 
-async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, location: str = None, tech_stack: str = None, sort_by: str = 'latest'):
+async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, category: str = None, keyword: str = None, search_type: str = 'all', location: str = None, tech_stack: str = None, sort_by: str = 'latest'):
     CATEGORY_MAP = {
         'frontend': '프론트엔드',
         'backend': '서버/백엔드',
@@ -25,11 +25,18 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     if category and category != 'all':
         mapped_category = CATEGORY_MAP.get(category, category)
         stmt = stmt.where(models.Recruitment.category == mapped_category)
+    
     if keyword:
-        stmt = stmt.where(
-            models.Recruitment.title.ilike(f"%{keyword}%") | 
-            models.Recruitment.company.ilike(f"%{keyword}%")
-        )
+        if search_type == 'title':
+            stmt = stmt.where(models.Recruitment.title.ilike(f"%{keyword}%"))
+        elif search_type == 'company':
+            stmt = stmt.where(models.Recruitment.company.ilike(f"%{keyword}%"))
+        else: # 'all' or default
+            stmt = stmt.where(
+                models.Recruitment.title.ilike(f"%{keyword}%") | 
+                models.Recruitment.company.ilike(f"%{keyword}%")
+            )
+            
     if location:
         stmt = stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
     if tech_stack:
@@ -55,11 +62,18 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     if category and category != 'all':
         mapped_category = CATEGORY_MAP.get(category, category)
         count_stmt = count_stmt.where(models.Recruitment.category == mapped_category)
+    
     if keyword:
-        count_stmt = count_stmt.where(
-            models.Recruitment.title.ilike(f"%{keyword}%") | 
-            models.Recruitment.company.ilike(f"%{keyword}%")
-        )
+        if search_type == 'title':
+            count_stmt = count_stmt.where(models.Recruitment.title.ilike(f"%{keyword}%"))
+        elif search_type == 'company':
+            count_stmt = count_stmt.where(models.Recruitment.company.ilike(f"%{keyword}%"))
+        else: # 'all' or default
+            count_stmt = count_stmt.where(
+                models.Recruitment.title.ilike(f"%{keyword}%") | 
+                models.Recruitment.company.ilike(f"%{keyword}%")
+            )
+            
     if location:
         count_stmt = count_stmt.where(models.Recruitment.location.ilike(f"%{location}%"))
     if tech_stack:

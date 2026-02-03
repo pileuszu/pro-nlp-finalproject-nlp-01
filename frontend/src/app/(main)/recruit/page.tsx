@@ -16,11 +16,18 @@ import { Recruit } from "@/types";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { Sparkles, Flame, LayoutGrid, List, ArrowRight, Building, Calendar, MoreHorizontal, Search } from "lucide-react";
+import { Sparkles, Flame, LayoutGrid, List, ArrowRight, Building, Calendar, MoreHorizontal, Search, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { recruitApi } from "@/lib/recruitApi";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function RecruitPage() {
     const { isAuthenticated } = useAuthStore();
@@ -37,6 +44,13 @@ export default function RecruitPage() {
     const [selectedTechs, setSelectedTechs] = useState<string[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+    const [searchType, setSearchType] = useState("all");
+
+    const SEARCH_TYPES = [
+        { label: "통합검색", value: "all" },
+        { label: "직무검색", value: "title" },
+        { label: "기업검색", value: "company" },
+    ];
 
     // Debounce searchQuery
     useEffect(() => {
@@ -69,6 +83,7 @@ export default function RecruitPage() {
                 category: selectedCategory,
                 techStack: selectedTechs.join(','),
                 keyword: debouncedSearchQuery,
+                searchType: searchType,
             });
 
             if (activeTab === 'popular') {
@@ -84,7 +99,7 @@ export default function RecruitPage() {
         } finally {
             setLoading(false);
         }
-    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery]);
+    }, [activeTab, currentPage, itemsPerPage, selectedCategory, selectedTechs, debouncedSearchQuery, searchType]);
 
     useEffect(() => {
         fetchRecruits();
@@ -346,26 +361,62 @@ export default function RecruitPage() {
                     </p>
                 </div>
 
-                <div className="max-w-2xl mx-auto relative group">
-                    <div className="absolute inset-0 bg-blue-500/5 blur-2xl rounded-full -z-10 group-focus-within:bg-blue-500/10 transition-colors"></div>
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
-                    <Input
-                        placeholder="찾으시는 회사나 직무, 기술 스택을 검색해보세요"
-                        className="pl-16 h-16 rounded-3xl border-slate-200 focus-visible:ring-blue-500 bg-white shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200/60 transition-all text-lg font-medium"
-                        value={searchQuery}
-                        onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setCurrentPage(1);
-                        }}
-                    />
-                    {searchQuery && (
-                        <button
-                            onClick={() => setSearchQuery("")}
-                            className="absolute right-6 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-300 hover:text-slate-600 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full"
-                        >
-                            CLEAR
-                        </button>
-                    )}
+                <div className="max-w-3xl mx-auto relative group flex items-center gap-3">
+                    <div className="relative flex-1 group">
+                        <div className="absolute inset-0 bg-blue-500/5 blur-2xl rounded-full -z-10 group-focus-within:bg-blue-500/10 transition-colors"></div>
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <Input
+                            placeholder={
+                                searchType === 'title' ? "직무 키워드로 검색해보세요 (예: 프론트엔드)" :
+                                    searchType === 'company' ? "기업명으로 검색해보세요 (예: 카카오)" :
+                                        "찾으시는 회사나 직무, 기술 스택을 검색해보세요"
+                            }
+                            className="pl-16 h-16 rounded-3xl border-slate-200 focus-visible:ring-blue-500 bg-white shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-200/60 transition-all text-lg font-medium"
+                            value={searchQuery}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute right-6 top-1/2 -translate-y-1/2 text-[11px] font-black text-slate-300 hover:text-slate-600 uppercase tracking-widest bg-slate-50 px-3 py-1.5 rounded-full"
+                            >
+                                CLEAR
+                            </button>
+                        )}
+                    </div>
+
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="h-16 px-6 rounded-3xl border-slate-200 bg-white shadow-lg shadow-slate-200/40 hover:bg-slate-50 transition-all flex items-center gap-2 group min-w-[130px]"
+                            >
+                                <span className="text-sm font-black text-slate-600 uppercase tracking-widest">
+                                    {SEARCH_TYPES.find(t => t.value === searchType)?.label}
+                                </span>
+                                <ChevronDown className="h-4 w-4 text-slate-400 group-hover:text-blue-600 transition-colors" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[180px] rounded-2xl p-2 border-slate-200 shadow-xl animate-in fade-in zoom-in duration-200">
+                            <DropdownMenuRadioGroup value={searchType} onValueChange={(val) => {
+                                setSearchType(val);
+                                setCurrentPage(1);
+                            }}>
+                                {SEARCH_TYPES.map((type) => (
+                                    <DropdownMenuRadioItem
+                                        key={type.value}
+                                        value={type.value}
+                                        className="rounded-xl px-4 py-3 font-bold text-sm text-slate-600 data-[state=checked]:text-blue-600 data-[state=checked]:bg-blue-50 transition-all cursor-pointer mb-1 last:mb-0"
+                                    >
+                                        {type.label}
+                                    </DropdownMenuRadioItem>
+                                ))}
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 

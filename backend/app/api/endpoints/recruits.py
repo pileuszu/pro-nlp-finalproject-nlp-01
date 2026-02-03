@@ -20,6 +20,7 @@ async def list_recruits(
     limit: int = 10, 
     category: Optional[str] = None, 
     keyword: Optional[str] = None,
+    searchType: Optional[str] = Query("all", regex="^(all|title|company)$"),
     location: Optional[str] = None,
     techStack: Optional[str] = None,
     sort: str = Query("latest", regex="^(latest|popular)$"),
@@ -33,7 +34,7 @@ async def list_recruits(
     try:
         skip = (page - 1) * limit
         items, total = await recruit_service.get_recruitments(
-            db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, tech_stack=techStack, sort_by=sort
+            db, skip=skip, limit=limit, category=category, keyword=keyword, search_type=searchType, location=location, tech_stack=techStack, sort_by=sort
         )
         
         # Pre-compute recommendations in background if user is logged in
