@@ -10,10 +10,13 @@ import { getApiUrl } from "@/lib/apiUtils";
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
-    // const { login } = useAuthStore(); // Unused
+    import { useAuthStore } from "@/stores/useAuthStore";
+    import { getApiUrl } from "@/lib/apiUtils";
 
-    const handleKakaoLogin = () => {
+    export default function LoginPage() {
+        const [loading, setLoading] = useState(false);
+        const router = useRouter();
+        const { login } = useAuthStore();
         setLoading(true);
         const client_id = "36cb87d77a70e26540f4e7c71bc02c87";
         const redirect_uri = window.location.origin + "/auth/kakao/callback";
@@ -31,9 +34,15 @@ export default function LoginPage() {
             });
             if (res.ok) {
                 const data = await res.json();
-                localStorage.setItem("access_token", data.access_token);
-                localStorage.setItem("user", JSON.stringify(data.user));
-                router.push("/my/dashboard");
+
+                // Zustand 상태 저장
+                login(data.user, data.access_token);
+
+                // 쿠키 설정 (미들웨어 및 서버사이드용)
+                document.cookie = `accessToken=${data.access_token}; path=/; max-age=86400; SameSite=Lax; Secure`;
+
+                // 메인 페이지로 이동
+                router.push("/recruit");
             } else {
                 alert("테스트 로그인에 실패했습니다.");
             }
