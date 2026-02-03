@@ -14,11 +14,18 @@ logger = logging.getLogger(__name__)
 
 # 1. Base URL Parsing
 raw_url = settings.DATABASE_URL
-url = make_url(raw_url)
-
-# Handle legacy 'postgres' driver name
-if url.drivername == "postgres":
-    url = url.set(drivername="postgresql")
+url = None
+try:
+    if raw_url:
+        url = make_url(raw_url)
+        # Handle legacy 'postgres' driver name
+        if url.drivername == "postgres":
+            url = url.set(drivername="postgresql")
+    else:
+        logger.warning("DATABASE_URL is not set. Database features will fail.")
+except Exception as e:
+    logger.error(f"Failed to parse DATABASE_URL: {e}")
+    # We will let the engines fail lazily later if url is None
 
 # --- Private Engine Singletons ---
 _engine = None
@@ -29,6 +36,8 @@ _AsyncSessionLocal = None
 def get_sync_engine():
     global _engine
     if _engine is None:
+        if url is None:
+            raise RuntimeError("Cannot create sync engine: DATABASE_URL is invalid or missing.")
         # Supabase Pooler (6543) needs sslmode=require
         sync_url = url
         if "supabase.com" in (sync_url.host or "") or "supabase.co" in (sync_url.host or ""):
@@ -42,6 +51,8 @@ def get_sync_engine():
 def get_async_engine():
     global _async_engine
     if _async_engine is None:
+        if url is None:
+            raise RuntimeError("Cannot create async engine: DATABASE_URL is invalid or missing.")
         # Use postgresql+asyncpg driver
         async_url = url.set(drivername="postgresql+asyncpg")
 
