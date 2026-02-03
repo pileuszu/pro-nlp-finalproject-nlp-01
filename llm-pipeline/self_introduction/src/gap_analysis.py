@@ -178,7 +178,18 @@ def generate_resume(
     # 소제목 지침 설정
     subheading_instruction = ""
     if subheading:
-        subheading_instruction = "- 반드시 답변의 시작 부분에 전체 내용을 매력적으로 요약하는 [소제목] 형태의 소제목을 작성하세요. (예: [데이터 기반의 의사결정으로 결제 전환율 15% 개선])"
+        subheading_instruction = (
+            "- 반드시 답변 시작 부분에 [소제목]을 작성하세요.\n"
+            "- 15자 내외의 짧고 강렬한 명사형 문구로 핵심 역량이나 철학을 단정적으로 표현하세요.\n"
+            "- '~하겠습니다', '~인 것 같습니다'와 같은 서술형이나 미사여구를 완전히 배제하세요.\n"
+            "- 예시: \n"
+            "  - [일편단심 신뢰성 전문가]\n"
+            "  - [기술로서 인간을 널리 이롭게]\n"
+            "  - [클라우드로 실현하는 초격차]\n"
+            "  - [이견을 확신으로 바꾼 지표]\n"
+            "  - [1만 TPS를 견디는 결제 아키텍처]\n"
+            "  - [MSA 전환으로 달성한 유지보수 비용 40% 절감]"
+        )
     
     # 문항이 주어진 경우 해당 문항에 맞는 프롬프트 사용
     if question:
@@ -532,7 +543,7 @@ def run_full_outline_analysis(user_id: str) -> Dict[str, Any]:
             })
     else:
         # 문항이 없으면 기본 문항으로 Outline 생성
-        default_question = {"id": 0, "question": "자기소개 및 지원동기", "hint": ""}
+        default_question = {"id": 0, "question": "자기소개 및 지원동기"}
         outline = generate_outline(relevant_experiences, gap_result, company_data, default_question)
         outlines.append({
             "question_id": 0,
