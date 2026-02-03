@@ -5,6 +5,8 @@ from typing import Optional, List, Literal
 from pydantic import BaseModel, Field, model_validator, field_validator
 import logging
 from common.config import settings
+from tenacity import retry as from_tenacity_retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -161,50 +163,47 @@ class LLMRefiner:
             }
         
         import httpx
-        import asyncio
-        import random
 
-        max_retries = 3
-        base_delay = 2.0 # seconds
+        # @retry decorator handles the loop and backoff
+        # Using inner function or applying decorator to a helper method would be cleaner,
+        # but here we wrap the logic in a simple try/except block relying on the caller or 
+        # apply tenacity to this method itself. 
+        #
+        # Better approach: We will apply @retry to a protected helper method `_execute_request`
+        # and call it from here.
+        # However, to be consistent with the user request to "replace manual loops",
+        # let's refactor this entire method to be decorated.
         
-        for attempt in range(max_retries + 1):
-            try:
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    response = await client.post(url, headers=headers, json=payload)
-                    
-                    # Handle Rate Limit (429) or Server Errors (5xx)
-                    if response.status_code == 429 or response.status_code >= 500:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                            logger.warning(f"NCP API returned {response.status_code}. Retrying in {delay:.2f}s... (Attempt {attempt + 1}/{max_retries})")
-                            await asyncio.sleep(delay)
-                            continue
-                        else:
-                            response.raise_for_status() # Final attempt failed
-                    
-                    response.raise_for_status()
-                    res_json = response.json()
-                    
-                    if res_json.get("status", {}).get("code") == "20000":
-                        return res_json.get("result", {}).get("message", {}).get("content", "")
-                    else:
-                        status_code = res_json.get("status", {}).get("code")
-                        # Some business logic errors might also be retriable
-                        if status_code == "42901" and attempt < max_retries:
-                             delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                             logger.warning(f"NCP API business error {status_code}. Retrying in {delay:.2f}s...")
-                             await asyncio.sleep(delay)
-                             continue
-                        
-                        raise RuntimeError(f"NCP API Error: {res_json}")
+        return await self._execute_ncp_request(url, headers, payload)
+
+    @from_tenacity_retry(
+        retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError, RuntimeError)), 
+        stop=stop_after_attempt(4), 
+        wait=wait_exponential(multiplier=2, min=2, max=20)
+    )
+    async def _execute_ncp_request(self, url: str, headers: dict, payload: dict) -> str:
+        import httpx
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
             
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                if attempt < max_retries:
-                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                    logger.warning(f"NCP connection error: {e}. Retrying in {delay:.2f}s...")
-                    await asyncio.sleep(delay)
-                else:
-                    raise
+            # Handle Rate Limit (429) or Server Errors (5xx)
+            if response.status_code == 429 or response.status_code >= 500:
+                # Raise exception to trigger retry
+                response.raise_for_status()
+            
+            response.raise_for_status()
+            res_json = response.json()
+            
+            if res_json.get("status", {}).get("code") == "20000":
+                return res_json.get("result", {}).get("message", {}).get("content", "")
+            else:
+                status_code = res_json.get("status", {}).get("code")
+                # Business logic errors that are retriable
+                if status_code == "42901":
+                     # Raise exception to trigger retry
+                     raise RuntimeError(f"NCP Rate Limit (42901)")
+                
+                raise RuntimeError(f"NCP API Error: {res_json}")
 
 
     async def extract_user_data_and_queries(self, text: str) -> CombinedResult:

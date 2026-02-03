@@ -112,81 +112,72 @@ class AICoverLetterService:
                     logger.info(f"Sleeping for {delay:.2f}s to respect rate limits...")
                     await asyncio.sleep(delay)
 
-                retries = 3
-                for attempt in range(retries):
-                    try:
-                        if generation_mode == "outline":
-                            outline_data = self.generator.generate_outline(
-                                company_name=recruitment.company,
-                                job_title=recruitment.title,
-                                question=item.question,
-                                context=context_text,
-                                gap_analysis=gap_result,
-                                core_values=recruitment.company_description or "",
-                                hint=item.hint or ""
-                            )
-                            # Save outline result
-                            item.content = f"""**[개요 생성 결과]**
+                try:
+                    if generation_mode == "outline":
+                        outline_data = self.generator.generate_outline(
+                            company_name=recruitment.company,
+                            job_title=recruitment.title,
+                            question=item.question,
+                            context=context_text,
+                            gap_analysis=gap_result,
+                            core_values=recruitment.company_description or ""
+                        )
+                        # Save outline result
+                        item.content = f"""**[개요 생성 결과]**
 **한 줄 결론**: {outline_data.get('one_liner')}
 
 **핵심 메시지**: {', '.join(outline_data.get('key_messages', []))}
 
 **문단 구성 계획**:
 """
-                            for plan in outline_data.get('paragraph_plans', []):
-                                item.content += f"\n- **{plan.get('section_title')}**: {plan.get('paragraph_goal')}"
-                                if plan.get('key_points'):
-                                    item.content += f" ({', '.join(plan.get('key_points'))})"
-                            
-                            item.key_points = outline_data.get('key_messages')
-                            item.suggested_improvements = outline_data.get('questions_for_user')
-                            
-                        else:
-                            # Default Full Generation
-                            answer_data = self.generator.generate_answer(
-                                company_name=recruitment.company,
-                                job_title=recruitment.title,
-                                question=item.question,
-                                context=context_text,
-                                gap_analysis=gap_result,
-                                tone=tone,
-                                core_values=recruitment.company_description or "",
-                                max_length=item.max_length or 1000,
-                                used_experiences=used_experiences.copy(),
-                                hint=item.hint or "",
-                                subheading=subheading,
-                                temperature=temperature
-                            )
+                        for plan in outline_data.get('paragraph_plans', []):
+                            item.content += f"\n- **{plan.get('section_title')}**: {plan.get('paragraph_goal')}"
+                            if plan.get('key_points'):
+                                item.content += f" ({', '.join(plan.get('key_points'))})"
+                        
+                        item.key_points = outline_data.get('key_messages')
+                        item.suggested_improvements = outline_data.get('questions_for_user')
+                        
+                    else:
+                        # Default Full Generation
+                        answer_data = self.generator.generate_answer(
+                            company_name=recruitment.company,
+                            job_title=recruitment.title,
+                            question=item.question,
+                            context=context_text,
+                            gap_analysis=gap_result,
+                            tone=tone,
+                            core_values=recruitment.company_description or "",
+                            max_length=item.max_length or 1000,
+                            used_experiences=used_experiences.copy(),
 
-                            item.content = answer_data.get("content")
-                            item.key_points = answer_data.get("key_points")
-                            item.suggested_improvements = answer_data.get("suggested_improvements")
-                            
-                            # Track which projects were likely used in this answer
-                            content = answer_data.get("content", "")
-                            for p_name in available_projects:
-                                if p_name in content and p_name not in used_experiences:
-                                    used_experiences.append(p_name)
-                        
-                        # Update main cover letter content with the first item's content as a summary
-                        if i == 0:
-                            cl.content = item.content
-                        
-                        # Success, break retry loop
-                        break
+                            subheading=subheading,
+                            temperature=temperature
+                        )
 
-                    except Exception as e:
-                        if "429" in str(e) or "Too Many Requests" in str(e):
-                            if attempt < retries - 1:
-                                # 지수 백오프 강화: 10초, 20초, 40초...
-                                wait_time = (2 ** attempt) * 10 + random.uniform(5, 10) 
-                                logger.warning(f"Rate limit hit for item {item.id}. Retrying in {wait_time:.2f}s... (Attempt {attempt+1}/{retries})")
-                                await asyncio.sleep(wait_time)
-                                continue
+                        item.content = answer_data.get("content")
                         
-                        logger.error(f"Failed to generate for item {item.id}: {e}")
-                        item.content = "이 문항에 대한 답변 생성에 실패했습니다."
-                        break
+                        # Prepend Title as Subheading if requested or available
+                        gen_title = answer_data.get("title")
+                        if gen_title and subheading and not item.content.strip().startswith("["):
+                             item.content = f"[{gen_title}]\n\n{item.content}"
+
+                        item.key_points = answer_data.get("key_points")
+                        item.suggested_improvements = answer_data.get("suggested_improvements")
+                        
+                        # Track which projects were likely used in this answer
+                        content = answer_data.get("content", "")
+                        for p_name in available_projects:
+                            if p_name in content and p_name not in used_experiences:
+                                used_experiences.append(p_name)
+                    
+                    # Update main cover letter content with the first item's content as a summary
+                    if i == 0:
+                        cl.content = item.content
+            
+                except Exception as e:
+                    logger.error(f"Failed to generate for item {item.id} after internal retries: {e}")
+                    item.content = "이 문항에 대한 답변 생성에 실패했습니다."
 
             # Update Main Status
             cl.processing_status = models.ProcessingStatus.REVIEW_REQUIRED
@@ -221,6 +212,62 @@ class AICoverLetterService:
             cl.processing_status = models.ProcessingStatus.FAILED
             await db.commit()
             raise
+
+    async def refine_cover_letter_item(self, db: AsyncSession, item_id: int) -> models.CoverLetterItem:
+        """
+        Refines a specific cover letter item's content by adding subheadings.
+        """
+        stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.id == item_id)
+        result = await db.execute(stmt)
+        item = result.scalar_one_or_none()
+        
+        if not item:
+            raise ValueError(f"Cover Letter Item {item_id} not found")
+            
+        if not item.content:
+            raise ValueError("Item has no content to refine")
+            
+        logger.info(f"Refining item {item_id} with subheadings...")
+        refined_text = self.generator.refine_with_subheadings(item.content)
+        
+        item.content = refined_text
+        await db.commit()
+        await db.refresh(item)
+        
+        return item
+
+    async def generate_headline_for_item(self, db: AsyncSession, item_id: int) -> models.CoverLetterItem:
+        """
+        Generates a headline for a specific cover letter item and prepends it.
+        """
+        stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.id == item_id)
+        result = await db.execute(stmt)
+        item = result.scalar_one_or_none()
+        
+        if not item:
+            raise ValueError(f"Cover Letter Item {item_id} not found")
+            
+        if not item.content:
+            raise ValueError("Item has no content to generate headline")
+            
+        logger.info(f"Generating headline for item {item_id}...")
+        headline = self.generator.generate_headline(item.content)
+        
+        # Prepend headline if it doesn't look like it's already there
+        # Check if first line looks like a bracketed title
+        lines = item.content.split('\n')
+        if lines and lines[0].strip().startswith('[') and lines[0].strip().endswith(']'):
+             # Replace existing headline
+             lines[0] = f"[{headline}]"
+             item.content = '\n'.join(lines)
+        else:
+             # Prepend
+             item.content = f"[{headline}]\n\n{item.content}"
+        
+        await db.commit()
+        await db.refresh(item)
+        
+        return item
 
 
 # Singleton instance

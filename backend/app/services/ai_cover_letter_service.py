@@ -98,5 +98,13 @@ class AICoverLetterService:
                 await db.rollback()
         
         return cover_letter
+    
+    async def refine_cover_letter_item(self, db: AsyncSession, item_id: int) -> models.CoverLetterItem:
+        from jobs.services.ai_cover_letter_service import ai_cover_letter_service as job_ai_service
+        return await job_ai_service.refine_cover_letter_item(db, item_id)
+
+    async def generate_headline_for_item(self, db: AsyncSession, item_id: int) -> models.CoverLetterItem:
+        from jobs.services.ai_cover_letter_service import ai_cover_letter_service as job_ai_service
+        return await job_ai_service.generate_headline_for_item(db, item_id)
 
 ai_service = AICoverLetterService()

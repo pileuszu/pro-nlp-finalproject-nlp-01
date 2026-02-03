@@ -20,9 +20,10 @@ interface QuestionItem {
 interface QuestionEditorItemProps {
     question: QuestionItem;
     index: number;
-    onUpdate: (field: 'question' | 'answer' | 'hint', value: string) => void;
+    onUpdate: (field: keyof QuestionItem, value: string | number) => void;
     onRemove: () => void;
     onApplySuggestion: (suggestion: string) => void;
+    onGenerateHeadline: () => void;
 }
 
 export function QuestionEditorItem({
@@ -30,7 +31,8 @@ export function QuestionEditorItem({
     index,
     onUpdate,
     onRemove,
-    onApplySuggestion
+    onApplySuggestion,
+    onGenerateHeadline
 }: QuestionEditorItemProps) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -62,32 +64,41 @@ export function QuestionEditorItem({
                         />
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 ml-1">
                             <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1 rounded-xl text-slate-500 hover:border-slate-200 transition-all focus-within:ring-2 focus-within:ring-slate-100 focus-within:bg-white group">
-                                <Sparkles className="h-3 w-3 text-blue-500 group-focus-within:animate-pulse" />
+                                <span className="text-[10px] font-bold text-slate-400">최대 글자수</span>
                                 <input
-                                    type="text"
-                                    value={question.hint || ""}
-                                    onChange={e => onUpdate('hint', e.target.value)}
-                                    placeholder="항목별 힌트/가이드라인 입력 (예: 협업 경험 강조)"
-                                    className="bg-transparent border-none p-0 text-[11px] font-bold outline-none w-64 placeholder:text-slate-300"
+                                    type="number"
+                                    value={question.max_length || 1000}
+                                    onChange={e => onUpdate('max_length', parseInt(e.target.value) || 1000)}
+                                    className="bg-transparent border-none p-0 text-[11px] font-bold outline-none w-12 text-slate-600 text-right placeholder:text-slate-300"
                                 />
+                                <span className="text-[10px] font-bold text-slate-400">자</span>
                             </div>
-                            {question.max_length && (
-                                <span className="text-[11px] text-slate-400 font-bold px-1 py-1 bg-slate-50/50 rounded-lg border border-transparent">
-                                    최대 {question.max_length}자
-                                </span>
-                            )}
                         </div>
                     </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={onRemove} className="text-slate-200 hover:text-red-500 hover:bg-red-50 transition-colors h-10 w-10 rounded-full shrink-0"><Trash2 className="h-5 w-5" /></Button>
             </div>
-            <div className="relative group/textarea">
-                <Textarea
-                    value={question.answer}
-                    onChange={e => onUpdate('answer', e.target.value)}
-                    className="min-h-[450px] resize-none border-2 border-slate-50 bg-slate-50/30 p-8 text-lg font-medium leading-relaxed focus:bg-white focus:border-blue-100 transition-all rounded-3xl scrollbar-hide shadow-inner"
-                    placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
-                />
+
+            {/* Answer Section */}
+            <div className="space-y-2">
+                <div className="flex justify-end mb-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onGenerateHeadline}
+                        className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 h-8 gap-2 rounded-lg"
+                    >
+                        <Sparkles className="h-3.5 w-3.5" /> 소제목 생성
+                    </Button>
+                </div>
+                <div className="relative group/textarea">
+                    <Textarea
+                        value={question.answer}
+                        onChange={e => onUpdate('answer', e.target.value)}
+                        className="min-h-[450px] resize-none border-2 border-slate-50 bg-slate-50/30 p-8 text-lg font-medium leading-relaxed focus:bg-white focus:border-blue-100 transition-all rounded-3xl scrollbar-hide shadow-inner"
+                        placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
+                    />
+                </div>
             </div>
 
             {/* AI Insights Display */}

@@ -45,6 +45,11 @@ class RecruitmentBase(BaseModel):
     view_count: Optional[int] = 0
     tags: List[str] = []
 
+    @field_validator('tags', mode='before')
+    @classmethod
+    def set_tags_default(cls, v):
+        return v or []
+
 class RecruitmentCreate(RecruitmentBase):
     pass
 
@@ -169,7 +174,7 @@ class CoverLetterItemBase(BaseModel):
     question: str
     content: Optional[str] = None
     category: Optional[str] = None
-    hint: Optional[str] = None  # 작성 힌트/가이드
+    # hint removed
     max_length: Optional[int] = 1000  # 글자 수 제한
     key_points: Optional[List[str]] = None
     suggested_improvements: Optional[List[str]] = None
@@ -182,7 +187,12 @@ class CoverLetterItem(CoverLetterItemBase):
     cover_letter_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterItemDetail(CoverLetterItem):
+    """Refined item with analysis"""
+    pass
 
 class CoverLetterCreate(CoverLetterBase):
     user_id: int

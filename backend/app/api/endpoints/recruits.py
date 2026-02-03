@@ -27,24 +27,32 @@ async def list_recruits(
     current_user: Optional[models.User] = Depends(deps.get_current_user_optional)
 ):
     from app.services import recruit_service
-    skip = (page - 1) * limit
-    items, total = await recruit_service.get_recruitments(
-        db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, tech_stack=techStack, sort_by=sort
-    )
+    from fastapi.responses import JSONResponse
+    import traceback
     
-    # Pre-compute recommendations in background if user is logged in
-    if current_user:
-        background_tasks.add_task(recruit_service.run_bg_recalc_for_user, current_user.id)
+    try:
+        skip = (page - 1) * limit
+        items, total = await recruit_service.get_recruitments(
+            db, skip=skip, limit=limit, category=category, keyword=keyword, location=location, tech_stack=techStack, sort_by=sort
+        )
         
-    return {
-        "items": items,
-        "meta": {
-            "total": total,
-            "page": page,
-            "limit": limit,
-            "totalPages": (total + limit - 1) // limit if total > 0 else 0
+        # Pre-compute recommendations in background if user is logged in
+        if current_user:
+            background_tasks.add_task(recruit_service.run_bg_recalc_for_user, current_user.id)
+            
+        return {
+            "items": items,
+            "meta": {
+                "total": total,
+                "page": page,
+                "limit": limit,
+                "totalPages": (total + limit - 1) // limit if total > 0 else 0
+            }
         }
-    }
+    except Exception as e:
+        print(f"ERROR in list_recruits: {e}", flush=True)
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"detail": f"Internal Error: {str(e)}", "trace": traceback.format_exc()})
 
 @router.get(
     "/recommend", 
@@ -127,8 +135,6 @@ async def trigger_indexing(
         
     return {"message": "Recruitment indexing job triggered via internal auth"}
 
-
-@router.post("/index", status_code=201)
 
 @router.put(
     "/{recruit_id}", 

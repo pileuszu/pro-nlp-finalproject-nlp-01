@@ -12,6 +12,7 @@ except ImportError:
 
 from .base import BaseExtractor
 from common.config import settings
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -77,18 +78,7 @@ class NotionExtractor(BaseExtractor):
 
         try:
             if node_type == "page":
-                # Retry for page retrieval
-                page = None
-                for attempt in range(max_retries + 1):
-                    try:
-                        page = self.client.pages.retrieve(page_id=node_id)
-                        break
-                    except Exception as e:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
-                            await asyncio.sleep(delay)
-                        else: raise
-
+                page = await self._retrieve_page(node_id)
                 title = "Untitled"
                 for prop in page.get("properties", {}).values():
                     if prop["type"] == "title":
@@ -100,33 +90,11 @@ class NotionExtractor(BaseExtractor):
                 content += await self._process_blocks(blocks)
 
             elif node_type == "database":
-                # Retry for database retrieval
-                db = None
-                for attempt in range(max_retries + 1):
-                    try:
-                        db = self.client.databases.retrieve(database_id=node_id)
-                        break
-                    except Exception as e:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
-                            await asyncio.sleep(delay)
-                        else: raise
-
+                db = await self._retrieve_database(node_id)
                 db_title = "".join([t["plain_text"] for t in db.get("title", [])])
                 content += f"# Database: {db_title}\n\n"
 
-                # Retry for database query
-                pages = []
-                for attempt in range(max_retries + 1):
-                    try:
-                        pages = self.client.databases.query(database_id=node_id).get("results", [])
-                        break
-                    except Exception as e:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
-                            await asyncio.sleep(delay)
-                        else: raise
-
+                pages = await self._query_database_results(node_id)
                 for page in pages:
                     content += await self._process_node(page["id"], "page")
 
@@ -201,15 +169,15 @@ class NotionExtractor(BaseExtractor):
             logger.info("Searching for all accessible Notion pages and databases...")
             while has_more:
                 # Retry for search
-                response = None
-                for attempt in range(3):
-                    try:
-                        response = self.client.search(start_cursor=next_cursor)
-                        break
-                    except Exception as e:
-                        if attempt < 2:
-                            await asyncio.sleep(1.0 * (2**attempt))
-                        else: raise
+                @retry(
+                    retry=retry_if_exception_type(Exception),
+                    stop=stop_after_attempt(3),
+                    wait=wait_exponential(multiplier=1, min=1, max=10)
+                )
+                def _do_search(cursor):
+                    return self.client.search(start_cursor=cursor)
+
+                response = _do_search(next_cursor)
 
                 results.extend(response.get("results", []))
                 has_more = response.get("has_more", False)
@@ -236,34 +204,68 @@ class NotionExtractor(BaseExtractor):
         except Exception as e:
             return f"Error searching workspace: {e}"
 
+    
+    @retry(
+        retry=retry_if_exception_type(Exception), 
+        stop=stop_after_attempt(3), 
+        wait=wait_exponential(multiplier=1, min=1, max=10)
+    )
+    async def _retrieve_page(self, page_id: str):
+        return self.client.pages.retrieve(page_id=page_id)
+
+    @retry(
+        retry=retry_if_exception_type(Exception), 
+        stop=stop_after_attempt(3), 
+        wait=wait_exponential(multiplier=1, min=1, max=10)
+    )
+    async def _retrieve_database(self, database_id: str):
+        return self.client.databases.retrieve(database_id=database_id)
+
+    @retry(
+        retry=retry_if_exception_type(Exception), 
+        stop=stop_after_attempt(3), 
+        wait=wait_exponential(multiplier=1, min=1, max=10)
+    )
+    async def _query_database_results(self, database_id: str):
+        return self.client.databases.query(database_id=database_id).get("results", [])
+
     async def _get_all_blocks(self, parent_id):
         blocks = []
         has_more = True
         start_cursor = None
-        max_retries = 3
-        base_delay = 1.0
+        
+        @retry(
+            retry=retry_if_exception_type(Exception), 
+            stop=stop_after_attempt(3), 
+            wait=wait_exponential(multiplier=1, min=1, max=10)
+        )
+        def _fetch_children(pid, cursor):
+            # client.blocks.children.list is synchronous or async? notion-client is synchronous by default but we used it in async context previously?
+            # Creating a wrapper to be safe. Actually the library is sync unless async client used. 
+            # In previous code "self.client.pages.retrieve" was called without await?
+            # Wait, line 84: page = self.client.pages.retrieve(page_id=node_id)
+            # Line 3: import asyncio.
+            # It seems the previous code treated notion-client as sync blocking code inside async def?
+            # 'notion-client' is synchronous by default. There is AsyncClient too.
+            # But line 34: Client(auth=...) suggests synchronous client.
+            # If so, we should not await inside _retrieve_page unless we run in executor.
+            # However, the previous code had `await asyncio.sleep` which suggests this was running in an event loop.
+            # If the client is sync, these calls block the loop.
+            # For now, I will keep the call usage as is (sync call) but wrapping in async def helper is fine, 
+            # but I should remove `await` if the library returns dict immediately.
+            # Wait, looking at lines 38 async def extract...
+            # The previous code lines 84: page = self.client.pages.retrieve... NO await.
+            # So it is synchronous.
+            return self.client.blocks.children.list(block_id=pid, start_cursor=cursor)
 
         while has_more:
-            attempt_success = False
-            for attempt in range(max_retries + 1):
-                try:
-                    response = self.client.blocks.children.list(
-                        block_id=parent_id, start_cursor=start_cursor
-                    )
-                    blocks.extend(response["results"])
-                    has_more = response["has_more"]
-                    start_cursor = response["next_cursor"]
-                    attempt_success = True
-                    break
-                except Exception as e:
-                    if attempt < max_retries:
-                        delay = base_delay * (2 ** attempt) + random.uniform(0, 0.5)
-                        logger.warning(f"Notion API error for {parent_id}: {e}. Retrying in {delay:.2f}s...")
-                        await asyncio.sleep(delay)
-                    else:
-                        logger.error(f"Notion API final failure for {parent_id}: {e}")
-                        has_more = False 
-                        break
-            if not attempt_success:
+            try:
+                response = _fetch_children(parent_id, start_cursor)
+                blocks.extend(response["results"])
+                has_more = response["has_more"]
+                start_cursor = response["next_cursor"]
+            except Exception as e:
+                logger.error(f"Notion API final failure for {parent_id}: {e}")
                 break
+                
         return blocks

@@ -16,6 +16,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
+logging.getLogger("pdfminer").setLevel(logging.ERROR)
 logger = logging.getLogger("run_job")
 
 # Import actual tasks

@@ -2,6 +2,8 @@ import os
 import json
 import logging
 from typing import Dict, List, Any, Optional
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -57,44 +59,33 @@ class RecruitMatcher:
         import asyncio
         import random
 
-        max_retries = 3
-        base_delay = 2.0
+        return await self._execute_chat_completion(url, headers, payload)
 
-        for attempt in range(max_retries + 1):
-            try:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    response = await client.post(url, headers=headers, json=payload)
+    @retry(
+        retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError, RuntimeError)), 
+        stop=stop_after_attempt(4), 
+        wait=wait_exponential(multiplier=2, min=2, max=20)
+    )
+    async def _execute_chat_completion(self, url: str, headers: dict, payload: dict) -> str:
+        import httpx
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            
+            if response.status_code == 429 or response.status_code >= 500:
+                 response.raise_for_status()
+
+            response.raise_for_status()
+            res_json = response.json()
+            
+            if res_json.get("status", {}).get("code") == "20000":
+                return res_json.get("result", {}).get("message", {}).get("content", "")
+            else:
+                status_code = res_json.get("status", {}).get("code")
+                if status_code == "42901":
+                     raise RuntimeError(f"NCP Rate Limit (42901)")
                     
-                    if response.status_code == 429 or response.status_code >= 500:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                            logger.warning(f"NCP Matcher API returned {response.status_code}. Retrying in {delay:.2f}s... (Attempt {attempt + 1}/{max_retries})")
-                            await asyncio.sleep(delay)
-                            continue
-                        
-                    response.raise_for_status()
-                    res_json = response.json()
-                    
-                    if res_json.get("status", {}).get("code") == "20000":
-                        return res_json.get("result", {}).get("message", {}).get("content", "")
-                    else:
-                        status_code = res_json.get("status", {}).get("code")
-                        if status_code == "42901" and attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                            logger.warning(f"NCP Matcher business error {status_code}. Retrying in {delay:.2f}s...")
-                            await asyncio.sleep(delay)
-                            continue
-                            
-                        logger.error(f"NCP API Error: {res_json}")
-                        return ""
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
-                if attempt < max_retries:
-                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                    logger.warning(f"NCP Matcher connection error: {e}. Retrying in {delay:.2f}s...")
-                    await asyncio.sleep(delay)
-                else:
-                    logger.error(f"NCP Matcher API Call Final Failure: {e}")
-                    return ""
+                logger.error(f"NCP API Error: {res_json}")
+                return ""
 
     async def generate_search_queries(self, portfolio_data: Dict) -> Dict[str, str]:
         """
@@ -173,66 +164,58 @@ class RecruitMatcher:
         import asyncio
         import random
 
-        max_retries = 3
-        base_delay = 2.0
+        try:
+            return await self._execute_rerank(url, headers, payload, candidates, top_n)
+        except Exception as e:
+            logger.error(f"NCP Reranker final failure: {e}")
+            return candidates[:top_n]
 
-        for attempt in range(max_retries + 1):
-            try:
-                # Replaced blocking requests with httpx
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    res = await client.post(url, headers=headers, json=payload)
-                    
-                    if res.status_code == 429 or res.status_code >= 500:
-                        if attempt < max_retries:
-                            delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                            logger.warning(f"NCP Reranker API returned {res.status_code}. Retrying in {delay:.2f}s...")
-                            await asyncio.sleep(delay)
-                            continue
-                    
-                    res.raise_for_status()
-                    res_json = res.json()
-                
-                if res_json.get("status", {}).get("code") == "20000":
-                    # Get cited documents
-                    cited = res_json.get("result", {}).get("citedDocuments", [])
-                    if not cited:
-                        return candidates[:top_n]
-                    
-                    cited_indices = []
-                    for c in cited:
-                        try:
-                            idx = int(c.get("id"))
-                            cited_indices.append(idx)
-                        except:
-                            continue
-                    
-                    # Filter original candidates while maintaining order of citation
-                    refined = []
-                    seen_idx = set()
-                    for idx in cited_indices:
-                        if idx < len(candidates) and idx not in seen_idx:
-                            refined.append(candidates[idx])
-                            seen_idx.add(idx)
-                    
-                    return refined[:top_n]
-                else:
-                    status_code = res_json.get("status", {}).get("code")
-                    if status_code == "42901" and attempt < max_retries:
-                         delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                         logger.warning(f"NCP Reranker business error {status_code}. Retrying in {delay:.2f}s...")
-                         await asyncio.sleep(delay)
-                         continue
+    @retry(
+        retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError, RuntimeError)),
+        stop=stop_after_attempt(4),
+        wait=wait_exponential(multiplier=2, min=2, max=20)
+    )
+    async def _execute_rerank(self, url, headers, payload, candidates, top_n):
+        import httpx
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            res = await client.post(url, headers=headers, json=payload)
+            
+            if res.status_code == 429 or res.status_code >= 500:
+                res.raise_for_status()
+            
+            res.raise_for_status()
+            res_json = res.json()
+        
+        if res_json.get("status", {}).get("code") == "20000":
+            # Get cited documents
+            cited = res_json.get("result", {}).get("citedDocuments", [])
+            if not cited:
+                return candidates[:top_n]
+            
+            cited_indices = []
+            for c in cited:
+                try:
+                    idx = int(c.get("id"))
+                    cited_indices.append(idx)
+                except:
+                    continue
+            
+            # Filter original candidates while maintaining order of citation
+            refined = []
+            seen_idx = set()
+            for idx in cited_indices:
+                if idx < len(candidates) and idx not in seen_idx:
+                    refined.append(candidates[idx])
+                    seen_idx.add(idx)
+            
+            return refined[:top_n]
+        else:
+            status_code = res_json.get("status", {}).get("code")
+            if status_code == "42901":
+                 raise RuntimeError(f"NCP Reranker Rate Limit (42901)")
 
-                    logger.warning(f"NCP Reranker returned non-20000 code: {res_json.get('status')}")
-                    return candidates[:top_n]
-            except Exception as e:
-                if attempt < max_retries:
-                    delay = base_delay * (2 ** attempt) + random.uniform(0, 1)
-                    logger.warning(f"NCP Reranker technical error: {e}. Retrying in {delay:.2f}s...")
-                    await asyncio.sleep(delay)
-                else:
-                    logger.error(f"NCP Reranker final failure: {e}")
-                    return candidates[:top_n]
+            logger.warning(f"NCP Reranker returned non-20000 code: {res_json.get('status')}")
+            return candidates[:top_n]
 
     async def rank_and_reason(self, portfolio_data: Dict, candidates: List[Any]) -> List[Dict]:
         """

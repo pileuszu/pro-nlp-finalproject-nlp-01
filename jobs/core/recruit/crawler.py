@@ -8,6 +8,7 @@ import logging
 from bs4 import BeautifulSoup
 from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 logger = logging.getLogger(__name__)
 
@@ -173,49 +174,44 @@ class RecruitmentCrawler:
             }
         }
         
-        
-        api_retries = 3
-        
-        for attempt in range(api_retries):
-            try:
-                resp = requests.post(url, headers=headers, json=payload, timeout=120)
-                
-                if resp.status_code == 200:
-                    result = resp.json()
-                    status_code = result.get("status", {}).get("code")
-                    
-                    if status_code == "20000":
-                        content = result.get("result", {}).get("message", {}).get("content", "")
-                        # Parse with Pydantic for validation
-                        try:
-                            recruitment_list = RecruitmentList.model_validate_json(content)
-                            # Convert to dict list
-                            return [item.model_dump() for item in recruitment_list.items]
-                        except Exception as parse_err:
-                            logger.error(f"JSON Parsing Error: {parse_err}")
-                            return []
+        return self._execute_ncp_call(url, headers, payload)
 
-                    elif status_code == "42901":
-                        logger.warning(f"NCP Rate Limit (42901) - Attempt {attempt+1}/{api_retries}")
-                        time.sleep(5 * (attempt + 1)) # Exponential backoff: 5s, 10s, 15s
-                        continue
-                    else:
-                        logger.error(f"NCP Error Status {status_code}: {result}")
-                        return []
-                        
-                elif resp.status_code == 429:
-                    logger.warning(f"HTTP 429 Too Many Requests - Attempt {attempt+1}/{api_retries}")
-                    time.sleep(5 * (attempt + 1))
-                    continue
-                else:
-                    logger.error(f"NCP HTTP Error {resp.status_code}: {resp.text}")
-                    return []
-                    
-            except Exception as e:
-                logger.error(f"NCP Call Exception: {e}")
-                time.sleep(2) # Brief pause on network error
+    @retry(
+        retry=retry_if_exception_type((requests.RequestException, ValueError)), 
+        stop=stop_after_attempt(3), 
+        wait=wait_exponential(multiplier=5, min=5, max=15)
+    )
+    def _execute_ncp_call(self, url, headers, payload):
+        resp = requests.post(url, headers=headers, json=payload, timeout=120)
         
-        logger.error("Max retries reached for NCP Analysis")
+        if resp.status_code == 200:
+            result = resp.json()
+            status_code = result.get("status", {}).get("code")
+            
+            if status_code == "20000":
+                content = result.get("result", {}).get("message", {}).get("content", "")
+                # Parse with Pydantic for validation
+                try:
+                    recruitment_list = RecruitmentList.model_validate_json(content)
+                    # Convert to dict list
+                    return [item.model_dump() for item in recruitment_list.items]
+                except Exception as parse_err:
+                    logger.error(f"JSON Parsing Error: {parse_err}")
+                    return []
+
+            elif status_code == "42901":
+                raise ValueError(f"NCP Rate Limit (42901)")
+            else:
+                logger.error(f"NCP Error Status {status_code}: {result}")
+                return []
+                
+        elif resp.status_code == 429:
+             # Raise exception to trigger retry
+             resp.raise_for_status()
+        else:
+            logger.error(f"NCP HTTP Error {resp.status_code}: {resp.text}")
+            return []
+            
         return []
     
     def get_job_list(self) -> List[Dict]:

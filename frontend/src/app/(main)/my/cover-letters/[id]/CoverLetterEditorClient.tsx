@@ -220,7 +220,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 questions: questions.map(q => ({
                     question: q.question,
                     content: q.answer,
-                    hint: q.hint,
+                    // hint removed
                     max_length: q.max_length
                 })),
                 recruit_id: linkedRecruit?.id
@@ -239,8 +239,51 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     const addQuestion = () => setQuestions([...questions, { id: Date.now(), question: "", answer: "" }]);
     const removeQuestion = (qId: number) => setQuestions(questions.filter(q => q.id !== qId));
-    const updateQuestion = (qId: number, field: 'question' | 'answer' | 'hint', value: string) =>
+    const updateQuestion = (qId: number, field: keyof QuestionItem, value: string | number | undefined) =>
         setQuestions(questions.map(q => q.id === qId ? { ...q, [field]: value } : q));
+
+    const handleGenerateHeadline = async (qId: number) => {
+        // Find existing item id
+        const question = questions.find(q => q.id === qId);
+        if (!question) return;
+
+        // If qId is a temp ID (timestamp), we can't call API for specific item unless we save first.
+        // But user might be editing an existing item.
+        // Assuming qId corresponding to DB ID is safe?
+        // CoverLetterItem.id is int. Date.now() is huge int.
+        // If it's a temp ID, the backend doesn't know about it.
+        // We probably need to save first or handle it.
+        // User asked to add success.
+
+        // Check if ID is likely valid DB ID (small integer) vs Timestamp (large integer)
+        // Or check if we have cover letter ID.
+        if (qId > 1000000000000) {
+            alert("먼저 저장 후에 소제목을 생성할 수 있습니다.");
+            return;
+        }
+
+        try {
+            // Call API
+            const res = await fetchWithAuth(getApiUrl(`/cover-letters/items/${qId}/headline`), {
+                method: 'POST'
+            }); // Note: Using /items/... not /cover-letters/items/... depending on router prefix
+            // Wait, CoverLetterItems router??
+            // In cover_letters.py, the router prefix is usually /api/cover-letters.
+            // AND the endpoint I added is `@router.post("/items/{item_id}/headline")`.
+            // So the full path is `/api/cover-letters/items/{item_id}/headline`.
+
+            if (res.ok) {
+                const updatedItem = await res.json();
+                updateQuestion(qId, 'answer', updatedItem.content);
+                alert("소제목이 생성되었습니다!");
+            } else {
+                throw new Error("Failed to generate headline");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("소제목 생성에 실패했습니다.");
+        }
+    };
 
     // Unused togglePortfolio removed
 
@@ -337,10 +380,10 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex justify-center h-[calc(100vh-64px)] bg-slate-50/10 overflow-hidden relative">
-            <div className={cn("flex relative h-full w-full transition-all duration-500", showRecruitPanel ? "max-w-[1700px]" : "max-w-5xl")}>
+        <div className="flex justify-center min-h-[calc(100vh-64px)] bg-slate-50/10 relative pb-20">
+            <div className={cn("flex relative items-start w-full transition-all duration-500", showRecruitPanel ? "max-w-[1700px]" : "max-w-5xl")}>
                 {/* Editor Content */}
-                <div className="flex-1 overflow-y-auto h-full p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 scrollbar-hide">
+                <div className="flex-1 p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                         <div className="space-y-3 font-pretendard">
                             <div className="flex items-center gap-3">
@@ -423,6 +466,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                     onUpdate={(field, value) => updateQuestion(q.id, field, value)}
                                     onRemove={() => removeQuestion(q.id)}
                                     onApplySuggestion={(si) => applySuggestion(q.id, si)}
+                                    onGenerateHeadline={() => handleGenerateHeadline(q.id)}
                                 />
                             ))}
                         </AnimatePresence>
