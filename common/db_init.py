@@ -95,6 +95,21 @@ def init_db():
                                 logger.error(f"Failed to migrate {table_name}.{col} to JSONB: {mig_e}")
                     conn.commit()
 
+                # Helper to check and add columns
+                def heal_table(table_name, columns_to_add):
+                    res = conn.execute(text(f"SELECT column_name FROM information_schema.columns WHERE table_name = '{table_name}'"))
+                    existing_cols = [r[0] for r in res.fetchall()]
+                    
+                    if existing_cols:
+                        for col_name, sql_type in columns_to_add.items():
+                            if col_name not in existing_cols:
+                                logger.info(f"Healing: Adding column '{col_name}' to '{table_name}'...")
+                                try:
+                                    conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {sql_type}"))
+                                except Exception as col_e:
+                                    logger.error(f"Failed to add column {col_name} to {table_name}: {col_e}")
+                        conn.commit()
+
                 # Migrate existing JSON columns to JSONB for containment queries
                 migrate_json_to_jsonb("recruitments", ["tags"])
                 migrate_json_to_jsonb("portfolios", ["tech_stack", "strengths"])
