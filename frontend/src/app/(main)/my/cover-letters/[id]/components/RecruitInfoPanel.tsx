@@ -40,7 +40,7 @@ export function RecruitInfoPanel({
     onRunGeneration
 }: RecruitInfoPanelProps) {
     return (
-        <div className={cn("transition-all duration-700 shrink-0 hidden xl:block self-start sticky top-8", isOpen ? "w-[580px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
+        <div className={cn("transition-all duration-700 shrink-0 hidden xl:block self-start sticky top-8 max-h-[calc(100vh-40px)] overflow-y-auto scrollbar-hide", isOpen ? "w-[580px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
             <div className="w-[580px] px-8 py-8 flex flex-col">
                 <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl flex flex-col">
                     <Tabs value={panelTab} onValueChange={setPanelTab} className="flex flex-col">
