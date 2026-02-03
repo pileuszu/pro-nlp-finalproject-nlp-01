@@ -18,11 +18,9 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
 
     const isCardTag = variant === 'card-tag';
 
-    // Base styles for the tag variant (tilted, floating)
-    // Positioned at top-right, tilted opposite way (reversed angle), and increased shadow/offset
-    const cardTagStyles = isCardTag ? "absolute -top-1 -right-2 rotate-6 z-10 px-4 py-1.5 shadow-2xl scale-110 rounded-lg whitespace-nowrap border-white/20 backdrop-blur-sm" : "";
+    // Base styles for the tag variant (Modern Badge Style)
+    const cardTagStyles = isCardTag ? "absolute -top-3 right-6 z-10 px-4 py-1.5 shadow-xl rounded-xl whitespace-nowrap border-2 border-white ring-4 ring-slate-100/30 backdrop-blur-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-2xl" : "";
 
-    // Default variant can also look premium with a subtle glow
     const defaultStyles = !isCardTag ? "bg-white/80 backdrop-blur-xs border-slate-200/60 shadow-xs" : "";
 
     if (normalizedStatus === 'PENDING' || normalizedStatus === 'PROCESSING') {
@@ -30,12 +28,12 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
             <Badge
                 variant="outline"
                 className={cn(
-                    "bg-amber-50/80 border-amber-200/60 text-amber-700 text-[10px] gap-1.5 font-bold animate-pulse py-1 transition-all duration-300 shadow-sm shadow-amber-100/50",
-                    isCardTag ? cardTagStyles : defaultStyles,
+                    "bg-amber-500 border-amber-400 text-white text-[10px] gap-1.5 font-bold animate-pulse py-1",
+                    isCardTag ? cardTagStyles : "bg-amber-50/80 border-amber-200/60 text-amber-700 shadow-sm shadow-amber-100/50",
                     className
                 )}
             >
-                {showIcon && <Loader2 className="h-3 w-3 animate-spin text-amber-500" />}
+                {showIcon && <Loader2 className="h-3 w-3 animate-spin" />}
                 분석 중...
             </Badge>
         );
@@ -46,12 +44,12 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
             <Badge
                 variant="outline"
                 className={cn(
-                    "bg-orange-500 border-orange-400 text-white text-[10px] gap-1.5 font-bold py-1 shadow-lg shadow-orange-200/50 ring-2 ring-white/20",
-                    isCardTag ? cardTagStyles : cn(defaultStyles, "bg-orange-500 border-orange-500 text-white"),
+                    "bg-gradient-to-r from-orange-500 to-amber-500 border-orange-400 text-white text-[10px] gap-1.5 font-bold py-1",
+                    isCardTag ? cardTagStyles : "bg-orange-500 border-orange-500 text-white shadow-lg shadow-orange-200/50",
                     className
                 )}
             >
-                {showIcon && <Sparkles className="h-3 w-3 fill-white text-white animate-pulse" />}
+                {showIcon && <Sparkles className="h-3.5 w-3.5 fill-white text-white" />}
                 검토 필요
             </Badge>
         );
@@ -62,12 +60,12 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
             <Badge
                 variant="outline"
                 className={cn(
-                    "bg-emerald-500 border-emerald-400 text-white text-[10px] gap-1.5 font-bold py-1 shadow-xl shadow-emerald-200/50 ring-2 ring-white/20",
-                    isCardTag ? cardTagStyles : cn(defaultStyles, "bg-emerald-500 border-emerald-500 text-white"),
+                    "bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400 text-white text-[10px] gap-1.5 font-bold py-1",
+                    isCardTag ? cardTagStyles : "bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-200/50",
                     className
                 )}
             >
-                {showIcon && <CheckCircle2 className="h-3 w-3" />}
+                {showIcon && <CheckCircle2 className="h-3.5 w-3.5" />}
                 최종 확정
             </Badge>
         );
@@ -78,12 +76,12 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
             <Badge
                 variant="outline"
                 className={cn(
-                    "bg-rose-500 border-rose-400 text-white text-[10px] gap-1.5 font-bold py-1 shadow-lg shadow-rose-200/50",
-                    isCardTag ? cardTagStyles : cn(defaultStyles, "bg-rose-500 border-rose-500 text-white"),
+                    "bg-rose-500 border-rose-400 text-white text-[10px] gap-1.5 font-bold py-1",
+                    isCardTag ? cardTagStyles : "bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-200/50",
                     className
                 )}
             >
-                {showIcon && <AlertCircle className="h-3 w-3" />}
+                {showIcon && <AlertCircle className="h-3.5 w-3.5" />}
                 분석 실패
             </Badge>
         );
