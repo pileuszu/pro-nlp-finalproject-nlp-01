@@ -157,15 +157,25 @@ app.openapi = custom_openapi
 origins = [
     "http://localhost:3000",
     "http://localhost:8080",
+    "https://pro-nlp-finalproject-nlp-01.vercel.app",
     "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
 ]
 
 if settings.FRONTEND_URL:
-    origins.append(settings.FRONTEND_URL)
+    # Support multiple origins separated by comma
+    if "," in settings.FRONTEND_URL:
+        extra_origins = [o.strip() for o in settings.FRONTEND_URL.split(",") if o.strip()]
+        origins.extend(extra_origins)
+    else:
+        origins.append(settings.FRONTEND_URL)
+
+# Remove duplicates and empty strings
+origins = list(set([o for o in origins if o]))
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://pro-nlp-finalproject-nlp-01.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
