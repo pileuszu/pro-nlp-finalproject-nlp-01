@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { MessageCircle, ArrowRight } from "lucide-react";
+import { MessageCircle, ArrowRight, Monitor, Server, Database } from "lucide-react";
 import { getApiUrl } from "@/lib/apiUtils";
 
 export default function LoginPage() {
@@ -85,26 +85,52 @@ export default function LoginPage() {
                                 {loading ? "연결 중..." : "카카오로 3초만에 시작하기"}
                             </Button>
 
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="flex items-center gap-3 py-2">
                                     <div className="h-[1px] flex-1 bg-slate-100" />
-                                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">빠른 체험하기</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">빠른 체험하기</span>
                                     <div className="h-[1px] flex-1 bg-slate-100" />
                                 </div>
-                                <div className="grid grid-cols-1 gap-2">
+                                <div className="grid grid-cols-1 gap-3">
                                     {[
-                                        { id: 'frontend', label: '프론트엔드 아이디로 로그인', color: 'bg-blue-50 text-blue-700 border-blue-100 hover:bg-blue-100' },
-                                        { id: 'backend', label: '백엔드 아이디로 로그인', color: 'bg-indigo-50 text-indigo-700 border-indigo-100 hover:bg-indigo-100' },
-                                        { id: 'data', label: '데이터 엔지니어 아이디로 로그인', color: 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100' }
+                                        {
+                                            id: 'frontend',
+                                            label: '프론트엔드 아이디로 로그인',
+                                            icon: <Monitor className="w-4 h-4" />,
+                                            color: 'from-blue-500/10 to-indigo-500/10 text-blue-700 border-blue-200/50 hover:from-blue-500 hover:to-indigo-600 hover:text-white',
+                                            glow: 'shadow-blue-200/50'
+                                        },
+                                        {
+                                            id: 'backend',
+                                            label: '백엔드 아이디로 로그인',
+                                            icon: <Server className="w-4 h-4" />,
+                                            color: 'from-violet-500/10 to-purple-500/10 text-violet-700 border-violet-200/50 hover:from-violet-500 hover:to-purple-600 hover:text-white',
+                                            glow: 'shadow-violet-200/50'
+                                        },
+                                        {
+                                            id: 'data',
+                                            label: '데이터 엔지니어 아이디로 로그인',
+                                            icon: <Database className="w-4 h-4" />,
+                                            color: 'from-emerald-500/10 to-teal-500/10 text-emerald-700 border-emerald-200/50 hover:from-emerald-500 hover:to-teal-600 hover:text-white',
+                                            glow: 'shadow-emerald-200/50'
+                                        }
                                     ].map((role) => (
                                         <Button
                                             key={role.id}
                                             variant="outline"
-                                            className={cn("h-11 rounded-xl text-xs font-bold border transition-all active:scale-[0.98]", role.color)}
+                                            className={cn(
+                                                "group relative h-14 rounded-2xl text-[13px] font-bold border transition-all duration-300 active:scale-[0.98] overflow-hidden bg-gradient-to-br flex items-center justify-start px-6 gap-4 shadow-sm hover:shadow-xl",
+                                                role.color,
+                                                !loading && role.glow
+                                            )}
                                             onClick={() => handleTestLogin(role.id)}
                                             disabled={loading}
                                         >
-                                            {role.label}
+                                            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/80 shadow-inner group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
+                                                {role.icon}
+                                            </div>
+                                            <span className="flex-1 text-left">{role.label}</span>
+                                            <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                                         </Button>
                                     ))}
                                 </div>
