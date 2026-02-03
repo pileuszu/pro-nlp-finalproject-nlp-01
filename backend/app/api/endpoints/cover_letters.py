@@ -135,3 +135,19 @@ async def refine_cover_letter_item(
     """
     return await ai_service.refine_cover_letter_item(db, item_id)
 
+@router.post(
+    "/items/{item_id}/headline",
+    response_model=schemas.CoverLetterItemDetail,
+    summary="자소서 문항 소제목 생성",
+    description="자소서 문항의 답변 내용을 분석하여 매력적인 소제목을 생성하고 최상단에 추가합니다."
+)
+async def generate_headline_for_item(
+    item_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Generates a headline for a specific cover letter item.
+    """
+    return await ai_service.generate_headline_for_item(db, item_id)
+

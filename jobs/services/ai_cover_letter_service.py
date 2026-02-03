@@ -156,6 +156,12 @@ class AICoverLetterService:
                         )
 
                         item.content = answer_data.get("content")
+                        
+                        # Prepend Title as Subheading if requested or available
+                        gen_title = answer_data.get("title")
+                        if gen_title and subheading and not item.content.strip().startswith("["):
+                             item.content = f"[{gen_title}]\n\n{item.content}"
+
                         item.key_points = answer_data.get("key_points")
                         item.suggested_improvements = answer_data.get("suggested_improvements")
                         
@@ -225,6 +231,39 @@ class AICoverLetterService:
         refined_text = self.generator.refine_with_subheadings(item.content)
         
         item.content = refined_text
+        await db.commit()
+        await db.refresh(item)
+        
+        return item
+
+    async def generate_headline_for_item(self, db: AsyncSession, item_id: int) -> models.CoverLetterItem:
+        """
+        Generates a headline for a specific cover letter item and prepends it.
+        """
+        stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.id == item_id)
+        result = await db.execute(stmt)
+        item = result.scalar_one_or_none()
+        
+        if not item:
+            raise ValueError(f"Cover Letter Item {item_id} not found")
+            
+        if not item.content:
+            raise ValueError("Item has no content to generate headline")
+            
+        logger.info(f"Generating headline for item {item_id}...")
+        headline = self.generator.generate_headline(item.content)
+        
+        # Prepend headline if it doesn't look like it's already there
+        # Check if first line looks like a bracketed title
+        lines = item.content.split('\n')
+        if lines and lines[0].strip().startswith('[') and lines[0].strip().endswith(']'):
+             # Replace existing headline
+             lines[0] = f"[{headline}]"
+             item.content = '\n'.join(lines)
+        else:
+             # Prepend
+             item.content = f"[{headline}]\n\n{item.content}"
+        
         await db.commit()
         await db.refresh(item)
         

@@ -174,7 +174,7 @@ class CoverLetterItemBase(BaseModel):
     question: str
     content: Optional[str] = None
     category: Optional[str] = None
-    hint: Optional[str] = None  # 작성 힌트/가이드
+    # hint removed
     max_length: Optional[int] = 1000  # 글자 수 제한
     key_points: Optional[List[str]] = None
     suggested_improvements: Optional[List[str]] = None
