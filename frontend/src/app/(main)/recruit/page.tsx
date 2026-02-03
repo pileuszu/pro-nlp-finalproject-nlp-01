@@ -521,55 +521,48 @@ export default function RecruitPage() {
                             </Button>
                         </div>
 
-                        {/* 직무 카테고리 (Horizontal Scroll) */}
+                        {/* 직무 카테고리 (Wrap Layout) */}
                         <div className="space-y-3">
                             <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block pl-1">직무</span>
-                            <div className="relative group">
-                                <div className="overflow-x-auto pb-2 scrollbar-hide flex gap-2.5 no-scrollbar">
-                                    {JOB_CATEGORIES.map((cat) => (
-                                        <Button
-                                            key={cat.value}
-                                            variant="outline"
-                                            onClick={() => toggleCategory(cat.value)}
-                                            className={cn(
-                                                "rounded-full h-11 px-6 font-bold transition-all duration-300 border-2 whitespace-nowrap",
-                                                (cat.value === 'all' && selectedCategories.length === 0) || selectedCategories.includes(cat.value)
-                                                    ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/10 scale-105"
-                                                    : "bg-white border-slate-100 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50"
-                                            )}
-                                        >
-                                            {cat.label}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <div className="absolute right-0 top-0 bottom-2 w-16 bg-gradient-to-l from-white to-transparent pointer-events-none group-hover:opacity-0 transition-opacity" />
+                            <div className="flex flex-wrap gap-2.5">
+                                {JOB_CATEGORIES.map((cat) => (
+                                    <Button
+                                        key={cat.value}
+                                        variant="outline"
+                                        onClick={() => toggleCategory(cat.value)}
+                                        className={cn(
+                                            "rounded-full h-11 px-6 font-bold transition-all duration-300 border-2 whitespace-nowrap",
+                                            (cat.value === 'all' && selectedCategories.length === 0) || selectedCategories.includes(cat.value)
+                                                ? "bg-slate-900 border-slate-900 text-white shadow-xl shadow-slate-900/10 scale-105"
+                                                : "bg-white border-slate-100 text-slate-500 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50"
+                                        )}
+                                    >
+                                        {cat.label}
+                                    </Button>
+                                ))}
                             </div>
                         </div>
 
-                        {/* 기술 스택 (Grouped) */}
-                        <div className="space-y-6">
-                            {TECH_STACKS.map((group) => (
-                                <div key={group.category} className="space-y-3">
-                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block pl-1">{group.category}</span>
-                                    <div className="flex flex-wrap gap-2.5">
-                                        {group.items.map((tech) => (
-                                            <Badge
-                                                key={tech}
-                                                variant={selectedTechs.includes(tech) ? "default" : "outline"}
-                                                onClick={() => toggleTech(tech)}
-                                                className={cn(
-                                                    "cursor-pointer px-5 py-2.5 rounded-2xl font-bold transition-all duration-300 border-2 select-none text-[13px]",
-                                                    selectedTechs.includes(tech)
-                                                        ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105"
-                                                        : "bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-700"
-                                                )}
-                                            >
-                                                {tech}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
+                        {/* 기술 스택 (Unified) */}
+                        <div className="space-y-3">
+                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest block pl-1">기술 스택</span>
+                            <div className="flex flex-wrap gap-2">
+                                {TECH_STACKS.flatMap(group => group.items).map((tech) => (
+                                    <Badge
+                                        key={tech}
+                                        variant={selectedTechs.includes(tech) ? "default" : "outline"}
+                                        onClick={() => toggleTech(tech)}
+                                        className={cn(
+                                            "cursor-pointer px-5 py-2.5 rounded-2xl font-bold transition-all duration-300 border-2 select-none text-[13px]",
+                                            selectedTechs.includes(tech)
+                                                ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105"
+                                                : "bg-white text-slate-400 border-slate-100 hover:border-slate-300 hover:text-slate-700"
+                                        )}
+                                    >
+                                        {tech}
+                                    </Badge>
+                                ))}
+                            </div>
                         </div>
                     </div>
 
