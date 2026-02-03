@@ -26,25 +26,42 @@
     }
 
     .dark {
-        --background: 222.2 84% 4.9%;
-        --foreground: 210 40% 98%;
-        --card: 222.2 84% 4.9%;
+        /* Base Background: Deep Blue-Gray (Premium Dark) */
+        --background: 222 47% 11%;     /* #0f172a - Slate 900 */
+        --foreground: 210 40% 98%;     /* #f8fafc - Slate 50 */
+
+        /* Card: Slightly lighter than background to create depth */
+        --card: 222 47% 10%;           /* Darker than BG to make content pop or similar */
         --card-foreground: 210 40% 98%;
-        --popover: 222.2 84% 4.9%;
+
+        /* Popover: Distinct from card/bg */
+        --popover: 222 47% 11%;
         --popover-foreground: 210 40% 98%;
-        --primary: 217.2 91.2% 59.8%;
-        --primary-foreground: 222.2 47.4% 11.2%;
-        --secondary: 217.2 32.6% 17.5%;
+
+        /* Primary: Vibrant Blue to match brand */
+        --primary: 217 91% 60%;        /* #3b82f6 - Blue 500 */
+        --primary-foreground: 222 47.4% 11.2%;
+
+        /* Secondary: Muted Blue-Gray */
+        --secondary: 217 32% 17%;      /* #1e293b - Slate 800 */
         --secondary-foreground: 210 40% 98%;
-        --muted: 217.2 32.6% 17.5%;
-        --muted-foreground: 215 20.2% 65.1%;
-        --accent: 217.2 32.6% 17.5%;
+
+        /* Muted: Subtle backgrounds for separators/dimmed areas */
+        --muted: 217 32% 17%;          /* Slate 800 */
+        --muted-foreground: 215 20% 65%; /* Slate 400 */
+
+        /* Accent: Hover states */
+        --accent: 217 32% 17%;
         --accent-foreground: 210 40% 98%;
+
+        /* Destructive */
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 210 40% 98%;
-        --border: 217.2 32.6% 17.5%;
-        --input: 217.2 32.6% 17.5%;
-        --ring: 224.3 76.3% 48%;
+
+        /* Border/Input: Subtle contrast against dark bg */
+        --border: 217 32% 17%;         /* Slate 800 */
+        --input: 217 32% 17%;
+        --ring: 224 76% 48%;
     }
 }
 

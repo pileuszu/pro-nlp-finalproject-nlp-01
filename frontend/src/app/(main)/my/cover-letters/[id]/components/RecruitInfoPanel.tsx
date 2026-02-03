@@ -50,13 +50,13 @@ export function RecruitInfoPanel({
 }: RecruitInfoPanelProps) {
     return (
         <aside className={cn(
-            "transition-all duration-700 shrink-0 hidden xl:block border-l border-border/50 h-full",
+            "transition-all duration-700 shrink-0 hidden xl:block border-l border-border/50 h-full overflow-y-auto scrollbar-hide",
             isOpen ? "w-[600px] opacity-100" : "w-0 opacity-0 pointer-events-none"
         )}>
-            <div className="w-[600px] px-6 py-4 flex flex-col h-full">
-                <div className="bg-card border-2 border-border rounded-[2.5rem] shadow-xl flex flex-col overflow-hidden h-full">
-                    <Tabs value={panelTab} onValueChange={setPanelTab} className="flex flex-col h-full">
-                        <div className="p-8 pb-4 bg-card border-b border-border text-card-foreground">
+            <div className="w-[600px] px-6 py-4 flex flex-col min-h-full">
+                <div className="bg-card border-2 border-border rounded-[2.5rem] shadow-xl flex flex-col">
+                    <Tabs value={panelTab} onValueChange={setPanelTab} className="flex flex-col">
+                        <div className="p-8 pb-4 bg-card border-b border-border text-card-foreground rounded-t-[2.5rem]">
                             <div className="flex justify-between items-center mb-6">
                                 <div className="flex items-center gap-3">
                                     <div className="p-3 bg-primary rounded-2xl shadow-lg shadow-primary/20 text-primary-foreground relative overflow-hidden">
@@ -122,7 +122,7 @@ export function RecruitInfoPanel({
                             </TabsList>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-8 pt-6 font-pretendard scrollbar-hide">
+                        <div className="p-8 pt-6 font-pretendard">
                             <TabsContent value="recruit" className="m-0 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                                 {recruit ? (
                                     <div className="space-y-8 pb-8">

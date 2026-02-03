@@ -70,7 +70,7 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
                 variant="outline"
                 className={cn(
                     "bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-400 text-white text-[10px] gap-1.5 font-bold py-1",
-                    isCardTag ? cardTagStyles : "bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-200/50",
+                    isCardTag ? cardTagStyles : "bg-blue-600 border-blue-500 text-white shadow-xl shadow-blue-200/50",
                     className
                 )}
             >

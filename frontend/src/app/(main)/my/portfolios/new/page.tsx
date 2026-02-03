@@ -355,11 +355,12 @@ export default function NewPortfolioPage() {
             </div>
 
             <Tabs defaultValue="github" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 mb-10 bg-slate-100 p-1 rounded-2xl">
+                <TabsList className="grid w-full grid-cols-5 mb-10 bg-slate-100 p-1 rounded-2xl">
                     <TabsTrigger value="github" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all font-bold">GitHub</TabsTrigger>
                     <TabsTrigger value="blog" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all font-bold">Blog</TabsTrigger>
                     <TabsTrigger value="notion" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all font-bold">Notion</TabsTrigger>
                     <TabsTrigger value="file" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all font-bold">PDF / Files</TabsTrigger>
+                    <TabsTrigger value="direct" className="rounded-xl data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow-sm transition-all font-bold">Direct Input</TabsTrigger>
                 </TabsList>
 
                 <div className="grid gap-6">
