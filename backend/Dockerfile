@@ -17,6 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy Shared Code
 COPY common/ ./common/
 
+# Copy Jobs Code
+COPY jobs/ ./jobs/
+
 # Copy Backend Code
 COPY backend/ .
 

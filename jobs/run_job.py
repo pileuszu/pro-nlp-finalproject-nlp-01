@@ -22,7 +22,11 @@ logger = logging.getLogger("run_job")
 # Import actual tasks
 try:
     from jobs.tasks.portfolio_task import process_portfolio, run_profile_update
-    from jobs.tasks.cover_letter_task import process_cover_letter
+    from jobs.tasks.cover_letter_task import (
+        process_cover_letter, 
+        process_headline_generation, 
+        process_item_refinement
+    )
     from jobs.tasks.recruit_task import process_recruitments
 except ImportError as e:
     logger.error(f"Failed to import tasks: {e}")
@@ -74,6 +78,18 @@ async def main():
                 logger.error("Cover Letter ID is required for cover_letter_generation")
                 return
             await process_cover_letter(args.id)
+            
+        elif args.task == "cover_letter_item_headline":
+            if not args.id:
+                logger.error("Item ID is required for cover_letter_item_headline")
+                return
+            await process_headline_generation(args.id)
+
+        elif args.task == "cover_letter_item_refine":
+            if not args.id:
+                logger.error("Item ID is required for cover_letter_item_refine")
+                return
+            await process_item_refinement(args.id)
             
         elif args.task == "recruit_update":
             # Can be called with user_id to update recommendation for specific user,

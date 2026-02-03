@@ -37,6 +37,12 @@ class JobService:
     def trigger_recruit_indexing(self):
         return self.trigger_job(task="recruit_indexing")
 
+    def trigger_cover_letter_item_headline(self, item_id: int):
+        return self.trigger_job(task="cover_letter_item_headline", target_id=item_id)
+
+    def trigger_cover_letter_item_refine(self, item_id: int):
+        return self.trigger_job(task="cover_letter_item_refine", target_id=item_id)
+
     def trigger_recommendation_update(self, user_id: Optional[int] = None, **kwargs):
         return self.trigger_job(task="recruit_update", target_id=user_id, **kwargs)
 
