@@ -61,10 +61,17 @@ def run_startup_cleanup():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fire off background tasks
-    logger.info("Lifespan: Starting background tasks...")
+    print("STDOUT: Lifespan starting. Port should be bound now.", flush=True)
+    
+    # 1. Include Routers AFTER port bind (Lifespan starts after bind in uvicorn)
+    include_routers()
+    
+    # 2. Fire off background tasks
+    logger.info("Lifespan: Starting background workers...")
     threading.Thread(target=run_db_initialization, daemon=True).start()
     threading.Thread(target=run_startup_cleanup, daemon=True).start()
+    
+    print("STDOUT: Lifespan setup complete. Ready for traffic.", flush=True)
     yield
     logger.info("Lifespan: Shutting down...")
 
@@ -141,8 +148,5 @@ def include_routers():
         # Continue starting even if some routers fail, so we can at least ping the app
         # raise e
 
-# Execute router inclusion immediately (still before port bind, but with tracing)
-include_routers()
-
-print(f"STDOUT: FastAPI initialization COMPLETE in {time.time() - _start_time:.2f}s total. Ready for port binding.", flush=True)
+# Router inclusion moved to lifespan for faster port binding.
 
