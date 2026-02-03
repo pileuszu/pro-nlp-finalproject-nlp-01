@@ -215,7 +215,13 @@ class PortfolioService:
                 item["id"] = item["target"].id
             
             await self.db.commit()
+            await self.db.commit()
             logger.info(f"Pre-created {len(project_records_meta)} portfolio records. Starting LLM refinement...")
+
+            # DEBUG: Log extracted text for debugging missing fields
+            for i, p_meta in enumerate(project_records_meta):
+                content_preview = (p_meta['data']['content'] or "")[:200].replace("\n", " ")
+                logger.info(f"[DEBUG] Project {i} Content Length: {len(p_meta['data']['content'] or '')} chars. Sample: {content_preview}...")
 
             # 3. Process each project with LLM
             import asyncio
@@ -486,7 +492,13 @@ class PortfolioService:
                 item["id"] = item["target"].id
             
             await self.db.commit()
+            await self.db.commit()
             logger.info(f"Pre-created {len(project_records_meta)} portfolio records (Analysis). Starting...")
+
+            # DEBUG: Log extracted text for debugging missing fields
+            for i, p_meta in enumerate(project_records_meta):
+                content_preview = (p_meta['data']['content'] or "")[:200].replace("\n", " ")
+                logger.info(f"[DEBUG] Analysis Project {i} Content Length: {len(p_meta['data']['content'] or '')} chars. Sample: {content_preview}...")
 
             # 3. Process each project with LLM
             import asyncio

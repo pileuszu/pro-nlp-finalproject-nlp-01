@@ -187,7 +187,12 @@ class CoverLetterItem(CoverLetterItemBase):
     cover_letter_id: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     model_config = ConfigDict(from_attributes=True)
+
+class CoverLetterItemDetail(CoverLetterItem):
+    """Refined item with analysis"""
+    pass
 
 class CoverLetterCreate(CoverLetterBase):
     user_id: int
