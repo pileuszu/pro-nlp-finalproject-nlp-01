@@ -153,10 +153,19 @@ app = FastAPI(
 # Override the openapi method to use our custom one
 app.openapi = custom_openapi
 
-# CORS - Using * for troubleshooting
+# CORS Configuration
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "https://pro-nlp-finalproject-nlp-01-pileuszu-nlp-01-final.vercel.app",
+]
+
+if settings.FRONTEND_URL:
+    origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
