@@ -52,73 +52,118 @@ def main():
 
     # 2. Query Creator 초기화 및 쿼리 생성
     try:
-        # 실제 API 호출 활성화
         query_gen = QueryCreator()
         generated_queries = query_gen.generate_queries(user_data)
         
-        # 테스트용 하드코딩된 쿼리는 주석 처리
-        # generated_queries = {
-        #     "query_a": "Python PyTorch Java Spring Boot NLP LLM RAG AWS Docker 기술 스택을 보유한 AI 백엔드 엔지니어",
-        #     "query_b": "RAG 파이프라인 최적화 모델 성능 튜닝 TAPT 앙상블 데이터 중심 문제 해결 및 API 응답 속도 개선 경험",
-        #     "query_c": "자연어 처리(NLP) 모델링 및 LLM 어플리케이션 개발 경험과 웹 서버 인프라 구축 역량을 겸비한 풀스택 AI 엔지니어"
-        # }
-        
-        print("\n--- [RAG 테스트] 생성된 검색 쿼리 ---")
-        for k, v in generated_queries.items():
-            print(f"[{k.upper()}]: {v}")
+        print(f"\n--- [RAG 테스트] 생성된 검색 쿼리: 총 {len(generated_queries)}개 ---")
+        for i, q in enumerate(generated_queries):
+            print(f"[{i+1}] {q}")
 
         # 3. Recruit Indexer를 통한 검색
         indexer = RecruitIndexer()
         
         # 3-1. 통합 검색 및 필터링/중복 제거 로직
         all_candidates = []
-        SCORE_THRESHOLD = 1  # 거리값이 0.5 이하인 것만 (낮을수록 유사)
+        SCORE_THRESHOLD = 1.2  # 기준 완화 (범위를 넓혀서 다양하게 가져옴)
         
-        for q_type in ['query_a', 'query_b', 'query_c']:
-            print(f"\n[쿼리 {q_type.upper()}] 검색 중...")
-            search_query = generated_queries[q_type]
-            results_with_scores = indexer.search_recruitments_with_scores(search_query, k=10)
+        print("\n--- 통합 검색 시작 ---")
+        for idx, search_query in enumerate(generated_queries):
+            print(f"\n[쿼리 {idx+1}] '{search_query}' 검색 중...")
             
-            # 쿼리별 개별 결과 출력
-            for i, (doc, score) in enumerate(results_with_scores):
-                status = "✅" if score <= SCORE_THRESHOLD else "❌ (제외)"
-                print(f"  - {status} {score:.4f} | {doc.metadata.get('company')} - {doc.metadata.get('title')}")
+            # Hybrid Search (returns List[Document])
+            results = indexer.search_hybrid(search_query, k=5)
             
-            all_candidates.extend(results_with_scores)
+            for rank, doc in enumerate(results):
+                # Synthetic score generation (Rank based)
+                # Lower is better in our downstream logic. 
+                # Rank 0 -> 0.1, Rank 1 -> 0.15, etc.
+                score = 0.1 + (rank * 0.05)
+                
+                # 점수 확인용 로그
+                print(f"  -> ({score:.4f}) [Hybrid Rank {rank}] {doc.metadata.get('company')} - {doc.metadata.get('title')}")
+                # 임시로 모든 결과 수집
+                all_candidates.append((doc, score))
         
-        # 중복 제거 및 필터링
+        # 중복 제거 (unique_id 기준, 점수가 더 낮은(좋은) 것을 유지)
         unique_candidates = {}
         for doc, score in all_candidates:
             if score > SCORE_THRESHOLD:
                 continue
                 
-            # recruit_indexer.py에서 저장한 unique_id를 바로 사용
             uid = doc.metadata.get('unique_id')
+            if not uid: # ID가 없는 경우 본문 해시 등으로 대체하거나 건너뜀 (여기선 title+company로 가정 or 건너뜀)
+                continue
             
+            # 이미 존재하면 점수가 더 좋을때만 교체
             if uid not in unique_candidates or score < unique_candidates[uid]['score']:
                 unique_candidates[uid] = {
                     'doc': doc,
                     'score': score
                 }
         
-        final_candidates = [v['doc'] for v in unique_candidates.values()]
+        # 딕셔너리 값들만 추출 후 점수순 정렬
+        sorted_candidates = sorted(
+            unique_candidates.values(), 
+            key=lambda x: x['score']
+        )
         
-        print(f"\n--- 최종 필터링 완료: {len(final_candidates)}개 후보군 ---")
+        # 상위 10~15개만 LLM에게 전달
+        final_candidates = [item['doc'] for item in sorted_candidates[:15]]
+        
+        print(f"\n--- 최종 필터링 및 중복 제거 완료: {len(final_candidates)}개 후보군 ---")
         for i, doc in enumerate(final_candidates):
-             print(f"  {i+1}. {doc.metadata.get('company')} - {doc.metadata.get('title')}")
+            score = unique_candidates[doc.metadata.get('unique_id')]['score']
+            print(f"  {i+1}. [{score:.4f}] {doc.metadata.get('company')} - {doc.metadata.get('title')}")
 
         # 4. LLM 최종 추천 (Re-ranking)
         if not final_candidates:
             print("⚠️ 필터링 조건을 만족하는 공고가 없어 최종 추천을 진행하지 않습니다.")
         else:
             print("\n--- LLM 최종 추천 분석 중... ---")
-            query_gen = QueryCreator() 
+            
             final_result = query_gen.rank_final_recommendations(user_data, final_candidates)
             
             print("\n🎯 [최종 추천 TOP 3 공고]")
-            for rec in final_result.get('recommendations', []):
-                print(f"\n[{rec['rank']}위] {rec['company']} - {rec['title']}")
-                print(f"✅ 추천 사유: {rec['reason']}")
+            recommendations = final_result.get('recommendations', [])
+            
+            # ID로 Document를 찾기 위한 매핑 생성
+            candidate_map = {doc.metadata.get('unique_id'): doc for doc in final_candidates}
+            # Debug: Print available IDs
+            # print(f"DEBUG: Available IDs in map: {list(candidate_map.keys())}")
+            
+            for rec in recommendations:
+                print(f"\n[{rec.get('rank', '?')}위] {rec.get('company', 'Unknown')} - {rec.get('title', 'Unknown')}")
+                
+                # URL 찾기
+                rec_id = rec.get('unique_id')
+                # print(f"DEBUG: LLM returned ID: '{rec_id}'")
+                
+                if rec_id and rec_id in candidate_map:
+                    link = candidate_map[rec_id].metadata.get('link', 'Link not found')
+                    print(f"🔗 링크: {link}")
+                else:
+                    # Fallback: ID mismatch, try matching by Company + Title
+                    found_doc = None
+                    rec_company = rec.get('company', '').strip()
+                    rec_title = rec.get('title', '').strip()
+                    
+                    for doc in candidate_map.values():
+                        doc_company = doc.metadata.get('company', '').strip()
+                        doc_title = doc.metadata.get('title', '').strip()
+                        
+                        # Compare loosely (in case of minor spacing diffs)
+                        if (doc_company == rec_company or doc_company in rec_company or rec_company in doc_company) and \
+                           (doc_title == rec_title or doc_title in rec_title or rec_title in doc_title):
+                            found_doc = doc
+                            break
+                    
+                    if found_doc:
+                        link = found_doc.metadata.get('link', 'Link not found')
+                        print(f"🔗 링크: {link} (유사 매칭 성공)")
+                    else:
+                        print(f"⚠️ 링크를 찾을 수 없음 (ID/정보 불일치: '{rec_id}')")
+                
+                print(f"✅ 추천 사유: {rec.get('reason', 'N/A')}")
 
     except Exception as e:
         import traceback

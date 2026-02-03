@@ -106,7 +106,14 @@ class RecruitIndexer:
             # Generate Unique ID: company + title
             company = item.get('company', 'UnknownCompany')
             title = item.get('title', 'UnknownTitle')
-            unique_id = f"{company}_{title}"
+            base_id = f"{company}_{title}"
+            
+            # Ensure ID is unique
+            unique_id = base_id
+            counter = 1
+            while unique_id in ids:
+                counter += 1
+                unique_id = f"{base_id}_{counter}"
             
             # 검색 시 바로 꺼내 쓸 수 있도록 메타데이터에도 ID 저장
             doc.metadata['unique_id'] = unique_id
