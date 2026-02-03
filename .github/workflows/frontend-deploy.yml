@@ -19,19 +19,23 @@ jobs:
 
       - name: Set Deployment Args
         id: args
+        env:
+          PREVIEW_URL: ${{ secrets.PREVIEW_BACKEND_URL }}
+          PROD_URL: ${{ secrets.PROD_BACKEND_URL }}
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/release" ]]; then
             echo "VERCEL_ARGS=--prod" >> $GITHUB_OUTPUT
             echo "ENV_TYPE=Production" >> $GITHUB_OUTPUT
-            echo "API_URL=${{ secrets.PROD_BACKEND_URL }}" >> $GITHUB_OUTPUT
+            echo "API_URL=$PROD_URL" >> $GITHUB_OUTPUT
           else
             echo "VERCEL_ARGS=" >> $GITHUB_OUTPUT
             echo "ENV_TYPE=Preview" >> $GITHUB_OUTPUT
-            if [[ -n "${{ secrets.PREVIEW_BACKEND_URL }}" ]]; then
-              echo "API_URL=${{ secrets.PREVIEW_BACKEND_URL }}" >> $GITHUB_OUTPUT
+            
+            if [[ -n "$PREVIEW_URL" ]]; then
+              echo "API_URL=$PREVIEW_URL" >> $GITHUB_OUTPUT
             else
-              # Use production secret if preview secret is missing
-              echo "API_URL=${{ secrets.PROD_BACKEND_URL }}" >> $GITHUB_OUTPUT
+              echo "::error::PREVIEW_BACKEND_URL secret is missing! Cannot deploy preview."
+              exit 1
             fi
           fi
 
