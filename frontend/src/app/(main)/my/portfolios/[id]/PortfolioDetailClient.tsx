@@ -138,6 +138,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 </Badge>
                                 <StatusBadge
                                     status={displayPortfolio.processing_status || 'PENDING'}
+                                    variant="detail"
                                 />
                             </div>
                             <span className="text-slate-400 text-sm flex items-center gap-2">
@@ -233,7 +234,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
 
                 {/* Outer Sidebar: AI Insights */}
                 <aside className="w-full lg:w-[360px] lg:sticky lg:top-8 space-y-8 order-2 lg:order-2">
-                    <div className="space-y-8 p-8 rounded-[32px] border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+                    <div className="space-y-8 p-8 rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
                         {/* Strengths Section */}
                         {displayPortfolio.strengths && displayPortfolio.strengths.length > 0 ? (
                             <div className="space-y-5">

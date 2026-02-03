@@ -73,14 +73,6 @@ export function QuestionEditorItem({
                                 />
                                 <span className="text-[10px] font-bold text-slate-400">자</span>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={onGenerateHeadline}
-                                className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 h-9 gap-2 rounded-xl"
-                            >
-                                <Sparkles className="h-4 w-4" /> 소제목 생성
-                            </Button>
                         </div>
                     </div>
                 </div>
@@ -88,7 +80,17 @@ export function QuestionEditorItem({
             </div>
 
             {/* Answer Section */}
-            <div className="space-y-2">
+            <div className="space-y-3">
+                <div className="flex justify-end">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onGenerateHeadline}
+                        className="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 h-8 gap-1.5 rounded-lg px-3 transition-colors"
+                    >
+                        <Sparkles className="h-3.5 w-3.5" /> 소제목 생성
+                    </Button>
+                </div>
                 <div className="relative group/textarea">
                     <Textarea
                         value={question.answer}

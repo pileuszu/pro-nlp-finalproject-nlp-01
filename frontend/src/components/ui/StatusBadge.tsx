@@ -10,19 +10,27 @@ interface StatusBadgeProps {
     status: ProcessingStatus | string; // Accept string for flexibility with API responses
     className?: string;
     showIcon?: boolean;
-    variant?: 'default' | 'card-tag';
+    variant?: 'default' | 'card-tag' | 'detail';
 }
 
 export function StatusBadge({ status, className, showIcon = true, variant = 'default' }: StatusBadgeProps) {
     const normalizedStatus = (status || 'PENDING').toUpperCase();
 
     const isCardTag = variant === 'card-tag';
+    const isDetail = variant === 'detail';
 
     // Base styles for the tag variant (Modern Badge Style)
-    // Positioned inside the card at top-right for a cleaner look
-    const cardTagStyles = isCardTag ? "absolute top-5 right-5 z-10 px-3 py-1 shadow-md rounded-lg whitespace-nowrap border border-slate-100 ring-1 ring-slate-200/50 backdrop-blur-md transition-all duration-300" : "";
+    // Shared visuals for both card-tag and detail variants
+    const modernBadgeVisuals = "px-3 py-1 shadow-md rounded-lg whitespace-nowrap border border-slate-100 ring-1 ring-slate-200/50 backdrop-blur-md transition-all duration-300";
 
-    const defaultStyles = !isCardTag ? "bg-white/80 backdrop-blur-xs border-slate-200/60 shadow-xs" : "";
+    // Positioning specific to card-tag
+    const absolutePositioning = "absolute top-0 right-0 z-10";
+
+    const cardTagStyles = isCardTag
+        ? `${absolutePositioning} ${modernBadgeVisuals}`
+        : (isDetail ? modernBadgeVisuals : "");
+
+    const defaultStyles = (!isCardTag && !isDetail) ? "bg-white/80 backdrop-blur-xs border-slate-200/60 shadow-xs" : "";
 
     if (normalizedStatus === 'PENDING' || normalizedStatus === 'PROCESSING') {
         return (

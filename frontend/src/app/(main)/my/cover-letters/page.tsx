@@ -55,6 +55,18 @@ export default function CoverLettersPage() {
         return new Date(deadline) < new Date();
     };
 
+    const formatDate = (dateString?: string) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+
+        return `${year}. ${month}. ${day}.`;
+    };
+
     const toggleSelection = (id: number) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]);
     };
@@ -250,7 +262,7 @@ export default function CoverLettersPage() {
                                             <div className="flex flex-col gap-1 w-full flex-1">
                                                 <div className="flex items-center text-[10px] text-slate-400 font-black uppercase tracking-widest opacity-70">
                                                     <Calendar className="h-3 w-3 mr-1.5 opacity-60" />
-                                                    {cl.updated_at || cl.created_at}
+                                                    {formatDate(cl.updated_at || cl.created_at)}
                                                 </div>
                                                 {cl.recruit_deadline && (
                                                     <div className={cn("text-[10px] font-black", expired ? "text-slate-400" : "text-blue-500")}>
@@ -352,7 +364,7 @@ export default function CoverLettersPage() {
                                         <div className="flex items-center gap-8 shrink-0">
                                             <div className="hidden md:flex flex-col items-end gap-1 shrink-0 text-right">
                                                 <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5 opacity-60">
-                                                    <Calendar className="h-3 w-3" /> {cl.updated_at || cl.created_at}
+                                                    <Calendar className="h-3 w-3" /> {formatDate(cl.updated_at || cl.created_at)}
                                                 </div>
                                                 {cl.recruit_deadline && (
                                                     <div className={cn("text-[10px] font-black", expired ? "text-slate-300" : "text-blue-500")}>

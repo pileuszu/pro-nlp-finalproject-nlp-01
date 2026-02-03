@@ -433,6 +433,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 )}
                                 <StatusBadge
                                     status={status || 'PENDING'}
+                                    variant="detail"
                                 />
                                 <Button
                                     variant="outline"

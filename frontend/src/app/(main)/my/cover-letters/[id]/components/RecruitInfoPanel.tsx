@@ -236,11 +236,12 @@ export function RecruitInfoPanel({
                                                 initial={{ opacity: 0, y: 10 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.05 }}
-                                                className="group bg-white border border-slate-100 rounded-2xl p-4 hover:border-blue-200 hover:shadow-md transition-all relative overflow-hidden"
+                                                onClick={() => onRestore(ver)}
+                                                className="group bg-white border border-slate-100 rounded-2xl p-4 hover:border-blue-500 hover:ring-2 hover:ring-blue-500/20 hover:shadow-lg transition-all relative overflow-hidden cursor-pointer"
                                             >
                                                 <div className="flex justify-between items-start mb-3">
                                                     <div className="space-y-1">
-                                                        <div className="text-xs font-black text-slate-800 truncate max-w-[240px]">
+                                                        <div className="text-xs font-black text-slate-800 truncate max-w-[240px] group-hover:text-blue-700 transition-colors">
                                                             {ver.title || "제목 없음"}
                                                         </div>
                                                         <div className="text-[10px] text-slate-400 font-bold flex items-center gap-1.5">
@@ -253,14 +254,9 @@ export function RecruitInfoPanel({
                                                             })}
                                                         </div>
                                                     </div>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => onRestore(ver)}
-                                                        className="h-8 px-3 text-[11px] font-black text-blue-600 hover:bg-blue-50 transition-colors rounded-lg flex items-center gap-1.5"
-                                                    >
-                                                        <RotateCcw className="h-3 w-3" /> 복원
-                                                    </Button>
+                                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-blue-50 text-blue-600 rounded-lg p-1.5">
+                                                        <RotateCcw className="h-4 w-4" />
+                                                    </div>
                                                 </div>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {ver.items_snapshot.map((it, i) => (
