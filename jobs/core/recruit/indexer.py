@@ -123,7 +123,8 @@ class RecruitIndexer:
             await db.flush() # Get the ID for metadata
             
             # 2. Generate Embedding for 1:1 Storage (Only if new or missing embedding)
-            if not db_recruit.embedding:
+            if db_recruit.embedding is None:
+
                 try:
                     doc = self.preprocess_recruitment(item)
                     embedding = await self.vector_store.get_embedding(doc.page_content)
