@@ -27,7 +27,7 @@ except Exception as e:
     logger.error(f"Failed to parse DATABASE_URL: {e}")
     # We will let the engines fail lazily later if url is None
 
-# --- Private Engine Singletons ---
+# --- Private Engine & Session Singletons ---
 _engine = None
 _async_engine = None
 _SessionLocal = None
@@ -57,7 +57,6 @@ def get_async_engine():
         async_url = url.set(drivername="postgresql+asyncpg")
 
         # asyncpg does not use 'sslmode' query param, but 'ssl' in connect_args or query.
-        # We'll strip sslmode from query and use connect_args for SSL.
         query = dict(async_url.query)
         query.pop("sslmode", None)
         async_url = async_url.set(query=query)
@@ -79,34 +78,45 @@ def get_async_engine():
         )
     return _async_engine
 
-# --- Exported Objects (Lazy access via __getattr__) ---
+def get_sync_session_local():
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=get_sync_engine())
+    return _SessionLocal
+
+def get_async_session_local():
+    global _AsyncSessionLocal
+    if _AsyncSessionLocal is None:
+        _AsyncSessionLocal = async_sessionmaker(get_async_engine(), expire_on_commit=False)
+    return _AsyncSessionLocal
+
+# --- Exported Objects ---
 
 Base = declarative_base()
 
 def get_db():
-    # Local import-like access to trigger __getattr__ or just call singletons
-    db = SessionLocal()
+    """Dependency for getting synchronous database session."""
+    session_factory = get_sync_session_local()
+    db = session_factory()
     try:
         yield db
     finally:
         db.close()
 
 async def get_async_db():
-    async with AsyncSessionLocal() as db:
+    """Dependency for getting asynchronous database session."""
+    session_factory = get_async_session_local()
+    async with session_factory() as db:
         yield db
 
 def __getattr__(name):
-    global _SessionLocal, _AsyncSessionLocal
+    """Dynamic resolution of engine and session factory to ensure lazy loading."""
     if name == "engine":
         return get_sync_engine()
     if name == "async_engine":
         return get_async_engine()
     if name == "SessionLocal":
-        if _SessionLocal is None:
-            _SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=get_sync_engine())
-        return _SessionLocal
+        return get_sync_session_local()
     if name == "AsyncSessionLocal":
-        if _AsyncSessionLocal is None:
-            _AsyncSessionLocal = async_sessionmaker(get_async_engine(), expire_on_commit=False)
-        return _AsyncSessionLocal
+        return get_async_session_local()
     raise AttributeError(f"module {__name__} has no attribute {name}")
