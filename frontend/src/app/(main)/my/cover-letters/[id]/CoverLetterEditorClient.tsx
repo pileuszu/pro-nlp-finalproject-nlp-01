@@ -239,7 +239,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     const addQuestion = () => setQuestions([...questions, { id: Date.now(), question: "", answer: "" }]);
     const removeQuestion = (qId: number) => setQuestions(questions.filter(q => q.id !== qId));
-    const updateQuestion = (qId: number, field: keyof QuestionItem, value: any) =>
+    const updateQuestion = (qId: number, field: keyof QuestionItem, value: string | number | undefined) =>
         setQuestions(questions.map(q => q.id === qId ? { ...q, [field]: value } : q));
 
     const handleGenerateHeadline = async (qId: number) => {

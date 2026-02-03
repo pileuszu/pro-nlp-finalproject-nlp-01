@@ -3,11 +3,10 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin, Coins, GraduationCap, Sparkles, Zap, Wand2, MessageSquare, LayoutList, Target, Brain, Loader2, FileText } from "lucide-react";
+import { X, MapPin, Coins, GraduationCap, Sparkles, Zap, Wand2, MessageSquare, LayoutList, Brain, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Recruit as RecruitDetail } from "@/types";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 type AiMode = 'draft' | 'strategy' | 'refine';
 

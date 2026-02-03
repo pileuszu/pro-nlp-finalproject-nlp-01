@@ -20,7 +20,7 @@ interface QuestionItem {
 interface QuestionEditorItemProps {
     question: QuestionItem;
     index: number;
-    onUpdate: (field: 'question' | 'answer' | 'hint', value: string) => void;
+    onUpdate: (field: keyof QuestionItem, value: string | number) => void;
     onRemove: () => void;
     onApplySuggestion: (suggestion: string) => void;
     onGenerateHeadline: () => void;
@@ -68,7 +68,7 @@ export function QuestionEditorItem({
                                 <input
                                     type="number"
                                     value={question.max_length || 1000}
-                                    onChange={e => onUpdate('max_length' as any, e.target.value)}
+                                    onChange={e => onUpdate('max_length', parseInt(e.target.value) || 1000)}
                                     className="bg-transparent border-none p-0 text-[11px] font-bold outline-none w-12 text-slate-600 text-right placeholder:text-slate-300"
                                 />
                                 <span className="text-[10px] font-bold text-slate-400">자</span>
