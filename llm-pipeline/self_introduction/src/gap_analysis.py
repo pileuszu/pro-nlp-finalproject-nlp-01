@@ -5,12 +5,14 @@ Gap Analysis 모듈
 - HyperCLOVA OpenAI 호환 API 사용
 """
 from typing import List, Dict, Any
-import time
+
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.documents import Document
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+import openai
 
 from config.settings import (
     CLOVA_API_KEY, CLOVA_BASE_URL, LLM_MODEL, LLM_TEMPERATURE,
@@ -98,6 +100,11 @@ def parse_json_response(response_text: str, pydantic_class):
         raise ValueError(f"JSON 파싱 실패: {str(e)}\n원본: {response_text[:500]}")
 
 
+@retry(
+    retry=retry_if_exception_type(openai.RateLimitError),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=20)
+)
 def analyze_gap(
     user_experiences: List[Document],
     job_requirements: str
@@ -133,6 +140,11 @@ def analyze_gap(
 
 
 
+@retry(
+    retry=retry_if_exception_type(openai.RateLimitError),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=20)
+)
 def generate_resume(
     user_experiences: List[Document],
     gap_result: GapAnalysisResult,
@@ -177,7 +189,6 @@ def generate_resume(
             "user_experiences": experiences_text + used_exp_text,
             "question": question.get("question", ""),
             "max_length": question.get("max_length", 1000),
-            "hint": question.get("hint", ""),
             "matching_points": ", ".join(gap_result.matching_points) if gap_result.matching_points else "해당 없음",
             "missing_elements": ", ".join(gap_result.missing_elements) if gap_result.missing_elements else "해당 없음",
             "subheading_instruction": subheading_instruction
@@ -296,10 +307,7 @@ def run_full_analysis(user_id: str, subheading: bool = False) -> Dict[str, Any]:
                 "resume": resume
             })
             
-            # API Rate Limit 방지를 위한 대기
-            from rich import print as rprint
-            rprint(f"[dim]⏳ API 호출 제한 방지를 위해 5초 대기합니다... ({question.get('id')}/{len(resume_questions)})[/dim]")
-            time.sleep(5)
+
     else:
         # 문항이 없으면 기본 자소서 생성
         resume = generate_resume(relevant_experiences, gap_result, company_data, subheading=subheading)
@@ -379,6 +387,11 @@ def run_single_question_analysis(user_id: str, question_id: int, subheading: boo
     }
 
 
+@retry(
+    retry=retry_if_exception_type(openai.RateLimitError),
+    stop=stop_after_attempt(5),
+    wait=wait_exponential(multiplier=1, min=4, max=20)
+)
 def generate_outline(
     user_experiences: List[Document],
     gap_result: GapAnalysisResult,
@@ -409,7 +422,6 @@ def generate_outline(
         "job_title": job_position.get("title", ""),
         "user_experiences": experiences_text + used_exp_text,
         "question": question.get("question", ""),
-        "hint": question.get("hint", ""),
         "matching_points": ", ".join(gap_result.matching_points) if gap_result.matching_points else "해당 없음",
         "missing_elements": ", ".join(gap_result.missing_elements) if gap_result.missing_elements else "해당 없음"
     }
