@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 from datetime import date
 from langchain_core.documents import Document
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from common.models import Recruitment, Tag
 from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
 
@@ -78,7 +78,7 @@ class RecruitIndexer:
             stmt = select(Recruitment).where(
                 Recruitment.title == item.get('title'),
                 Recruitment.company == item.get('company')
-            )
+            ).options(selectinload(Recruitment.tags))
             result = await db.execute(stmt)
             db_recruit = result.scalar_one_or_none()
             
@@ -193,7 +193,6 @@ class RecruitIndexer:
                 "company": row.company,
                 "category": row.category,
                 "location": row.location,
-                "tags": row.tags,
                 "start_date": row.start_date.isoformat() if row.start_date else None,
                 "deadline": row.deadline.isoformat() if row.deadline else None,
                 "key_responsibilities": row.key_responsibilities,

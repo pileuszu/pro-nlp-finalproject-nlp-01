@@ -75,7 +75,7 @@ async def run_scraper():
 
     # Phase 2: Crawl (Long running, NO DB CONNECTION)
     try:
-        crawler = RecruitmentCrawler(target_pages=3) 
+        crawler = RecruitmentCrawler(target_pages=1) 
         # This takes 15+ mins, so we must NOT have an open DB session here
         results = await crawler.crawl_and_parse(exclude_links=existing_links)
         logger.info(f"Crawler returned {len(results)} items. Syncing with database...")
