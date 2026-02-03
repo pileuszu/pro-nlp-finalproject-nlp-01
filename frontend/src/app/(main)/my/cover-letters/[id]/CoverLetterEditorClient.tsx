@@ -157,6 +157,17 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
 
 
+    const fetchVersions = useCallback(async () => {
+        if (isNew) return;
+        try {
+            const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}/versions`));
+            if (res.ok) {
+                const data = await res.json();
+                setVersions(data);
+            }
+        } catch (e) { console.error("Failed to fetch versions", e); }
+    }, [id, isNew]);
+
     useEffect(() => {
         const loadData = async () => {
             if (!isNew) {
@@ -216,17 +227,6 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         };
         loadData();
     }, [id, isNew, jobId, fetchVersions]);
-
-    const fetchVersions = useCallback(async () => {
-        if (isNew) return;
-        try {
-            const res = await fetchWithAuth(getApiUrl(`/cover-letters/${id}/versions`));
-            if (res.ok) {
-                const data = await res.json();
-                setVersions(data);
-            }
-        } catch (e) { console.error("Failed to fetch versions", e); }
-    }, [id, isNew]);
 
     const handleSave = async () => {
         try {
