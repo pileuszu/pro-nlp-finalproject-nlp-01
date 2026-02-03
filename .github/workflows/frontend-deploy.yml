@@ -59,6 +59,7 @@ jobs:
         run: npm test
 
       - name: Deploy to Vercel
+        if: github.ref == 'refs/heads/release'
         id: deploy-vercel
         uses: amondnet/vercel-action@v25.2.0
         with:
@@ -70,6 +71,7 @@ jobs:
           vercel-args: '${{ steps.args.outputs.VERCEL_ARGS }} -e NEXT_PUBLIC_API_MOCKING=disabled -b NEXT_PUBLIC_API_MOCKING=disabled -e NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }} -b NEXT_PUBLIC_API_URL=${{ steps.args.outputs.API_URL }}'
 
       - name: Display Deployment Summary
+        if: github.ref == 'refs/heads/release'
         run: |
           echo "## 🚀 Deployment Successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
