@@ -3,6 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, cast, String
 import sqlalchemy as sa
+from datetime import date
 
 from common import models
 from common import schemas
@@ -26,6 +27,14 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     }
 
     stmt = select(models.Recruitment)
+    
+    # Filter out closed recruitments (deadline < today)
+    # deadline is None means "Open until filled" -> Include
+    stmt = stmt.where(or_(
+        models.Recruitment.deadline >= date.today(),
+        models.Recruitment.deadline.is_(None)
+    ))
+
     if category and category != 'all':
         # Support multiple categories separated by comma
         categories = [c.strip() for c in category.split(',') if c.strip()]
@@ -61,6 +70,13 @@ async def get_recruitments(db: AsyncSession, skip: int = 0, limit: int = 10, cat
     items = result.scalars().all()
     
     count_stmt = select(func.count(models.Recruitment.id))
+    
+    # Apply same deadline filter to count
+    count_stmt = count_stmt.where(or_(
+        models.Recruitment.deadline >= date.today(),
+        models.Recruitment.deadline.is_(None)
+    ))
+
     if category and category != 'all':
         mapped_category = CATEGORY_MAP.get(category, category)
         count_stmt = count_stmt.where(models.Recruitment.category == mapped_category)
