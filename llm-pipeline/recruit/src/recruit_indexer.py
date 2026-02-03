@@ -199,70 +199,97 @@ class RecruitIndexer:
         bm25_retriever.k = k
         return bm25_retriever.invoke(query)
 
-    def search_hybrid(self, query: str, keyword_query: Optional[str] = None, k: int = 5, collection_name: str = "recruit_collection"):
+    def search_hybrid(self, query: str, keyword_query: Optional[str] = None, k: int = 5, collection_name: str = "recruit_collection") -> List[tuple[Document, float]]:
         """
         Hybrid Search: Combines Vector search (Chroma) and Keyword search (BM25).
-        If keyword_query is provided, it is used specifically for the BM25 component.
+        Returns a list of (Document, score) tuples.
+        Score is the Vector Distance (L2) - Lower is better.
         """
-        # 1. Prepare Vector Retriever
+        import numpy as np
+
+        # 1. Prepare Vector Store
         vectorstore = Chroma(
             collection_name=collection_name,
             embedding_function=self.embedding_model,
             persist_directory=self.persist_dir
         )
-        vector_retriever = vectorstore.as_retriever(search_kwargs={"k": k})
         
-        # 2. Prepare BM25 Retriever
-        all_data = vectorstore.get()
-        documents = []
+        # 2. Vector Search (Get scores)
+        # Chroma L2: Lower is better
+        vector_results = vectorstore.similarity_search_with_score(query, k=k)
+        
+        # 3. BM25 Search
+        # Need all docs for BM25
+        # We also need embeddings to calculate scores for BM25-only results
+        all_data = vectorstore.get(include=['metadatas', 'documents', 'embeddings'])
+        
+        documents_map = {} # ID -> Document
+        embeddings_map = {} # ID -> Embedding
+        bm25_docs_pool = []
+
         if all_data['documents']:
-            for content, metadata in zip(all_data['documents'], all_data['metadatas']):
-                documents.append(Document(page_content=content, metadata=metadata))
+            for i, (content, metadata) in enumerate(zip(all_data['documents'], all_data['metadatas'])):
+                doc = Document(page_content=content, metadata=metadata)
+                uid = metadata.get('unique_id')
+                if uid:
+                    documents_map[uid] = doc
+                    if all_data.get('embeddings') is not None:
+                        embeddings_map[uid] = all_data['embeddings'][i]
+                bm25_docs_pool.append(doc)
         
-        if not documents:
-            return []
+        if not bm25_docs_pool:
+            return vector_results # Fallback
             
         bm25_retriever = BM25Retriever.from_documents(
-            documents,
+            bm25_docs_pool,
             preprocess_func=self._kiwi_tokenize
         )
         bm25_retriever.k = k
         
-        # 3. Combine using EnsembleRetriever
-        # If keyword_query is provided, we need to handle them separately.
-        # Otherwise, EnsembleRetriever can handle it in one go.
-        if keyword_query:
-            # Manually invoke and combine results if they use different queries
-            bm25_docs = bm25_retriever.invoke(keyword_query)
-            vector_docs = vector_retriever.invoke(query)
+        bm25_results = bm25_retriever.invoke(keyword_query if keyword_query else query)
+        
+        # 4. Integrate Results
+        combined_results = {} # uid -> {'doc': doc, 'score': score}
+        
+        # Add Vector Results (Already has scores)
+        for doc, score in vector_results:
+            uid = doc.metadata.get('unique_id')
+            if uid:
+                combined_results[uid] = {'doc': doc, 'score': score}
+        
+        # Add BM25 Results (Calculate Score if missing)
+        # To calculate score, we need query embedding
+        query_embedding = self.embedding_model.embed_query(query)
+        
+        for doc in bm25_results:
+            uid = doc.metadata.get('unique_id')
+            if not uid: 
+                continue
+                
+            if uid in combined_results:
+                # Already exists from vector search (usually implies good score), take the better (lower) score?
+                # Actually vector search score is accurate L2.
+                # Just keep existing.
+                continue
+            else:
+                # Found by BM25 but not top vector results. Calculate vector score manually.
+                if uid in embeddings_map:
+                    doc_vec = embeddings_map[uid]
+                    # Calculate Euclidean Distance (L2)
+                    dist = np.linalg.norm(np.array(query_embedding) - np.array(doc_vec))
+                    combined_results[uid] = {'doc': doc, 'score': float(dist)}
+                else:
+                    # No embedding found (should not happen if synced), assign a default bad score
+                    combined_results[uid] = {'doc': doc, 'score': 999.0}
+        
+        # Convert to list and sort by score (ASC)
+        final_list = []
+        for uid, data in combined_results.items():
+            final_list.append((data['doc'], data['score']))
             
-            # Simple ensemble: Combine and remove duplicates while maintaining order
-            # (In a real scenario, you might want to use Rank Fusion)
-            combined = []
-            seen_ids = set()
-            
-            # Interleave results for a simple "ensemble" effect
-            for docs in zip(bm25_docs, vector_docs):
-                for doc in docs:
-                    uid = doc.metadata.get('unique_id')
-                    if uid not in seen_ids:
-                        combined.append(doc)
-                        seen_ids.add(uid)
-            
-            # Add remaining
-            for doc in bm25_docs + vector_docs:
-                uid = doc.metadata.get('unique_id')
-                if uid not in seen_ids:
-                    combined.append(doc)
-                    seen_ids.add(uid)
-            
-            return combined[:k]
-        else:
-            ensemble_retriever = EnsembleRetriever(
-                retrievers=[bm25_retriever, vector_retriever],
-                weights=[0.5, 0.5]
-            )
-            return ensemble_retriever.invoke(query)
+        final_list.sort(key=lambda x: x[1])
+        
+        return final_list[:k*2] # Return slighly more candidates for downstream filtering
 
 if __name__ == "__main__":
     print("RecruitIndexer module loaded.")
