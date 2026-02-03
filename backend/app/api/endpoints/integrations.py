@@ -276,12 +276,14 @@ async def list_notion_pages(
             raise HTTPException(status_code=res.status_code, detail="Failed to fetch pages from Notion")
         
         pages = res.json().get("results", [])
-        # Simplify data for frontend
+        # Simplify data for frontend and filter for top-level pages only
         return [{
             "id": p["id"],
-            "title": p.get("properties", {}).get("title", {}).get("title", [{}])[0].get("plain_text", "Untitled"),
+            "title": p.get("properties", {}).get("title", {}).get("title", [{}])[0].get("plain_text", "Untitled") 
+                     if "title" in p.get("properties", {}) 
+                     else p.get("properties", {}).get("Name", {}).get("title", [{}])[0].get("plain_text", "Untitled"),
             "url": p["url"]
-        } for p in pages]
+        } for p in pages if p.get("parent", {}).get("type") == "workspace"]
 
 @router.delete("/{integration_id}")
 async def remove_integration(

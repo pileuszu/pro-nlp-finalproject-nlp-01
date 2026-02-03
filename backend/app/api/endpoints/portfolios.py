@@ -5,10 +5,7 @@ from typing import List, Optional
 from common.database import get_async_db
 from common import schemas
 from common.exceptions import ResourceNotFoundError
-from app.services import recruit_service
-from app.services.portfolio_service import PortfolioService
 from app.api import deps
-
 from common import models
 from app.api.rate_limit import ai_gen_limiter
 
@@ -61,6 +58,7 @@ async def list_portfolios(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     items = await service.get_portfolios(user_id=current_user.id)
     return {"items": items}
@@ -72,12 +70,15 @@ async def create_portfolio(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.portfolio_service import PortfolioService
+    from app.services import recruit_service
     service = PortfolioService(db)
     saved_portfolio = await service.save_verified_portfolio(current_user.id, portfolio)
     # Trigger background recommendation update
     background_tasks.add_task(recruit_service.run_bg_recalc_for_user, current_user.id)
     # Trigger background profile update
-    background_tasks.add_task(job_service.trigger_job, task="profile_update", target_id=saved_portfolio.id)
+    from app.services.job_service import job_service
+    background_tasks.add_task(job_service.trigger_profile_update, saved_portfolio.id)
     return saved_portfolio
 
 @router.post("/upload", response_model=schemas.PortfolioDetail, status_code=201)
@@ -91,8 +92,9 @@ async def upload_portfolio(
     """
     Upload a portfolio file (PDF/TXT/MD), save it, and trigger background extraction/refinement.
     """
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
-    return await service.create_portfolio_from_file(current_user.id, title, file, background_tasks)
+    return await service.create_portfolio_from_file(current_user.id, title, file)
 
 @router.post("/notion", response_model=schemas.PortfolioDetail, status_code=201)
 async def import_notion_portfolio(
@@ -104,6 +106,7 @@ async def import_notion_portfolio(
     """
     Import portfolio from a Notion URL.
     """
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     return await service.create_portfolio_from_notion(current_user.id, payload.project_name, payload.source_url)
 
@@ -117,6 +120,7 @@ async def import_github_portfolio(
     """
     Import portfolio from a GitHub Repository or User Profile URL/ID.
     """
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     return await service.create_portfolio_from_github(current_user.id, payload.project_name, payload.source_url)
 
@@ -130,6 +134,7 @@ async def import_blog_portfolio(
     """
     Import portfolio from a Technical Blog (Velog, Tistory).
     """
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     return await service.create_portfolio_from_blog(current_user.id, payload.project_name, payload.source_url)
 
@@ -139,6 +144,7 @@ async def get_portfolio(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     portfolio = await service.get_portfolio(portfolio_id, current_user.id)
     if not portfolio:
@@ -153,9 +159,11 @@ async def update_portfolio(
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.portfolio_service import PortfolioService
+    from app.services import recruit_service
     service = PortfolioService(db)
     updated_portfolio = await service.update_portfolio(
-        portfolio_id, current_user.id, portfolio.model_dump(exclude_unset=True)
+        portfolio_id, current_user.id, portfolio
     )
     if not updated_portfolio:
         raise ResourceNotFoundError("Portfolio", portfolio_id)
@@ -165,12 +173,12 @@ async def update_portfolio(
     return updated_portfolio
 
 @router.delete("/{portfolio_id}")
-@router.delete("/{portfolio_id}")
 async def delete_portfolio(
     portfolio_id: int, 
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     success = await service.delete_portfolio(portfolio_id, current_user.id)
     if not success:
@@ -191,6 +199,7 @@ async def analyze_portfolio(
 ):
     """Real AI analysis of a portfolio source for preview."""
     await ai_gen_limiter.check(request)
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     return await service.analyze_portfolio_source(current_user.id, req.source, req.type)
 
@@ -203,16 +212,20 @@ async def analyze_portfolio_file(
 ):
     """Real AI analysis of an uploaded file for preview."""
     await ai_gen_limiter.check(request)
+    from app.services.portfolio_service import PortfolioService
     service = PortfolioService(db)
     return await service.analyze_portfolio_file(current_user.id, file)
 
 @router.patch("/{portfolio_id}/confirm", response_model=schemas.PortfolioDetail)
 async def confirm_portfolio(
     portfolio_id: int,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
     """Confirms AI analysis results and marks as COMPLETED."""
+    from app.services.portfolio_service import PortfolioService
+    from app.services.job_service import job_service
     service = PortfolioService(db)
     portfolio = await service.get_portfolio(portfolio_id, current_user.id)
     if not portfolio:
@@ -223,16 +236,8 @@ async def confirm_portfolio(
     await db.commit()
     await db.refresh(portfolio)
     
-    # Update recommendations and profile
-    background_tasks = BackgroundTasks() # We need to inject BackgroundTasks if not present, but better to use job_service directly or request injection.
-    # Wait, confirm_portfolio signature doesn't have background_tasks. Let's add it. 
-    # Actually, simpler to just fire and forget via job_service directly if we don't want to change signature too much, 
-    # BUT job_service.trigger_job is synchronous (encapsulates logic), so we can just call it.
-    # Ideally should use BackgroundTasks for non-blocking HTTP response if possible, but let's change signature to be correct.
-    # Since I cannot see the signature change here, I will modify the signature in a separate step or just call job_service if it returns fast (it spawns process or makes http call, so pretty fast).
-    # Let's check imports. job_service is imported.
-    from app.services.job_service import job_service
-    job_service.trigger_job(task="recruit_update", target_id=current_user.id)
-    job_service.trigger_job(task="profile_update", target_id=portfolio.id)
+    # Update recommendations and profile in background (non-blocking)
+    background_tasks.add_task(job_service.trigger_recommendation_update, current_user.id)
+    background_tasks.add_task(job_service.trigger_profile_update, portfolio_id)
     
     return portfolio

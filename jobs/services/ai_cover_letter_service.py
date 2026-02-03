@@ -33,7 +33,7 @@ class AICoverLetterService:
         cl = result.scalar_one_or_none()
         
         if not cl:
-            logger.error(f"Cover Letter {cl_id} not found")
+            logger.info(f"Cover Letter {cl_id} not found or already deleted. Skipping job.")
             return
 
         try:
@@ -71,8 +71,11 @@ class AICoverLetterService:
 
 
             # 6. Generate Answers for each Item
+            subheading_str = os.getenv("JOB_EXTRA_SUBHEADING", "false").lower()
+            subheading = subheading_str == "true"
             tone = os.getenv("JOB_EXTRA_TONE", "professional")
             generation_mode = os.getenv("JOB_EXTRA_MODE", "full") # 'full' or 'outline'
+            temperature = float(os.getenv("JOB_EXTRA_TEMPERATURE", "0.0"))
             
             # Fetch items created as placeholders in the backend
             items_stmt = select(models.CoverLetterItem).where(models.CoverLetterItem.cover_letter_id == cl_id)
@@ -92,9 +95,16 @@ class AICoverLetterService:
 
             # Track used experiences to avoid repetition across questions
             used_experiences = []
+            
+            # Get all project names available in context for tracking
+            available_projects = []
+            for doc in relevant_docs:
+                p_name = doc.metadata.get("project_name")
+                if p_name and p_name not in available_projects:
+                    available_projects.append(p_name)
 
             for i, item in enumerate(items):
-                logger.info(f"Generating ({generation_mode}) for item {item.id} ({i+1}/{len(items)}): {item.question[:30]}... (Tone: {tone})")
+                logger.info(f"Generating ({generation_mode}) for item {item.id} ({i+1}/{len(items)}): {item.question[:30]}... (Tone: {tone}, Subheading: {subheading}, Temp: {temperature})")
                 
                 # Add delay between requests to avoid Rate Limit (429)
                 if i > 0:
@@ -143,21 +153,20 @@ class AICoverLetterService:
                                 core_values=recruitment.company_description or "",
                                 max_length=item.max_length or 1000,
                                 used_experiences=used_experiences.copy(),
-                                hint=item.hint or ""
+                                hint=item.hint or "",
+                                subheading=subheading,
+                                temperature=temperature
                             )
 
                             item.content = answer_data.get("content")
                             item.key_points = answer_data.get("key_points")
                             item.suggested_improvements = answer_data.get("suggested_improvements")
                             
-                            # Extract project names from content to track usage
-                            # Simple heuristic: look for common project patterns
-                            # This is a basic implementation - could be improved with NER
+                            # Track which projects were likely used in this answer
                             content = answer_data.get("content", "")
-                            if "프로젝트" in content:
-                                # Extract potential project names (very basic)
-                                # In production, you might want more sophisticated parsing
-                                pass
+                            for p_name in available_projects:
+                                if p_name in content and p_name not in used_experiences:
+                                    used_experiences.append(p_name)
                         
                         # Update main cover letter content with the first item's content as a summary
                         if i == 0:
@@ -191,6 +200,15 @@ class AICoverLetterService:
                 message=f"[{recruitment.company} - {recruitment.title}] 자기소개서의 모든 문항 작성이 완료되었습니다.",
                 link=f"/my/cover-letters/{cl.id}",
                 notification_type="COVER_LETTER_READY",
+                target_id=cl.id
+            )
+            
+            # 8. Trigger UI Refresh
+            await NotificationService.create_and_notify(
+                db=db,
+                user_id=cl.user_id,
+                title="", message="",
+                notification_type="REFRESH",
                 target_id=cl.id
             )
             

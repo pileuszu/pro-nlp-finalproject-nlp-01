@@ -125,5 +125,8 @@ async def trigger_notification_internal(
     if not user_id:
         raise HTTPException(status_code=400, detail="user_id required")
     
-    await broadcaster.broadcast(user_id, payload)
+    notif_type = payload.get("type", "GENERAL")
+    increment_unread = (notif_type != "REFRESH")
+    
+    await broadcaster.broadcast(user_id, payload, increment_unread=increment_unread)
     return {"status": "dispatched"}

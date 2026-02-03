@@ -18,7 +18,6 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     name = Column(String, nullable=False)
-    # is_admin = Column(Boolean, default=False, nullable=False)  # 관리자 권한 (미사용)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # User Profile Fields (extracted from portfolios)
@@ -48,8 +47,8 @@ class Recruitment(Base):
     required_qualifications = Column(Text, nullable=True)
     preferred_qualifications = Column(Text, nullable=True)
     company_description = Column(Text, nullable=True)  # 기업 인재상/핵심 가치
-    tags = Column(JSON, nullable=True)  # List of strings
     embedding = Column(Vector(1024), nullable=True)  # Unified 1:1 embedding storage
+    tags = Column(JSON, nullable=True) # Direct JSON storage for tech stack tags
     view_count = Column(Integer, default=0) # View count for popularity sorting
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -62,7 +61,6 @@ class Portfolio(Base):
     id = Column(Integer, primary_key=True, index=True)
     type = Column(String, nullable=False)  # github, link, file, notion
     source_url = Column(String, nullable=True)
-    content = Column(Text, nullable=True) # Raw extracted text
     user_id = Column(Integer, ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
@@ -75,10 +73,23 @@ class Portfolio(Base):
     role = Column(String, nullable=True)
     description = Column(Text, nullable=True) # Refined Description for Embedding
     tech_stack = Column(JSON, nullable=True) # List of strings
-    embedding = Column(Vector(1024), nullable=True)  # Native vector storage (List of floats)
+    strengths = Column(JSON, nullable=True) # List of StrengthItem dicts
 
     owner = relationship("User", back_populates="portfolios")
     job_queries = relationship("PortfolioJobQuery", back_populates="portfolio", cascade="all, delete-orphan")
+    chunks = relationship("PortfolioChunk", back_populates="portfolio", cascade="all, delete-orphan")
+
+class PortfolioChunk(Base):
+    __tablename__ = "portfolio_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    portfolio_id = Column(Integer, ForeignKey("portfolios.id"), nullable=False)
+    chunk_content = Column(Text, nullable=False)
+    embedding = Column(Vector(1024), nullable=True)
+    chunk_index = Column(Integer, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    portfolio = relationship("Portfolio", back_populates="chunks")
 
 class PortfolioJobQuery(Base):
     __tablename__ = "portfolio_job_queries"
@@ -132,6 +143,7 @@ class CoverLetterItem(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     cover_letter = relationship("CoverLetter", back_populates="items")
+
 
 class Recommendation(Base):
     __tablename__ = "recommendations"

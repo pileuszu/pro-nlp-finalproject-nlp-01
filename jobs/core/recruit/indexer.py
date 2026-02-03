@@ -71,7 +71,7 @@ class RecruitIndexer:
         Processes and adds multiple recruitment items to BOTH SQL DB and vector store.
         """
         import datetime
-        documents = []
+        
         for item in data_list:
             # 1. SQL DB Insertion/Update
             # Check if exists by title and company
@@ -84,24 +84,16 @@ class RecruitIndexer:
             
             # Format deadline and start_date
             deadline_val = item.get('deadline')
+            deadline_date = None
             if deadline_val and isinstance(deadline_val, str):
-                 # Try common formats if needed, or just store as is if it matches date format
-                 # Minimal handling for common "YYYY-MM-DD"
-                 try:
-                     deadline_date = datetime.date.fromisoformat(deadline_val)
-                 except:
-                     deadline_date = None
-            else:
-                 deadline_date = None
+                 try: deadline_date = datetime.date.fromisoformat(deadline_val)
+                 except: pass
             
             start_date_val = item.get('start_date')
+            start_date_obj = None
             if start_date_val and isinstance(start_date_val, str):
-                 try:
-                     start_date_obj = datetime.date.fromisoformat(start_date_val)
-                 except:
-                     start_date_obj = None
-            else:
-                 start_date_obj = None
+                 try: start_date_obj = datetime.date.fromisoformat(start_date_val)
+                 except: pass
 
             if not db_recruit:
                 db_recruit = Recruitment(
@@ -119,19 +111,20 @@ class RecruitIndexer:
                     key_responsibilities=sanitize_text(item.get('key_responsibilities')),
                     required_qualifications=sanitize_text(item.get('required_qualifications')),
                     preferred_qualifications=sanitize_text(item.get('preferred_qualifications')),
-                    tags=item.get('tags', [])
+                    tags=item.get('tags', []) # Directly use JSON list
                 )
                 db.add(db_recruit)
             else:
                 # Update existing
                 db_recruit.link = item.get('link', db_recruit.link)
                 db_recruit.deadline = deadline_date or db_recruit.deadline
-                # ... update other fields as needed
+                db_recruit.tags = item.get('tags', db_recruit.tags)
             
             await db.flush() # Get the ID for metadata
             
             # 2. Generate Embedding for 1:1 Storage (Only if new or missing embedding)
-            if not db_recruit.embedding:
+            if db_recruit.embedding is None:
+
                 try:
                     doc = self.preprocess_recruitment(item)
                     embedding = await self.vector_store.get_embedding(doc.page_content)
@@ -153,7 +146,7 @@ class RecruitIndexer:
         
         # SQL for cosine similarity search
         stmt = text("""
-            SELECT id, title, company, category, location, tags, start_date, deadline, 
+            SELECT id, title, company, category, location, start_date, deadline, 
                    key_responsibilities, required_qualifications, preferred_qualifications,
                    embedding <=> :emb as distance
             FROM recruitments
@@ -180,7 +173,6 @@ class RecruitIndexer:
                 "company": row.company,
                 "category": row.category,
                 "location": row.location,
-                "tags": row.tags,
                 "start_date": row.start_date.isoformat() if row.start_date else None,
                 "deadline": row.deadline.isoformat() if row.deadline else None,
                 "key_responsibilities": row.key_responsibilities,

@@ -189,6 +189,51 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                         )}
                     </div>
 
+                    {/* Strengths Section */}
+                    {displayPortfolio.strengths && displayPortfolio.strengths.length > 0 && (
+                        <div className="space-y-4 pt-6 border-t border-slate-100">
+                            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-blue-500" /> AI분석 핵심 강점
+                            </h3>
+                            <div className="grid grid-cols-1 gap-4">
+                                {displayPortfolio.strengths.map((s, i) => (
+                                    <div key={i} className="p-5 rounded-xl border border-blue-100 bg-blue-50/20 shadow-sm space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <Badge className="bg-blue-600 text-white hover:bg-blue-700">
+                                                    {s.tag}
+                                                </Badge>
+                                                <Badge variant="outline" className={`
+                                                    ${s.level === 'high' ? 'border-orange-200 text-orange-600 bg-orange-50' :
+                                                        s.level === 'medium' ? 'border-blue-200 text-blue-600 bg-blue-50' :
+                                                            'border-slate-200 text-slate-500 bg-slate-50'}
+                                                `}>
+                                                    Level {s.level.toUpperCase()}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <p className="text-slate-800 font-bold leading-snug">
+                                            {s.claim}
+                                        </p>
+                                        {s.evidence && s.evidence.length > 0 && (
+                                            <div className="space-y-1.5">
+                                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">발췌 근거</p>
+                                                <div className="flex flex-col gap-1.5">
+                                                    {s.evidence.map((ev, j) => (
+                                                        <div key={j} className="flex gap-2 items-start text-sm text-slate-600 bg-white/60 p-2 rounded border border-blue-50/50">
+                                                            <div className="mt-1.5 h-1 w-1 rounded-full bg-blue-400 shrink-0" />
+                                                            <span className="italic">&quot;{ev}&quot;</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Job Queries Section */}
                     {displayPortfolio.job_queries && displayPortfolio.job_queries.length > 0 && (
                         <div className="space-y-4 pt-6 border-t border-slate-100">

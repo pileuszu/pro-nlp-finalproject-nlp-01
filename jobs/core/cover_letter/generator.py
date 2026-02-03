@@ -19,7 +19,9 @@ from jobs.core.cover_letter.config import (
     LLM_TEMPERATURE,
     LLM_TOP_P,
     LLM_REPETITION_PENALTY,
-    LLM_MAX_TOKENS
+    LLM_MAX_TOKENS,
+    LLM_USE_THINKING,
+    LLM_THINKING_LEVEL
 )
 
 logger = logging.getLogger(__name__)
@@ -42,16 +44,33 @@ class CoverLetterGenerator:
             
             # Use ChatOpenAI with HyperCLOVA OpenAI-compatible endpoint
             # 설정값은 jobs/core/cover_letter/config.py에서 관리
+            extra_params = {
+                "topP": LLM_TOP_P,
+                "repetitionPenalty": LLM_REPETITION_PENALTY,
+                "maxTokens": LLM_MAX_TOKENS
+            }
+
+            # Thinking 기능 활성화 (HCX-007)
+            if LLM_USE_THINKING:
+                # v3 API 명세 반영
+                # 1. maxTokens 사용 불가 -> 제거
+                if "maxTokens" in extra_params:
+                    del extra_params["maxTokens"]
+                    
+                # 2. maxCompletionTokens 설정 (High 기준 권장값 20480 또는 사용자 설정)
+                extra_params["maxCompletionTokens"] = LLM_MAX_TOKENS # 또는 20480
+                
+                # 3. thinking.effort 설정
+                extra_params["thinking"] = {
+                    "effort": LLM_THINKING_LEVEL  # v3 명세: 'effort' (low, medium, high)
+                }
+
             self._llm = ChatOpenAI(
                 model=LLM_MODEL,
                 api_key=api_key,
                 base_url="https://clovastudio.stream.ntruss.com/v1/openai",
                 temperature=LLM_TEMPERATURE,
-                extra_body={
-                    "topP": LLM_TOP_P,
-                    "repetitionPenalty": LLM_REPETITION_PENALTY,
-                    "maxTokens": LLM_MAX_TOKENS
-                }
+                extra_body=extra_params
             )
         return self._llm
 
@@ -151,7 +170,9 @@ class CoverLetterGenerator:
         core_values: str = "",
         max_length: int = 1000,
         used_experiences: List[str] = None,
-        hint: str = ""
+        hint: str = "",
+        subheading: bool = False,
+        temperature: float = 0.0
     ) -> Dict[str, Any]:
         """
         Generates a cover letter answer for a specific question.
@@ -162,6 +183,11 @@ class CoverLetterGenerator:
         if used_experiences:
             used_exp_warning = f"\n\n⚠️ 다음 경험/프로젝트는 이전 문항에서 이미 사용했으므로 다른 경험을 우선 사용하세요: {', '.join(used_experiences)}"
         
+        # 소제목 지침 설정 (llm-pipeline 방식)
+        subheading_instruction = ""
+        if subheading:
+            subheading_instruction = "- 반드시 답변의 시작 부분에 전체 내용을 매력적으로 요약하는 [소제목] 형태의 소제목을 작성하세요. (예: [데이터 기반의 의사결정으로 결제 전환율 15% 개선])"
+
         # Determine which prompt to use
         if question:
             # Question-based prompt
@@ -175,7 +201,8 @@ class CoverLetterGenerator:
                 "max_length": max_length,
                 "hint": hint,
                 "matching_points": ", ".join(gap_analysis.get("matching_points", [])) if gap_analysis.get("matching_points") else "해당 없음",
-                "missing_elements": ", ".join(gap_analysis.get("missing_elements", [])) if gap_analysis.get("missing_elements") else "해당 없음"
+                "missing_elements": ", ".join(gap_analysis.get("missing_elements", [])) if gap_analysis.get("missing_elements") else "해당 없음",
+                "subheading_instruction": subheading_instruction
             }
         elif gap_analysis.get("is_gap_found"):
             # Gap analysis-based prompt
@@ -187,7 +214,8 @@ class CoverLetterGenerator:
                 "user_experiences": context + used_exp_warning,  # 경고 추가
                 "max_length": max_length,
                 "matching_points": ", ".join(gap_analysis.get("matching_points", [])),
-                "missing_elements": ", ".join(gap_analysis.get("missing_elements", []))
+                "missing_elements": ", ".join(gap_analysis.get("missing_elements", [])),
+                "subheading_instruction": subheading_instruction
             }
         else:
             # Simple prompt
@@ -197,7 +225,8 @@ class CoverLetterGenerator:
                 "core_values": core_values,
                 "job_title": job_title,
                 "user_experiences": context + used_exp_warning,  # 경고 추가
-                "max_length": max_length
+                "max_length": max_length,
+                "subheading_instruction": subheading_instruction
             }
         
         parser = PydanticOutputParser(pydantic_object=ResumeGenerationResult)
