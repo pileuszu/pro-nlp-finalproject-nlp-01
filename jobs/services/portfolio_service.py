@@ -228,6 +228,8 @@ class PortfolioService:
                         processing_status=ProcessingStatus.PROCESSING
                     )
                     self.db.add(target)
+                
+                target.content = proj_data["content"] # Save raw content for re-analysis
                 project_records_meta.append({"id": None, "target": target, "data": proj_data})
             
             await self.db.flush()
@@ -513,6 +515,8 @@ class PortfolioService:
                         processing_status=ProcessingStatus.PROCESSING
                     )
                     self.db.add(target)
+                
+                target.content = proj_data["content"] # Save raw content
                 project_records_meta.append({"id": None, "target": target, "data": proj_data})
             
             await self.db.flush()
