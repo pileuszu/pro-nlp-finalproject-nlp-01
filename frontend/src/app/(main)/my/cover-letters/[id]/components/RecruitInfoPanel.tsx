@@ -41,10 +41,10 @@ export function RecruitInfoPanel({
     onRunGeneration
 }: RecruitInfoPanelProps) {
     return (
-        <div className={cn("transition-all duration-700 overflow-hidden shrink-0 hidden xl:block h-full", isOpen ? "w-[580px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
-            <div className="w-[580px] px-8 pt-8 pb-8 flex flex-col h-full">
-                <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl flex-1 flex flex-col overflow-hidden">
-                    <Tabs value={panelTab} onValueChange={setPanelTab} className="h-full flex flex-col">
+        <div className={cn("transition-all duration-700 shrink-0 hidden xl:block self-start sticky top-8", isOpen ? "w-[580px] opacity-100" : "w-0 opacity-0 pointer-events-none")}>
+            <div className="w-[580px] px-8 py-8 flex flex-col">
+                <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] shadow-2xl flex flex-col">
+                    <Tabs value={panelTab} onValueChange={setPanelTab} className="flex flex-col">
                         <div className="p-8 pb-4 bg-white">
                             <div className="flex justify-between items-center mb-6">
                                 <div className="flex items-center gap-3">
@@ -71,7 +71,7 @@ export function RecruitInfoPanel({
                                 </TabsTrigger>
                             </TabsList>
                         </div>
-                        <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 pt-4 scrollbar-hide font-pretendard">
+                        <div className="p-8 pt-4 font-pretendard">
                             <TabsContent value="recruit" className="m-0 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
                                 {recruit ? (
                                     <div className="space-y-8 pb-8">

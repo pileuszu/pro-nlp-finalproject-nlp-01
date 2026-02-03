@@ -337,10 +337,10 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
 
     return (
-        <div className="flex justify-center h-[calc(100vh-64px)] bg-slate-50/10 overflow-hidden relative">
-            <div className={cn("flex relative h-full w-full transition-all duration-500", showRecruitPanel ? "max-w-[1700px]" : "max-w-5xl")}>
+        <div className="flex justify-center min-h-[calc(100vh-64px)] bg-slate-50/10 relative pb-20">
+            <div className={cn("flex relative items-start w-full transition-all duration-500", showRecruitPanel ? "max-w-[1700px]" : "max-w-5xl")}>
                 {/* Editor Content */}
-                <div className="flex-1 overflow-y-auto h-full p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 scrollbar-hide">
+                <div className="flex-1 p-4 md:p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-6">
                         <div className="space-y-3 font-pretendard">
                             <div className="flex items-center gap-3">

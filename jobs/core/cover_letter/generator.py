@@ -199,7 +199,13 @@ class CoverLetterGenerator:
         # 소제목 지침 설정 (llm-pipeline 방식)
         subheading_instruction = ""
         if subheading:
-            subheading_instruction = "- 반드시 답변의 시작 부분에 전체 내용을 매력적으로 요약하는 [소제목] 형태의 소제목을 작성하세요. (예: [데이터 기반의 의사결정으로 결제 전환율 15% 개선])"
+            subheading_instruction = """
+### [소제목 필수 작성]
+- 답변의 **가장 첫 줄**에 반드시 `[ ]` 대괄호로 감싼 소제목을 작성하세요.
+- 소제목은 내용을 매력적으로 요약해야 합니다.
+- 예시: `[데이터 기반의 의사결정으로 결제 전환율 15% 개선]`
+- **주의**: 소제목이 없으면 안 됩니다.
+"""
 
         # Determine which prompt to use
         if question:
