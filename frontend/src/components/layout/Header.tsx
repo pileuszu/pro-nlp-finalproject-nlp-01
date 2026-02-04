@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { NotificationBell } from "./NotificationBell";
+import { ModeToggle } from "@/components/theme-toggle";
 
 export function Header() {
     const { isAuthenticated, logout, user } = useAuthStore();
@@ -36,20 +38,20 @@ export function Header() {
     if (!mounted) return (
         <header className="sticky top-0 z-50 w-full border-b bg-white">
             <div className="container max-w-screen-xl mx-auto flex h-16 items-center px-4 md:px-8">
-                <span className="font-bold text-xl tracking-tight">Pro-NLP</span>
+                <span className="font-bold text-xl tracking-tight">모두취업</span>
             </div>
         </header>
     );
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-100 bg-white/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
+        <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md supports-[backdrop-filter]:bg-background/60">
             <div className="container max-w-screen-xl mx-auto flex h-16 items-center justify-between px-4 md:px-8">
                 {/* Logo & Nav */}
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center">
-                        <span className="font-extrabold text-xl tracking-tight text-gray-900">Pro-NLP</span>
+                        <span className="font-extrabold text-xl tracking-tight text-foreground">모두취업</span>
                     </Link>
-                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-600">
+                    <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
                         <Link href="/recruit" className="hover:text-blue-600 transition-colors">
                             채용 공고
                         </Link>
@@ -61,6 +63,9 @@ export function Header() {
                                 <Link href="/my/portfolios" className="hover:text-blue-600 transition-colors">
                                     내 포트폴리오
                                 </Link>
+                                <Link href="/my/profile" className="hover:text-blue-600 transition-colors">
+                                    내 프로필
+                                </Link>
                             </>
                         )}
                     </nav>
@@ -68,9 +73,11 @@ export function Header() {
 
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-3">
+                    <ModeToggle />
                     {isAuthenticated ? (
                         <>
-                            <span className="text-sm text-gray-500 hidden sm:inline-block mr-2">
+                            <NotificationBell />
+                            <span className="text-sm text-gray-500 hidden sm:inline-block mr-2 ml-1">
                                 <strong>{user?.name}</strong>님 환영합니다
                             </span>
                             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-slate-600 hover:text-red-600 hover:bg-red-50">

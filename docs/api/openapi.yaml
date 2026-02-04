@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Pro-NLP AI Recruitment Platform API
+  title: 모두취업 API
   description: AI 기반 채용 플랫폼의 프론트엔드-백엔드 협업을 위한 표준 API 규격서입니다.
   version: 1.0.0
 
@@ -73,7 +73,7 @@ components:
           type: integer
         title:
           type: string
-        recruitId:
+        recruit_id:
           type: integer
         updatedAt:
           type: string
@@ -287,7 +287,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: recruitId
+        - name: recruit_id
           in: query
           schema: { type: integer }
       responses:

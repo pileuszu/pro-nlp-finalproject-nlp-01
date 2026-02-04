@@ -1,6 +1,105 @@
 # API 명세서 (API Specification)
 
-이 문서는 AI 채용 플랫폼의 프론트엔드와 백엔드 간 협업을 위한 상세 API 규격을 정의합니다. Postman 등의 도구를 활용한 테스트 및 실제 구현의 기준이 됩니다.
+이 문서는 AI 채용 플랫폼의 프론트엔드와 백엔드 간 협업을 위한 상세 API 규격을 정의합니다.
+
+## 공통 가이드
+
+### 기본 환경
+- **Base URL**: `https://api.pro-nlp.com/api` (또는 `http://localhost:8080/api`)
+- **Content-Type**: `application/json`
+- **인증**: `Authorization: Bearer {token}` (JWT)
+
+### 응답 상태 코드
+- `200 OK`: 요청 성공 (동기 처리 완료)
+- `201 Created`: 리소스 생성 성공
+- `202 Accepted`: 비동기 요청 접수 (백그라운드 처리 시작)
+- `401 Unauthorized`: 인증 실패
+- `404 Not Found`: 리소스 없음
+
+---
+
+## 1. 인증 (Authentication)
+
+### GET `/api/auth/kakao/callback`
+카카오 로그인 및 토큰 발급.
+- **Request**: `?code={kakao_auth_code}`
+- **Response**: `{ "user": {...}, "token": "jwt..." }`
+
+### GET `/api/auth/me`
+내 정보 조회.
+
+---
+
+## 2. 채용 공고 (Recruitments)
+
+### GET `/api/recruits`
+공고 목록 조회 (필터링 지원).
+- **Query**: `page`, `limit`, `category`, `keyword`, `sort`
+- **Response**: `{ "items": [...], "meta": {...} }`
+
+### GET `/api/recruits/{id}`
+공고 상세 조회.
+
+### GET `/api/recruits/recommend`
+(AI) 사용자 맞춤 공고 추천. 사용자의 포트폴리오 분석 결과(`embeddings`)를 기반으로 추천.
+
+---
+
+## 3. 포트폴리오 (Portfolios)
+
+### POST `/api/portfolios/analyze` (Preview)
+(Sync) 입력된 소스(URL/File)를 **저장하지 않고** 즉시 텍스트를 추출하여 미리보기 제공.
+- **Body**: `{ "source": "url...", "type": "github" }` or `FormData` (file)
+- **Response**: `{ "content": "extracted text...", "success": true }`
+
+### POST `/api/portfolios` (Create & Process)
+(Async) 포트폴리오를 DB에 저장하고, **백그라운드 직무 분석 작업(Embedding)**을 트리거함.
+- **Body**: `{ "title": "...", "source_url": "...", "type": "..." }`
+- **Response (201)**:
+```json
+{
+  "id": 1,
+  "processing_status": "PENDING", 
+  "project_name": "My Project"
+}
+```
+*Note: 처리가 완료되면 `processing_status`가 `COMPLETED`로 변경됨 (Polling 필요).*
+
+### POST `/api/portfolios/upload`, `/api/portfolios/notion`, `/api/portfolios/github`
+편의성을 위한 소스별 생성 엔드포인트. (`/api/portfolios`와 동일한 로직 수행)
+
+### GET `/api/portfolios`
+내 포트폴리오 목록 조회.
+
+### GET `/api/portfolios/{id}`
+포트폴리오 상세 조회. (분석된 `description`, `tech_stack` 포함)
+
+---
+
+## 4. 자기소개서 (Cover Letters)
+
+### POST `/api/cover-letters/generate`
+(Sync/Blocking) AI를 사용하여 자기소개서 초안 생성. (시간이 다소 소요될 수 있음)
+- **Body**:
+```json
+{
+  "recruit_id": 1,
+  "portfolioIds": [1, 2],
+  "question": "지원동기",
+  "tone": "professional"
+}
+```
+- **Response**: `{ "id": 10, "content": "AI generated content...", "gap_analysis": {...} }`
+
+### GET `/api/cover-letters`
+자소서 목록 조회.
+
+### GET `/api/cover-letters/{id}`
+자소서 상세 조회.
+
+### PATCH `/api/cover-letters/{id}`
+자소서 내용 수정.
+
 
 ## 공통 가이드
 
@@ -150,7 +249,7 @@ AI를 통해 포트폴리오 기반의 자소서 초안을 생성합니다.
 **요청 본문:**
 ```json
 {
-  "recruitId": 1,
+  "recruit_id": 1,
   "portfolioIds": [1, 2],
   "question": "지원동기",
   "tone": "professional"
