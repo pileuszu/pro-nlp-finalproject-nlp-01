@@ -6,7 +6,6 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NotificationBell } from "./NotificationBell";
-import { ModeToggle } from "@/components/theme-toggle";
 
 export function Header() {
     const { isAuthenticated, logout, user } = useAuthStore();
@@ -73,7 +72,6 @@ export function Header() {
 
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-3">
-                    <ModeToggle />
                     {isAuthenticated ? (
                         <>
                             <NotificationBell />
