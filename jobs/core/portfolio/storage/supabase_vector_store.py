@@ -26,7 +26,7 @@ class ManualRAG:
         self.api_key = settings.NCP_CLOVASTUDIO_API_KEY
 
     @retry(
-        retry=retry_if_exception_type((requests.exceptions.RequestError, requests.exceptions.HTTPError, Exception)),
+        retry=retry_if_exception_type((requests.exceptions.RequestException, requests.exceptions.HTTPError, Exception)),
         stop=stop_after_attempt(5),
         wait=wait_exponential(multiplier=2, min=4, max=60)
     )
