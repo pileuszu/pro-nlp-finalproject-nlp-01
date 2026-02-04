@@ -148,8 +148,17 @@ async def discover_blog_posts(
     Scrape a blog home/index page and return a list of post titles and URLs.
     """
     from app.services.portfolio_service import PortfolioService
-    service = PortfolioService(db)
-    return await service.blog_extractor.discover_posts(url)
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        service = PortfolioService(db)
+        return await service.blog_extractor.discover_posts(url)
+    except Exception as e:
+        logger.error(f"Blog discovery failed for {url}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return [] # Return empty list instead of 500
 
 @router.get("/{portfolio_id}", response_model=schemas.PortfolioDetail)
 async def get_portfolio(
