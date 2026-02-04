@@ -274,7 +274,7 @@ export default function CoverLettersPage() {
                                         {/* Status Tag - Moved to bottom and updated props */}
                                         <StatusBadge
                                             status={cl.processing_status || 'COMPLETED'}
-                                            variant="ribbon"
+                                            variant="card-tag"
                                             showIcon={true}
                                             className="z-50"
                                         />

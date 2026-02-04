@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { Trash2, CheckCircle, Sparkles, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -113,6 +114,16 @@ export function QuestionEditorItem({
                         className="min-h-[450px] resize-none border-2 border-border bg-muted/30 p-8 text-lg font-medium leading-relaxed focus:bg-card focus:border-primary/50 transition-colors rounded-3xl scrollbar-hide shadow-inner text-foreground placeholder:text-muted-foreground/50"
                         placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
                     />
+                    <div className="absolute bottom-6 right-6 pointer-events-none transition-opacity duration-300 opacity-50 group-hover/textarea:opacity-100">
+                        <span className={cn(
+                            "text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm transition-colors",
+                            (question.answer?.length || 0) > (question.max_length || 1000)
+                                ? "text-red-500 bg-red-50/80 dark:bg-red-950/50"
+                                : "text-muted-foreground/60 bg-background/50"
+                        )}>
+                            {question.answer?.length || 0} / {question.max_length || 1000}자
+                        </span>
+                    </div>
                 </div>
             </div>
 

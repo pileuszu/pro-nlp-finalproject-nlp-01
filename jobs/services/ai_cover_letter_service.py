@@ -257,6 +257,9 @@ class AICoverLetterService:
         logger.info(f"Generating headline for item {item_id}...")
         headline = self.generator.generate_headline(item.content)
         
+        # Clean headline (remove brackets/quotes if LLM hallucinated them)
+        headline = headline.strip().replace('[', '').replace(']', '').replace('"', '').replace("'", "")
+        
         # Prepend headline if it doesn't look like it's already there
         # Check if first line looks like a bracketed title
         lines = item.content.split('\n')

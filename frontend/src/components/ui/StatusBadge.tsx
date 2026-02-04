@@ -35,7 +35,23 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
 
     const defaultStyles = (!isCardTag && !isDetail && variant !== 'ribbon') ? "bg-white/80 backdrop-blur-xs border-slate-200/60 shadow-xs" : "";
 
-    if (normalizedStatus === 'PENDING' || normalizedStatus === 'PROCESSING') {
+    if (normalizedStatus === 'PENDING') {
+        return (
+            <Badge
+                variant="outline"
+                className={cn(
+                    "bg-slate-100 border-slate-200 text-slate-500 text-[10px] gap-1.5 font-bold py-1",
+                    isCardTag ? cardTagStyles : (variant === 'ribbon' ? ribbonVisuals + " bg-slate-500 text-white shadow-slate-500/20" : "bg-slate-50/80 border-slate-200/60 text-slate-500 shadow-sm shadow-slate-100/50"),
+                    className
+                )}
+            >
+                {showIcon && <Loader2 className="h-3 w-3" />}
+                분석 대기
+            </Badge>
+        );
+    }
+
+    if (normalizedStatus === 'PROCESSING') {
         return (
             <Badge
                 variant="outline"

@@ -182,7 +182,7 @@ export default function PortfoliosPage() {
                                     </CardFooter>
                                     <StatusBadge
                                         status={portfolio.processing_status || 'PENDING'}
-                                        variant="ribbon"
+                                        variant="card-tag"
                                         showIcon={true}
                                         className="z-50"
                                     />
