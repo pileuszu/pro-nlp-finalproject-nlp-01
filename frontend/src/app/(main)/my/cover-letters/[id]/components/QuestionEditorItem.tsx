@@ -111,7 +111,7 @@ export function QuestionEditorItem({
                             onUpdate('answer', e.target.value);
                             autoResize(e.target);
                         }}
-                        className="min-h-[450px] resize-none border-2 border-border bg-muted/30 p-8 text-lg font-medium leading-relaxed focus:bg-card focus:border-primary/50 transition-colors rounded-3xl scrollbar-hide shadow-inner text-foreground placeholder:text-muted-foreground/50"
+                        className="resize-none border-2 border-border bg-muted/30 p-8 text-lg font-medium leading-relaxed focus:bg-card focus:border-primary/50 transition-colors rounded-3xl scrollbar-hide shadow-inner text-foreground placeholder:text-muted-foreground/50"
                         placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
                     />
                     <div className="absolute bottom-6 right-6 pointer-events-none transition-opacity duration-300 opacity-50 group-hover/textarea:opacity-100">
