@@ -23,7 +23,7 @@ export interface Recruit {
 }
 
 export interface PortfolioJobQuery {
-    type: 'A' | 'B' | 'C';
+    type: 'A' | 'B' | 'C' | 'tech' | 'problem' | 'domain';
     query_text: string;
     evidence: string[];
 }
