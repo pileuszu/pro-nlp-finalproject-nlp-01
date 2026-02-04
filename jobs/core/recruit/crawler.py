@@ -301,22 +301,31 @@ class RecruitmentCrawler:
             return "", "", ""
     
     async def crawl_and_parse(self, exclude_links: set = set(), limit: Optional[int] = None) -> List[Dict]:
-        """Main crawling and parsing logic combining multiple sources."""
+        """Backward compatibility: returns full list."""
+        results = []
+        async for item in self.crawl_and_parse_gen(exclude_links=exclude_links, limit=limit):
+            results.append(item)
+        return results
+
+    async def crawl_and_parse_gen(self, exclude_links: set = set(), limit: Optional[int] = None):
+        """
+        Main crawling logic that yields parsed items incrementally.
+        Process: Collect URLs -> Fetch Detail -> Refine (NCP) -> Yield.
+        """
         loop = asyncio.get_event_loop()
-        final_json_results = []
+        count = 0
 
         # --- Source 1: Jasoseol ---
         try:
             from jobs.core.recruit.scrapers.jasoseol import JasoseolScraper
-            logger.info("\n=== Starting Jasoseol Scraper ===")
+            logger.info("\n=== Starting Jasoseol Scraper (Stream) ===")
             j_scraper = JasoseolScraper()
             j_raw_results = await j_scraper.scrape(days=2)
             
-            # Filter existing and apply limit
-            j_new_results = [r for r in j_raw_results if r['link'] not in exclude_links]
-            logger.info(f"Jasoseol: Found {len(j_raw_results)} total, {len(j_new_results)} new.")
-            
-            for row in j_new_results:
+            for row in j_raw_results:
+                if row['link'] in exclude_links:
+                    continue
+                
                 items = await loop.run_in_executor(None, self._analyze_job_with_ncp, {
                     'company': row['company'],
                     'title': row['title'],
@@ -327,81 +336,62 @@ class RecruitmentCrawler:
                 })
                 for item in items:
                     item['questions'] = row.get('questions')
-                
-                final_json_results.extend(items)
-                if limit and len(final_json_results) >= limit:
-                    break
+                    yield item
+                    count += 1
+                    if limit and count >= limit: return
                     
         except Exception as e:
-            logger.error(f"Jasoseol scraping/parsing failed: {e}")
+            logger.error(f"Jasoseol streaming failed: {e}")
 
-        if limit and len(final_json_results) >= limit:
-            return final_json_results[:limit]
-
-        # --- Source 2: Saramin (New) ---
+        # --- Source 2: Saramin ---
         try:
             from jobs.core.recruit.scrapers.saramin import SaraminScraper
-            logger.info("\n=== Starting Saramin Scraper ===")
+            logger.info("\n=== Starting Saramin Scraper (Stream) ===")
             s_scraper = SaraminScraper()
-            # Crawl for common developer keywords
             keywords = ["백엔드", "프론트엔드", "데이터 엔지니어"]
             for kw in keywords:
                 s_raw_results = await s_scraper.scrape(keyword=kw, pages=1)
-                s_new_results = [r for r in s_raw_results if r['link'] not in exclude_links]
-                logger.info(f"Saramin ({kw}): Found {len(s_raw_results)} total, {len(s_new_results)} new.")
-                
-                for row in s_new_results:
+                for row in s_raw_results:
+                    if row['link'] in exclude_links:
+                        continue
+                        
                     items = await loop.run_in_executor(None, self._analyze_job_with_ncp, {
                         'company': row['company'],
                         'title': row['title'],
                         'url': row['link'],
-                        'apply_url': row['link'], # for saramin link is often the detail
+                        'apply_url': row['link'],
                         'content_text': row['content'],
                         'content_images': ", ".join(row['image_urls'])
                     })
-                    final_json_results.extend(items)
-                    if limit and len(final_json_results) >= limit:
-                        break
-                
-                if limit and len(final_json_results) >= limit:
-                    break
+                    for item in items:
+                        yield item
+                        count += 1
+                        if limit and count >= limit: return
         except Exception as e:
-            logger.error(f"Saramin scraping/parsing failed: {e}")
-
-        if limit and len(final_json_results) >= limit:
-            return final_json_results[:limit]
+            logger.error(f"Saramin streaming failed: {e}")
 
         # --- Source 3: inthiswork ---
         try:
-            logger.info("\n=== Starting inthiswork Scraper ===")
+            logger.info("\n=== Starting inthiswork Scraper (Stream) ===")
             job_list = await loop.run_in_executor(None, self.get_job_list)
             
-            # Filter existing jobs by link
-            filtered_list = [j for j in job_list if j.get('url') not in exclude_links]
-            logger.info(f"inthiswork: Found {len(job_list)} total, {len(filtered_list)} new.")
-            
-            current_limit = limit - len(final_json_results) if limit else None
-            if current_limit is not None and current_limit <= 0:
-                return final_json_results
-            
-            if filtered_list:
-                process_list = filtered_list[:current_limit] if current_limit else filtered_list
+            for job in job_list:
+                if job.get('url') in exclude_links:
+                    continue
                 
-                for idx, job in enumerate(process_list):
-                    text, imgs, apply_url = await loop.run_in_executor(None, self.get_job_detail, job['url'])
-                    job['content_text'] = text
-                    job['content_images'] = imgs
-                    job['apply_url'] = apply_url
-                    
-                    items = await loop.run_in_executor(None, self._analyze_job_with_ncp, job)
-                    final_json_results.extend(items)
-                    
-                    if limit and len(final_json_results) >= limit:
-                        break
-                    time.sleep(1)
-                    
+                text, imgs, apply_url = await loop.run_in_executor(None, self.get_job_detail, job['url'])
+                job['content_text'] = text
+                job['content_images'] = imgs
+                job['apply_url'] = apply_url
+                
+                items = await loop.run_in_executor(None, self._analyze_job_with_ncp, job)
+                for item in items:
+                    yield item
+                    count += 1
+                    if limit and count >= limit: return
+                
+                time.sleep(1)
         except Exception as e:
-            logger.error(f"inthiswork scraping/parsing failed: {e}")
+            logger.error(f"inthiswork streaming failed: {e}")
 
-        logger.info(f"\n[Complete] Total parsed {len(final_json_results)} recruitment items from all sources")
-        return final_json_results[:limit] if limit else final_json_results
+        logger.info(f"\n[Complete] Streamed total {count} items.")

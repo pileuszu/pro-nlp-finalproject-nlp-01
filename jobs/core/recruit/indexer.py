@@ -98,6 +98,11 @@ class RecruitIndexer:
                      try: start_date_obj = datetime.date.fromisoformat(start_date_val)
                      except: pass
 
+                # Fix: Check and swap if start_date > deadline
+                if start_date_obj and deadline_date and start_date_obj > deadline_date:
+                    logger.warning(f"Swapping start_date ({start_date_obj}) and deadline ({deadline_date}) for {link or 'item'}")
+                    start_date_obj, deadline_date = deadline_date, start_date_obj
+
                 if not db_recruit:
                     db_recruit = Recruitment(
                         title=item.get('title'),
