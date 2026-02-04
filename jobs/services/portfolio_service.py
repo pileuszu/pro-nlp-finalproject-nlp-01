@@ -724,6 +724,13 @@ class PortfolioService:
                 target_id=portfolio.id
             )
             
+            # 4. Trigger Recommendations
+            try:
+                from jobs.services.recruit_service import precompute_recommendations_for_portfolio
+                await precompute_recommendations_for_portfolio(self.db, portfolio_id)
+            except Exception as e:
+                logger.error(f"Failed to update recs for portfolio {portfolio_id}: {e}")
+
             logger.info(f"Portfolio {portfolio_id} AI refresh completed.")
 
         except Exception as e:

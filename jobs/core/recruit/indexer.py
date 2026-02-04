@@ -2,8 +2,8 @@ import logging
 from typing import List, Dict, Optional
 from datetime import date
 from langchain_core.documents import Document
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import sqlalchemy as sa
 from common.models import Recruitment
 from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
 
@@ -164,6 +164,8 @@ class RecruitIndexer:
                    embedding <=> :emb as distance
             FROM recruitments
             WHERE embedding IS NOT NULL
+              AND (deadline IS NULL OR deadline >= CURRENT_DATE)
+              AND created_at >= (CURRENT_DATE - INTERVAL '1 month')
             ORDER BY distance
             LIMIT :k
         """)
@@ -228,9 +230,15 @@ class RecruitIndexer:
         vector_results = await self.search_by_vector(db, query_emb, k=k*3)
         
         # 2. BM25 Search
-        # Fetch all active recruitments for BM25 corpus
-        # For performance, we only fetch id, content and metadata fields
-        stmt = select(Recruitment).where(Recruitment.embedding.isnot(None))
+        # Fetch active recruitments (not expired, within 1 month)
+        stmt = (
+            select(Recruitment)
+            .where(
+                Recruitment.embedding.isnot(None),
+                sa.or_(Recruitment.deadline.is_(None), Recruitment.deadline >= sa.func.current_date()),
+                Recruitment.created_at >= (sa.func.current_date() - sa.text("INTERVAL '1 month'"))
+            )
+        )
         res = await db.execute(stmt)
         all_recruits = res.scalars().all()
         
