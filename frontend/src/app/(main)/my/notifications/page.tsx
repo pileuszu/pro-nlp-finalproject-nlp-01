@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 export default function NotificationsPage() {
-    const { notifications, markAsRead, refresh } = useNotifications();
+    const { notifications, markAsRead, refresh } = useNotifications({ showToast: false });
     const router = useRouter();
 
     useEffect(() => {

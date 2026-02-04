@@ -34,14 +34,21 @@ export function QuestionEditorItem({
     onApplySuggestion,
     onGenerateHeadline
 }: QuestionEditorItemProps) {
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const questionRef = useRef<HTMLTextAreaElement>(null);
+    const answerRef = useRef<HTMLTextAreaElement>(null);
+
+    const autoResize = (elem: HTMLTextAreaElement) => {
+        elem.style.height = 'auto';
+        elem.style.height = `${elem.scrollHeight}px`;
+    };
 
     useEffect(() => {
-        if (textareaRef.current) {
-            textareaRef.current.style.height = 'auto';
-            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-        }
+        if (questionRef.current) autoResize(questionRef.current);
     }, [question.question]);
+
+    useEffect(() => {
+        if (answerRef.current) autoResize(answerRef.current);
+    }, [question.answer]);
 
     return (
         <motion.div layout initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
@@ -55,9 +62,12 @@ export function QuestionEditorItem({
                     </div>
                     <div className="flex-1 space-y-2">
                         <Textarea
-                            ref={textareaRef}
+                            ref={questionRef}
                             value={question.question}
-                            onChange={e => onUpdate('question', e.target.value)}
+                            onChange={(e) => {
+                                onUpdate('question', e.target.value);
+                                autoResize(e.target);
+                            }}
                             className="border-none text-xl font-black p-0 focus-visible:ring-0 w-full placeholder:text-muted-foreground/40 resize-none min-h-[30px] bg-transparent overflow-hidden leading-tight py-1 text-foreground"
                             placeholder="질문 문항을 입력하세요"
                             rows={1}
@@ -94,9 +104,13 @@ export function QuestionEditorItem({
 
                 <div className="relative group/textarea">
                     <Textarea
+                        ref={answerRef}
                         value={question.answer}
-                        onChange={e => onUpdate('answer', e.target.value)}
-                        className="min-h-[450px] resize-none border-2 border-border bg-muted/30 p-8 text-lg font-medium leading-relaxed focus:bg-card focus:border-primary/50 transition-all rounded-3xl scrollbar-hide shadow-inner text-foreground placeholder:text-muted-foreground/50"
+                        onChange={(e) => {
+                            onUpdate('answer', e.target.value);
+                            autoResize(e.target);
+                        }}
+                        className="min-h-[450px] resize-none border-2 border-border bg-muted/30 p-8 text-lg font-medium leading-relaxed focus:bg-card focus:border-primary/50 transition-colors rounded-3xl scrollbar-hide shadow-inner text-foreground placeholder:text-muted-foreground/50"
                         placeholder="답변을 입력하거나 AI 라이팅 스튜디오를 통해 초안을 생성하세요."
                     />
                 </div>

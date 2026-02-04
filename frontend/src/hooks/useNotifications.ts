@@ -14,7 +14,12 @@ export interface Notification {
     created_at: string;
 }
 
-export function useNotifications() {
+// Options interface
+interface UseNotificationsOptions {
+    showToast?: boolean;
+}
+
+export function useNotifications(options: UseNotificationsOptions = { showToast: true }) {
     const { isAuthenticated, token } = useAuthStore();
     const { toast } = useToast();
     const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -175,8 +180,11 @@ export function useNotifications() {
         eventSource.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                // Show Toast using our custom useToast
-                toast(data.message || data.title, "success");
+
+                // Show Toast only if enabled and there is content
+                if (options.showToast !== false && (data.message || data.title)) {
+                    toast(data.message || data.title, "success");
+                }
 
                 // 1. Refresh global notification list/count
                 fetchNotifications();
@@ -205,7 +213,7 @@ export function useNotifications() {
             console.log("Closing Notification SSE (Inactive or Unmount)");
             eventSource.close();
         };
-    }, [isAuthenticated, token, fetchNotifications, toast, isRealtimeActive]);
+    }, [isAuthenticated, token, fetchNotifications, toast, isRealtimeActive, options.showToast]);
 
     return { notifications, unreadCount, markAsRead, markAllAsRead, refresh: fetchNotifications };
 }
