@@ -116,6 +116,12 @@ def init_db():
 
                 # Heal 'cover_letters'
                 heal_table("cover_letters", {
+                    "title": "VARCHAR",
+                    "content": "TEXT",
+                    "user_id": "INTEGER",
+                    "recruitment_id": "INTEGER",
+                    "created_at": "TIMESTAMPTZ DEFAULT NOW()",
+                    "updated_at": "TIMESTAMPTZ",
                     "processing_status": "processingstatus DEFAULT 'PENDING'",
                     "gap_analysis": "JSONB",
                     "job_analysis": "JSONB"
@@ -123,6 +129,10 @@ def init_db():
                 
                 # Heal 'cover_letter_items'
                 heal_table("cover_letter_items", {
+                    "question": "TEXT",
+                    "content": "TEXT",
+                    "created_at": "TIMESTAMPTZ DEFAULT NOW()",
+                    "updated_at": "TIMESTAMPTZ",
                     "category": "VARCHAR",
                     "hint": "TEXT",
                     "max_length": "INTEGER DEFAULT 1000",
