@@ -138,6 +138,19 @@ async def import_blog_portfolio(
     service = PortfolioService(db)
     return await service.create_portfolio_from_blog(current_user.id, payload.project_name, payload.source_url)
 
+@router.get("/blog/discover", response_model=List[dict])
+async def discover_blog_posts(
+    url: str,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Scrape a blog home/index page and return a list of post titles and URLs.
+    """
+    from app.services.portfolio_service import PortfolioService
+    service = PortfolioService(db)
+    return await service.blog_extractor.discover_posts(url)
+
 @router.get("/{portfolio_id}", response_model=schemas.PortfolioDetail)
 async def get_portfolio(
     portfolio_id: int, 

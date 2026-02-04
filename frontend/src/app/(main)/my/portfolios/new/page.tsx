@@ -339,21 +339,14 @@ export default function NewPortfolioPage() {
         }
         setIsLoadingBlogPosts(true);
         try {
-            const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/integrations/blog/posts?url=${encodeURIComponent(blogUrl)}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                setBlogPosts(data);
-                if (data.length === 0) {
-                    toast("포스팅을 찾을 수 없습니다. URL을 확인해 주세요.", "error");
-                }
-            } else {
-                toast("블로그 정보를 불러오는데 실패했습니다.", "error");
+            const data = await portfolioApi.discoverBlogPosts(blogUrl);
+            setBlogPosts(data);
+            if (data.length === 0) {
+                toast("포스팅을 찾을 수 없습니다. URL을 확인해 주세요.", "error");
             }
-        } catch (_error) {
-            console.error(_error);
-            toast("오류가 발생했습니다.", "error");
+        } catch (err) {
+            console.error(err);
+            toast("블로그 정보를 불러오는데 실패했습니다.", "error");
         } finally {
             setIsLoadingBlogPosts(false);
         }
@@ -373,11 +366,14 @@ export default function NewPortfolioPage() {
 
         try {
             for (const url of selectedBlogUrls) {
-                const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/portfolios/analyze-source?source=${encodeURIComponent(url)}&type=blog`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                });
-                if (resp.ok) successCount++;
+                const post = blogPosts.find(p => p.url === url);
+                await portfolioApi.importBlog(url, post?.title || "Blog Portfolio");
+                successCount++;
+
+                // 200ms delay between requests
+                if (selectedBlogUrls.indexOf(url) < selectedBlogUrls.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
             }
 
             toast(`${successCount}개의 블로그 포스팅 분석이 시작되었습니다.`, "success");

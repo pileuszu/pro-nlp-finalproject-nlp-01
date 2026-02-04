@@ -16,6 +16,7 @@ export interface PortfolioApi {
     analyzePortfolio: (source: string, type: string) => Promise<AnalysisResult>;
     analyzePortfolioFile: (file: File) => Promise<AnalysisResult>;
     getPortfolio: (id: number) => Promise<Portfolio>;
+    discoverBlogPosts: (url: string) => Promise<{ title: string; url: string }[]>;
     createPortfolio: (data: Partial<Portfolio>) => Promise<Portfolio>;
     fetchAll: () => Promise<{ items: Portfolio[] }>;
     deletePortfolio: (id: number) => Promise<boolean>;
@@ -149,6 +150,14 @@ export const portfolioApi: PortfolioApi = {
             throw new Error("Failed to fetch portfolio detail");
         }
         return res.json() as Promise<Portfolio>;
+    },
+
+    discoverBlogPosts: async (url: string): Promise<{ title: string; url: string }[]> => {
+        const res = await fetchWithAuth(getApiUrl(`/portfolios/blog/discover?url=${encodeURIComponent(url)}`));
+        if (!res.ok) {
+            throw new Error("Failed to discover blog posts");
+        }
+        return res.json() as Promise<{ title: string; url: string }[]>;
     },
 
     /**

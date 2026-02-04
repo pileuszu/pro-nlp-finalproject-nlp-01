@@ -3,6 +3,7 @@ from typing import List, Dict, Optional
 from datetime import date
 from langchain_core.documents import Document
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 import sqlalchemy as sa
 from common.models import Recruitment
 from jobs.core.portfolio.storage.supabase_vector_store import SupabaseVectorStore
