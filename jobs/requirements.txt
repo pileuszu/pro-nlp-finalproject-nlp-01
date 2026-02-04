@@ -3,6 +3,7 @@ sqlalchemy==2.0.25
 psycopg[binary]
 asyncpg
 pydantic>=2.7.4
+email-validator>=2.0.0
 python-dotenv==1.0.0
 requests
 pandas
