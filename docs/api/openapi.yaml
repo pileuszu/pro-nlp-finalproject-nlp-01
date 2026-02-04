@@ -73,7 +73,7 @@ components:
           type: integer
         title:
           type: string
-        recruitId:
+        recruit_id:
           type: integer
         updatedAt:
           type: string
@@ -287,7 +287,7 @@ paths:
       security:
         - bearerAuth: []
       parameters:
-        - name: recruitId
+        - name: recruit_id
           in: query
           schema: { type: integer }
       responses:

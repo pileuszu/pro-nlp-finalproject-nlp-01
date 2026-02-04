@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -8,6 +9,8 @@ import { MessageCircle, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    // const { login } = useAuthStore(); // Unused
 
     const handleKakaoLogin = () => {
         setLoading(true);
@@ -16,6 +19,8 @@ export default function LoginPage() {
         const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
         window.location.href = kakaoAuthUrl;
     };
+
+
 
     return (
         <div className="flex items-center justify-center min-h-screen px-4 bg-slate-50/50 animate-in fade-in duration-700">
@@ -58,10 +63,20 @@ export default function LoginPage() {
                             <p className="text-[10px] text-center text-slate-400/80 leading-relaxed px-6 font-medium">
                                 로그인 시 Pro-NLP의 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">이용약관</span> 및 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">개인정보처리방침</span>에 동의하게 됩니다.
                             </p>
+
+                            <div className="pt-2">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full h-12 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-2xl font-bold flex items-center justify-center gap-2"
+                                    onClick={() => router.push("/")}
+                                >
+                                    홈으로 돌아가기
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
 
-                    <CardFooter className="flex justify-center pb-8 pt-2">
+                    <CardFooter className="flex flex-col justify-center pb-8 pt-2 gap-4">
                         <div className="flex items-center gap-2 text-[8px] font-black text-slate-300 tracking-[0.3em] uppercase">
                             <ArrowRight className="h-2 w-2 opacity-30" /> Powered by Advanced NLP
                         </div>

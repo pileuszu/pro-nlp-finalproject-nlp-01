@@ -19,7 +19,8 @@ export default function KakaoCallbackPage() {
 
         const handleCallback = async () => {
             try {
-                const res = await fetch(getApiUrl(`/auth/kakao/callback?code=${code}`));
+                const redirectUri = window.location.origin + "/auth/kakao/callback";
+                const res = await fetch(getApiUrl(`/auth/kakao/callback?code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`));
                 if (!res.ok) throw new Error("로그인 처리 중 오류가 발생했습니다.");
 
                 const data = await res.json();

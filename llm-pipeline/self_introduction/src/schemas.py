@@ -76,7 +76,7 @@ class OutlineSection(BaseModel):
     section_title: str = Field(description="문단의 소제목 또는 주제")
     paragraph_goal: str = Field(description="이 문단에서 보여주어야 할 핵심 목표")
     key_points: List[str] = Field(description="문단에 포함되어야 할 상세 불릿(3~5개)")
-    evidence: List[EvidenceItem] = Field(description="이 문단의 근거로 사용할 프로젝트/경험")
+    evidence: List[EvidenceItem] = Field(default_factory=list, description="이 문단의 근거로 사용할 프로젝트/경험")
 
 
 class ResumeOutlineResult(BaseModel):
@@ -88,3 +88,12 @@ class ResumeOutlineResult(BaseModel):
     questions_for_user: List[str] = Field(
         description="부족한 정보(구체적 수치, 역할, 기간, 기술적 검증 방법 등)를 채우기 위한 사용자 대상 질문 3~5개"
     )
+
+
+class HeadlineGenerationResult(BaseModel):
+    """소제목 생성 결과 스키마"""
+    
+    headline: str = Field(
+        description="내용을 요약하는 매력적인 소제목 (대괄호 없이 텍스트만)"
+    )
+

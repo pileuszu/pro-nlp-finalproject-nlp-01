@@ -1,52 +1,45 @@
-# Python
+# --- Global / OS ---
+.DS_Store
+Thumbs.db
+*.pem
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Secrets Fallback (Just in case) ---
+.env
+.env.*
+!.env.example
+
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
-# Virtual Environment
-.venv/
+# --- Environments ---
 venv/
-llm-pipeline/portfolios/venv/
-ENV/
+env/
+.venv/
 
-# Database
-*.db
-*.sqlite3
+# --- Logs ---
+*.log
+logs/
 
-# Environment variables
-.env
+# --- Temporary / Local Data ---
+backend/dummy_recruitment_data.json
+backend/temp_recruit.json
+backend/test_ncp_api.py
+backend/fix_extension.py
+backend/index_recruitments.py
+backend/precompute_recs.py
+backend/clear_recruits.py
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-
-llm-pipeline/notebooks/extracted_readmes/
-llm-pipeline/notebooks/extracted_notion_data/
-llm-pipeline/notebooks/extracted_notion_data_v2/
-llm-pipeline/notebooks/ocr_results/
-llm-pipeline/notebooks/results/
-llm-pipeline/notebooks/tessdata
-llm-pipeline/portfolios/data/
-llm-pipeline/recruit/data/
+# --- Frontend ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/dist/

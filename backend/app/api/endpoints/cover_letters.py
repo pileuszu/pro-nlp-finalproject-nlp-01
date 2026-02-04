@@ -1,72 +1,121 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
-from sqlalchemy.orm import Session
-from app.db.database import get_db
-from app.schemas import schemas
-from app.services import cover_letter_service
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from common.database import get_async_db
+from common import schemas
+
 from app.api import deps
-from app.models import models
+from common import models
+from app.api.rate_limit import ai_gen_limiter
+from app.services.cover_letter_service import CoverLetterService
+from app.services.ai_cover_letter_service import ai_service
+
 
 router = APIRouter()
 
-@router.get("", response_model=schemas.CoverLetterListResponse)
+@router.get(
+    "", 
+    response_model=List[schemas.CoverLetter], # Changed response_model
+    summary="자기소개서 목록 조회",
+    description="로그인한 사용자의 모든 자기소개서 목록을 조회합니다. 특정 채용 공고 ID로 필터링이 가능합니다."
+)
 async def list_cover_letters(
-    recruitId: Optional[int] = Query(None),
-    db: Session = Depends(get_db),
+    recruitment_id: Optional[int] = Query(None, description="필터링할 채용 공고 ID"), # Changed recruit_id to recruitment_id
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    items = cover_letter_service.get_cover_letters(db, user_id=current_user.id, recruitment_id=recruitId)
-    return {"items": items}
+    service = CoverLetterService(db)
+    # Changed logic to directly return the result
+    return await service.get_cover_letters(current_user.id, recruitment_id)
 
-@router.post("", response_model=schemas.CoverLetter, status_code=201)
-async def create_cover_letter(
-    cl: schemas.CoverLetterCreateRequest,
-    db: Session = Depends(get_db),
+@router.post("", response_model=schemas.CoverLetterDetail, status_code=201)
+async def create_cover_letter_placeholder( # Renamed function
+    cl_req: schemas.CoverLetterCreate, # Changed schema type
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    # Convert Request schema to internal Create schema (adding user_id)
-    cl_data = cl.model_dump()
-    # Handle potential field mismatch if service expects strict schema
-    # We create the internal schema object
-    internal_cl = schemas.CoverLetterCreate(**cl_data, user_id=current_user.id)
-    return cover_letter_service.create_cover_letter(db, internal_cl)
+    """Manually create a cover letter (placeholder)""" # Added docstring
+    service = CoverLetterService(db)
+    # Changed logic to assign user_id directly
+    cl_req.user_id = current_user.id
+    return await service.create_cover_letter(cl_req)
 
-@router.get("/{cl_id}", response_model=schemas.CoverLetter)
+@router.get("/{cl_id}", response_model=schemas.CoverLetterDetail)
 async def get_cover_letter(
     cl_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    db_cl = cover_letter_service.get_cover_letter(db, cl_id, current_user.id)
+    service = CoverLetterService(db)
+    db_cl = await service.get_cover_letter(cl_id, current_user.id)
     if not db_cl:
-        raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
     return db_cl
 
-@router.put("/{cl_id}", response_model=schemas.CoverLetter)
+@router.patch("/{cl_id}", response_model=schemas.CoverLetterDetail)
 async def update_cover_letter(
     cl_id: int, 
-    content: str, 
-    db: Session = Depends(get_db),
+    data: dict, # Changed schema type to dict
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    db_cl = cover_letter_service.update_cover_letter(db, cl_id, current_user.id, content)
-    if not db_cl:
-        raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
-    return db_cl
+    service = CoverLetterService(db)
+    updated_cl = await service.update_cover_letter( # Changed variable name
+        cl_id, current_user.id, data # Changed argument
+    )
+    if not updated_cl: # Changed variable name
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
+    return updated_cl # Changed variable name
 
 @router.delete("/{cl_id}")
 async def delete_cover_letter(
     cl_id: int, 
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_async_db),
     current_user: models.User = Depends(deps.get_current_user)
 ):
-    success = cover_letter_service.delete_cover_letter(db, cl_id, current_user.id)
+    service = CoverLetterService(db)
+    success = await service.delete_cover_letter(cl_id, current_user.id)
     if not success:
-        raise HTTPException(status_code=404, detail="Cover letter not found or unauthorized")
+        raise HTTPException(status_code=404, detail="Cover letter not found") # Changed exception
     return {"success": True, "message": "Cover letter deleted"}
 
-@router.post("/generate", response_model=dict)
-async def generate_cover_letter(req: schemas.CoverLetterGenerateRequest):
-    """Mocks AI generation of a cover letter."""
-    result = cover_letter_service.mock_generate_cover_letter(req)
-    return {"result": result}
+@router.patch("/{cl_id}/confirm", response_model=schemas.CoverLetterDetail)
+async def confirm_cover_letter(
+    cl_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """Marks a cover letter as COMPLETED after user review."""
+    service = CoverLetterService(db)
+    cl = await service.get_cover_letter(cl_id, current_user.id)
+    if not cl:
+        raise HTTPException(status_code=404, detail="Cover letter not found")
+    
+    cl.processing_status = models.ProcessingStatus.COMPLETED
+    await db.commit()
+    await db.refresh(cl)
+    return cl
+
+@router.post(
+    "/generate", 
+    response_model=schemas.CoverLetterSummary,
+    status_code=201,
+    summary="AI 자기소개서 생성 시작",
+    description="HyperCLOVA X를 사용하여 맞춤형 자기소개서를 생성합니다. 생성은 백그라운드에서 진행되며, Rate Limit(분당 5회)이 적용됩니다.",
+    responses={
+        429: {"description": "Too many requests. AI generation limit exceeded."},
+        400: {"description": "Invalid recruitment ID or question data."}
+    }
+)
+async def generate_cover_letter(
+    request: Request,
+    req: schemas.CoverLetterGenerateRequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: models.User = Depends(deps.get_current_user)
+):
+    """
+    Generates a cover letter using AI (HyperCLOVA X).
+    """
+    await ai_gen_limiter.check(request)
+    return await ai_service.generate_cover_letter(db, current_user.id, req)
+

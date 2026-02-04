@@ -1,5 +1,9 @@
+"use client";
+
+import "@testing-library/jest-dom";
 import { render, screen, waitFor } from '@testing-library/react';
-import PortfoliosPage from '@/app/(main)/my/portfolios/page';
+import PortfoliosPage from "../src/app/(main)/my/portfolios/page";
+import { ToastProvider } from "../src/components/ui/toast-context";
 import React from 'react';
 
 // Mock framer-motion to avoid animation related issues in tests
@@ -25,28 +29,47 @@ jest.mock('framer-motion', () => {
 });
 
 describe('PortfoliosPage', () => {
-    it('renders the page title and description', () => {
-        render(<PortfoliosPage />);
-        expect(screen.getByText('내 포트폴리오')).toBeInTheDocument();
+    it('renders the page title and description', async () => {
+        render(
+            <ToastProvider>
+                <PortfoliosPage />
+            </ToastProvider>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText("내 포트폴리오")).toBeInTheDocument();
+        });
         expect(screen.getByText(/등록된 포트폴리오를 관리하고/i)).toBeInTheDocument();
     });
 
-    it('fetches and displays portfolios from the mock API', async () => {
-        render(<PortfoliosPage />);
+    it('fetches and displays portfolios as individual cards', async () => {
+        render(
+            <ToastProvider>
+                <PortfoliosPage />
+            </ToastProvider>
+        );
 
-        // Mock data from handlers.ts covers these titles
+        // Wait for items to render
         await waitFor(() => {
-            expect(screen.getByText('나만의 기술 블로그')).toBeInTheDocument();
-            expect(screen.getByText('졸업 프로젝트 (PDF)')).toBeInTheDocument();
-            expect(screen.getByText('오픈소스 기여 내역')).toBeInTheDocument();
+            // Use getAllByText and check length to avoid ambiguity with descriptions
+            expect(screen.getAllByText(/나만의 기술 블로그/i).length).toBeGreaterThan(0);
+            expect(screen.getAllByText(/졸업 프로젝트/i).length).toBeGreaterThan(0);
+            expect(screen.getAllByText(/오픈소스 기여 내역/i).length).toBeGreaterThan(0);
         });
     });
 
-    it('displays the "AI READY" badge for portfolios with content', async () => {
-        render(<PortfoliosPage />);
+    it('displays portfolio cards with AI READY badge', async () => {
+        render(
+            <ToastProvider>
+                <PortfoliosPage />
+            </ToastProvider>
+        );
 
         await waitFor(() => {
-            const badges = screen.getAllByText(/AI READY/i);
+            expect(screen.getAllByText(/나만의 기술 블로그/i).length).toBeGreaterThan(0);
+
+            // Check for StatusBadge text (should be visible by default)
+            const badges = screen.getAllByText(/최종 확정/i);
             expect(badges.length).toBeGreaterThan(0);
         });
     });

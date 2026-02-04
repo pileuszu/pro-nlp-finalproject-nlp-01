@@ -19,7 +19,8 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { Sparkles, Flame, LayoutGrid, List, ArrowRight, Building, Calendar, MoreHorizontal, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { getApiUrl } from "@/lib/apiUtils";
+import { recruitApi } from "@/lib/recruitApi";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function RecruitPage() {
     const { isAuthenticated } = useAuthStore();
@@ -74,9 +75,7 @@ export default function RecruitPage() {
                 params.append('sort', 'popular');
             }
 
-            const endpoint = activeTab === 'recommend' ? '/recruits/recommend' : '/recruits';
-            const res = await fetch(getApiUrl(`${endpoint}?${params.toString()}`));
-            const data = await res.json();
+            const data = await recruitApi.fetchRecruits(params, activeTab);
 
             setRecruits(data.items || []);
             setTotalPages(data.meta?.totalPages || 1);
@@ -112,7 +111,7 @@ export default function RecruitPage() {
                             transition={{ duration: 0.3 }}
                             className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
                         >
-                            {items.map((recruit, index) => (
+                            {items?.map((recruit, index) => (
                                 <motion.div
                                     key={recruit.id}
                                     initial={{ opacity: 0, y: 20 }}
@@ -120,11 +119,12 @@ export default function RecruitPage() {
                                     transition={{ delay: index * 0.05 }}
                                 >
                                     <Link href={`/recruit/${recruit.id}`} prefetch={false} className="block h-full group">
-                                        <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out hover:-translate-y-1.5 cursor-pointer border-slate-200 bg-white rounded-2xl overflow-hidden ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm">
+                                        <Card className="relative flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out hover:-translate-y-1.5 cursor-pointer border-slate-200 bg-white rounded-2xl overflow-visible ring-4 ring-transparent hover:ring-blue-500/5 shadow-sm">
+                                            {/* AI 추천 Badge 제거됨 */}
                                             <CardHeader className="pb-4">
                                                 <div className="flex justify-between items-start mb-2">
                                                     <Badge variant="outline" className="bg-slate-50 text-slate-400 border-slate-100 text-[10px] font-black uppercase tracking-widest px-2 py-0.5">
-                                                        JOB OPENING
+                                                        {activeTab === 'recommend' ? 'SMART MATCHING' : 'JOB OPENING'}
                                                     </Badge>
                                                 </div>
                                                 <CardTitle className="line-clamp-1 text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors duration-300 mb-1">{recruit.title}</CardTitle>
@@ -133,19 +133,56 @@ export default function RecruitPage() {
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent className="flex-1 pb-6">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {recruit.tags.map((tag) => (
-                                                        <Badge key={tag} variant="secondary" className="font-bold bg-slate-100/80 text-slate-600 border-none px-2.5 py-0.5 text-[11px]">
+                                                {recruit.reason && (
+                                                    <TooltipProvider delayDuration={0}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div className="mb-4 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50 text-xs font-bold text-blue-700 leading-relaxed animate-in fade-in zoom-in duration-500 cursor-help text-left">
+                                                                    <div className="flex items-center gap-1.5 mb-1 text-[10px] text-blue-600/60 uppercase tracking-tighter">
+                                                                        <Sparkles className="h-3 w-3" /> AI 추천 사유
+                                                                    </div>
+                                                                    <div className="line-clamp-2">
+                                                                        {Array.isArray(recruit.reason) ? recruit.reason.join(' ') : recruit.reason}
+                                                                    </div>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="bottom" className="max-w-[360px] max-h-[300px] overflow-y-auto p-4 bg-slate-900 border-slate-800 text-slate-100 whitespace-pre-wrap leading-relaxed shadow-xl text-xs font-medium z-50">
+                                                                <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-700/50 text-blue-400 font-bold sticky top-0 bg-slate-900 z-10">
+                                                                    <Sparkles className="h-3.5 w-3.5" /> 상세 추천 사유
+                                                                </div>
+                                                                {Array.isArray(recruit.reason) ? (
+                                                                    <div className="space-y-2">
+                                                                        {recruit.reason.map((r, i) => (
+                                                                            <div key={i} className="flex gap-2">
+                                                                                <span className="text-blue-500">•</span>
+                                                                                <span>{r}</span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : recruit.reason}
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                                <div className="flex items-center gap-2 overflow-hidden flex-nowrap">
+                                                    {recruit.tags?.map((tag) => (
+                                                        <Badge key={tag} variant="secondary" className="font-bold bg-slate-100/80 text-slate-600 border-none px-2.5 py-0.5 text-[11px] whitespace-nowrap shrink-0">
                                                             {tag}
                                                         </Badge>
-                                                    ))}
+                                                    )) || null}
                                                 </div>
                                             </CardContent>
                                             <CardFooter className="border-t border-slate-50 pt-5 pb-5 px-6 text-[11px] font-black text-slate-400 flex justify-between items-center bg-slate-50/30 group-hover:bg-blue-50/30 transition-colors duration-300 rounded-b-xl uppercase tracking-wider">
                                                 <div className="flex items-center gap-2">
                                                     <Calendar className="h-3.5 w-3.5 opacity-40 text-blue-500" />
-                                                    <span>마감일: {recruit.deadline}</span>
+                                                    <span>마감: {recruit.deadline || "채용 시 마감"}</span>
                                                 </div>
+                                                {recruit.view_count !== undefined && (
+                                                    <div className="flex items-center gap-1 text-orange-500/80">
+                                                        <Flame className="h-3.5 w-3.5" />
+                                                        <span>{recruit.view_count.toLocaleString()} 조회</span>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-1 text-blue-600 font-black group-hover:translate-x-1.5 transition-all duration-500 ease-in-out">
                                                     APPLY <ArrowRight className="h-3.5 w-3.5" />
                                                 </div>
@@ -164,7 +201,7 @@ export default function RecruitPage() {
                             transition={{ duration: 0.3 }}
                             className="space-y-4 p-0"
                         >
-                            {items.map((recruit, index) => (
+                            {items?.map((recruit, index) => (
                                 <motion.div
                                     key={recruit.id}
                                     initial={{ opacity: 0, x: -20 }}
@@ -185,9 +222,9 @@ export default function RecruitPage() {
                                                         <span className="text-xs font-black text-slate-300 uppercase tracking-widest hidden sm:block">|</span>
                                                         <span className="text-sm font-bold text-slate-500">{recruit.company}</span>
                                                     </div>
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {recruit.tags.map((tag) => (
-                                                            <span key={tag} className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-500 transition-colors duration-300">
+                                                    <div className="flex items-center gap-2 overflow-hidden flex-nowrap">
+                                                        {recruit.tags?.map((tag) => (
+                                                            <span key={tag} className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-500 transition-colors duration-300 whitespace-nowrap shrink-0">
                                                                 #{tag}
                                                             </span>
                                                         ))}
@@ -195,9 +232,17 @@ export default function RecruitPage() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center justify-between md:justify-end gap-8 mt-4 md:mt-0 shrink-0 border-t md:border-t-0 pt-4 md:pt-0">
-                                                <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                                                    <Calendar className="h-3.5 w-3.5 opacity-40" />
-                                                    마감: {recruit.deadline}
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <div className="text-[11px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                                        <Calendar className="h-3.5 w-3.5 opacity-40" />
+                                                        마감: {recruit.deadline || "미지정"}
+                                                    </div>
+                                                    {recruit.view_count !== undefined && (
+                                                        <div className="text-[10px] font-bold text-orange-500/60 flex items-center gap-1">
+                                                            <Flame className="h-3 w-3" />
+                                                            {recruit.view_count.toLocaleString()}회 조회됨
+                                                        </div>
+                                                    )}
                                                 </div>
                                                 <Button size="sm" variant="outline" className="rounded-lg h-9 font-black text-[11px] border-slate-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all duration-500 ease-in-out uppercase tracking-widest flex items-center justify-center gap-2">
                                                     View Detail
@@ -212,75 +257,77 @@ export default function RecruitPage() {
                 </AnimatePresence>
 
                 {/* Smart Pagination UI */}
-                {totalPages > 1 && (
-                    <div className="flex items-center justify-center gap-2 pt-8">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={currentPage === 1}
-                            onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-                            className="rounded-xl h-10 px-4 border-slate-200 font-bold hover:bg-blue-50 hover:text-blue-600 transition-all shrink-0"
-                        >
-                            이전
-                        </Button>
-                        <div className="flex items-center gap-1 mx-2">
-                            {(() => {
-                                const pages = [];
-                                const delta = 1; // Number of pages to show around current page
+                {
+                    totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-2 pt-8">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={currentPage === 1}
+                                onClick={() => { setCurrentPage(prev => Math.max(1, prev - 1)); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                                className="rounded-xl h-10 px-4 border-slate-200 font-bold hover:bg-blue-50 hover:text-blue-600 transition-all shrink-0"
+                            >
+                                이전
+                            </Button>
+                            <div className="flex items-center gap-1 mx-2">
+                                {(() => {
+                                    const pages = [];
+                                    const delta = 1; // Number of pages to show around current page
 
-                                for (let i = 1; i <= totalPages; i++) {
-                                    if (
-                                        i === 1 ||
-                                        i === totalPages ||
-                                        (i >= currentPage - delta && i <= currentPage + delta)
-                                    ) {
-                                        pages.push(i);
-                                    } else if (
-                                        i === currentPage - delta - 1 ||
-                                        i === currentPage + delta + 1
-                                    ) {
-                                        pages.push('...');
+                                    for (let i = 1; i <= totalPages; i++) {
+                                        if (
+                                            i === 1 ||
+                                            i === totalPages ||
+                                            (i >= currentPage - delta && i <= currentPage + delta)
+                                        ) {
+                                            pages.push(i);
+                                        } else if (
+                                            i === currentPage - delta - 1 ||
+                                            i === currentPage + delta + 1
+                                        ) {
+                                            pages.push('...');
+                                        }
                                     }
-                                }
 
-                                return pages.map((page, index) => {
-                                    if (page === '...') {
+                                    return pages.map((page, index) => {
+                                        if (page === '...') {
+                                            return (
+                                                <div key={`ellipsis-${index}`} className="flex items-center justify-center w-10 h-10 text-slate-300">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </div>
+                                            );
+                                        }
+
+                                        const pageNum = page as number;
                                         return (
-                                            <div key={`ellipsis-${index}`} className="flex items-center justify-center w-10 h-10 text-slate-300">
-                                                <MoreHorizontal className="h-4 w-4" />
-                                            </div>
+                                            <Button
+                                                key={pageNum}
+                                                variant={currentPage === pageNum ? "default" : "ghost"}
+                                                size="sm"
+                                                onClick={() => { setCurrentPage(pageNum); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                                                className={cn(
+                                                    "h-10 w-10 p-0 rounded-xl font-bold transition-all",
+                                                    currentPage === pageNum ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-500 hover:bg-slate-100"
+                                                )}
+                                            >
+                                                {pageNum}
+                                            </Button>
                                         );
-                                    }
-
-                                    const pageNum = page as number;
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={currentPage === pageNum ? "default" : "ghost"}
-                                            size="sm"
-                                            onClick={() => { setCurrentPage(pageNum); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-                                            className={cn(
-                                                "h-10 w-10 p-0 rounded-xl font-bold transition-all",
-                                                currentPage === pageNum ? "bg-blue-600 text-white shadow-md shadow-blue-500/20" : "text-slate-500 hover:bg-slate-100"
-                                            )}
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    );
-                                });
-                            })()}
+                                    });
+                                })()}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={currentPage === totalPages}
+                                onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
+                                className="rounded-xl h-10 px-4 border-slate-200 font-bold hover:bg-blue-50 hover:text-blue-600 transition-all shrink-0"
+                            >
+                                다음
+                            </Button>
                         </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={currentPage === totalPages}
-                            onClick={() => { setCurrentPage(prev => Math.min(totalPages, prev + 1)); window.scrollTo({ top: 400, behavior: 'smooth' }); }}
-                            className="rounded-xl h-10 px-4 border-slate-200 font-bold hover:bg-blue-50 hover:text-blue-600 transition-all shrink-0"
-                        >
-                            다음
-                        </Button>
-                    </div>
-                )}
+                    )
+                }
             </div>
         );
     };
