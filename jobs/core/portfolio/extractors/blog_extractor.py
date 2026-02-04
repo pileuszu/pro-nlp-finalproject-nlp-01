@@ -34,7 +34,7 @@ class BlogExtractor(BaseExtractor):
         Supports Velog and Tistory.
         """
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -100,7 +100,7 @@ class BlogExtractor(BaseExtractor):
         # Try to find title from HTML
         title = "Blog Post"
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 soup = BeautifulSoup(resp.text, "html.parser")
                 title = soup.title.string if soup.title else "Blog Post"
@@ -110,7 +110,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_velog(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -133,7 +133,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_tistory(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -155,7 +155,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_general(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")

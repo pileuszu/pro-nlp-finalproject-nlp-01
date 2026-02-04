@@ -102,7 +102,7 @@ class JasoseolScraper:
                 logger.error(f"Error fetching detail for {recruit_id}: {e}")
                 return None
 
-    async def scrape(self, days: int = 2) -> List[Dict]:
+    async def scrape(self, days: int = 2, exclude_links: set = set()) -> List[Dict]:
         """Main entry point to scrape recruitments for the next N days."""
         now = datetime.utcnow()
         start_dt = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -125,6 +125,11 @@ class JasoseolScraper:
                 
             processed_recruit_ids.add(recruit_id)
             
+            # Optimization: Skip if link is already in database
+            recruit_url = f"https://jasoseol.com/recruit/{recruit_id}"
+            if recruit_url in exclude_links:
+                continue
+
             # Get Request Detail
             detail = await self.get_recruit_detail(recruit_id)
             if not detail:

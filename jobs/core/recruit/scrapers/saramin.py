@@ -86,7 +86,7 @@ class SaraminScraper:
                 logger.error(f"Error fetching Saramin details for {rec_idx}: {e}")
                 return "", []
 
-    async def scrape(self, keyword: str = "개발자", pages: int = 1) -> List[Dict]:
+    async def scrape(self, keyword: str = "개발자", pages: int = 1, exclude_links: set = set()) -> List[Dict]:
         """
         Scrapes job list and details for a given keyword.
         """
@@ -123,9 +123,14 @@ class SaraminScraper:
                             if not job_id or not title_tag:
                                 continue
                                 
+                            link = urljoin(self.base_url, title_tag['href'])
+                            
+                            # Optimization: Skip if link is already in database
+                            if link in exclude_links:
+                                continue
+
                             title = title_tag.get_text(strip=True)
                             company = company_tag.get_text(strip=True) if company_tag else "N/A"
-                            link = urljoin(self.base_url, title_tag['href'])
                             
                             # Fetch details in-line (can be parallelized later if needed)
                             content, images = await self.get_job_details(job_id)

@@ -313,7 +313,7 @@ async def list_blog_posts(url: str):
     }
     
     try:
-        async with httpx.AsyncClient(headers=headers, timeout=15.0) as client:
+        async with httpx.AsyncClient(headers=headers, timeout=15.0, follow_redirects=True) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             from bs4 import BeautifulSoup

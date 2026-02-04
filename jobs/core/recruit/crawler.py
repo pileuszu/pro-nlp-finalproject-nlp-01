@@ -320,7 +320,7 @@ class RecruitmentCrawler:
             from jobs.core.recruit.scrapers.jasoseol import JasoseolScraper
             logger.info("\n=== Starting Jasoseol Scraper (Stream) ===")
             j_scraper = JasoseolScraper()
-            j_raw_results = await j_scraper.scrape(days=2)
+            j_raw_results = await j_scraper.scrape(days=2, exclude_links=exclude_links)
             
             for row in j_raw_results:
                 if row['link'] in exclude_links:
@@ -350,7 +350,7 @@ class RecruitmentCrawler:
             s_scraper = SaraminScraper()
             keywords = ["백엔드", "프론트엔드", "데이터 엔지니어"]
             for kw in keywords:
-                s_raw_results = await s_scraper.scrape(keyword=kw, pages=1)
+                s_raw_results = await s_scraper.scrape(keyword=kw, pages=1, exclude_links=exclude_links)
                 for row in s_raw_results:
                     if row['link'] in exclude_links:
                         continue
