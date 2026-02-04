@@ -636,11 +636,11 @@ class PortfolioService:
                     target_id=target_portfolio.id
                 )
 
-                # Trigger UI Refresh
+                # Trigger UI Refresh - Use meaningful title for the background link
                 await NotificationService.create_and_notify(
                     db=self.db,
                     user_id=target_portfolio.user_id,
-                    title="", message="",
+                    title="REFRESH_TRIGGER", message=f"Portfolio {target_portfolio.id} processing update",
                     notification_type="REFRESH",
                     target_id=target_portfolio.id
                 )
