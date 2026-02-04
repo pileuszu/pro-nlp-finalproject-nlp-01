@@ -159,8 +159,19 @@ class AICoverLetterService:
                             temperature=temperature
                         )
 
-                        item.content = answer_data.get("content")
-                        item.title = answer_data.get("title")
+                        # Logic Update: Combine Title and Content for UI consistency
+                        gen_title = answer_data.get("title")
+                        gen_content = answer_data.get("content")
+
+                        if subheading and gen_title:
+                            # Clean title just in case
+                            clean_title = gen_title.strip().replace('[', '').replace(']', '')
+                            item.title = clean_title
+                            item.content = f"[{clean_title}]\n\n{gen_content}"
+                        else:
+                            # Basic Style: No Title
+                            item.title = None
+                            item.content = gen_content
 
                         item.key_points = answer_data.get("key_points")
                         item.suggested_improvements = answer_data.get("suggested_improvements")

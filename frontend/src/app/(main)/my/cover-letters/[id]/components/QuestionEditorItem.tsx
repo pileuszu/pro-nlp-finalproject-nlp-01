@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 interface QuestionItem {
     id: number;
     question: string;
-    title?: string;
+    // Title input removed
     answer: string;
     hint?: string;
     max_length?: number;
@@ -105,15 +105,7 @@ export function QuestionEditorItem({
             {/* Answer Section */}
             <div className="space-y-3">
 
-                {/* Title Input */}
-                <div className="px-2">
-                    <Input
-                        value={question.title || ""}
-                        onChange={(e) => onUpdate('title', e.target.value)}
-                        className="text-lg font-bold border-none bg-transparent shadow-none p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40 text-blue-700 dark:text-blue-400"
-                        placeholder="[소제목을 입력하세요]"
-                    />
-                </div>
+
 
                 <div className="relative group/textarea">
                     <Textarea

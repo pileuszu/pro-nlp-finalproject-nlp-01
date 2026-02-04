@@ -644,12 +644,12 @@ export default function NewPortfolioPage() {
                             <CardContent className="px-8 pb-8 space-y-6">
                                 <div className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
                                     <div className="flex items-center gap-2">
-                                        <Label className="font-bold text-slate-700">블로그 주소 또는 포스팅 URL</Label>
-                                        <InfoTooltip message="Velog나 Tistory의 홈 주소를 입력하면 포스팅 목록을 불러옵니다. 특정 포스팅 URL을 직접 입력해도 됩니다." />
+                                        <Label className="font-bold text-slate-700">포스팅 URL (블로그 홈 주소 제외)</Label>
+                                        <InfoTooltip message="Velog나 Tistory의 개별 포스팅 URL을 입력해주세요. (홈 주소 입력 시 분석이 불가능할 수 있습니다)" />
                                     </div>
                                     <div className="flex gap-2">
                                         <Input
-                                            placeholder="https://velog.io/@username"
+                                            placeholder="https://velog.io/@username/post-title"
                                             className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
                                             value={blogUrl}
                                             onChange={(e) => setBlogUrl(e.target.value)}
@@ -661,7 +661,7 @@ export default function NewPortfolioPage() {
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-6 rounded-xl transition-all"
                                         >
                                             {isLoadingBlogPosts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                            최근 글 불러오기
+                                            포스팅 가져오기
                                         </Button>
                                     </div>
                                 </div>
