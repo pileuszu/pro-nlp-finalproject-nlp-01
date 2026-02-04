@@ -41,7 +41,7 @@ class ResumeGenerationResult(BaseModel):
     """Cover Letter Generation Result Schema"""
     
     title: str = Field(
-        description="Title of the cover letter item (e.g., 'Motivation', 'Growth Process')"
+        description="Catchy subheading or headline for this section (e.g., '[데이터 기반의 의사결정으로 성과 창출]'). Should be concise and impactful."
     )
     
     content: str = Field(

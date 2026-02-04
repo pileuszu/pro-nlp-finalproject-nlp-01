@@ -139,6 +139,7 @@ class CoverLetterItem(Base):
     cover_letter_id = Column(Integer, ForeignKey("cover_letters.id"), nullable=False)
     
     question = Column(Text, nullable=False)
+    title = Column(String, nullable=True) # Catchy subheading
     content = Column(Text, nullable=True)
     category = Column(String, nullable=True) # motivation, growth, capability, etc.
     hint = Column(Text, nullable=True)  # 작성 힌트/가이드

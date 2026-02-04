@@ -58,6 +58,7 @@ export interface Portfolio {
 export interface CoverLetterItem {
     id: number;
     question: string;
+    title?: string;
     content: string;
     category?: string;
     hint?: string;
@@ -95,6 +96,7 @@ export interface CoverLetterVersion {
     title?: string;
     items_snapshot: {
         question: string;
+        title?: string;
         content: string;
         order_index?: number;
     }[];

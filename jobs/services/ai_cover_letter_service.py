@@ -160,11 +160,7 @@ class AICoverLetterService:
                         )
 
                         item.content = answer_data.get("content")
-                        
-                        # Prepend Title as Subheading if requested or available
-                        gen_title = answer_data.get("title")
-                        if gen_title and subheading and not item.content.strip().startswith("["):
-                             item.content = f"[{gen_title}]\n\n{item.content}"
+                        item.title = answer_data.get("title")
 
                         item.key_points = answer_data.get("key_points")
                         item.suggested_improvements = answer_data.get("suggested_improvements")
@@ -260,16 +256,18 @@ class AICoverLetterService:
         # Clean headline (remove brackets/quotes if LLM hallucinated them)
         headline = headline.strip().replace('[', '').replace(']', '').replace('"', '').replace("'", "")
         
-        # Prepend headline if it doesn't look like it's already there
-        # Check if first line looks like a bracketed title
+        # Update both field and content
+        item.title = f"[{headline}]"
+        
+        # Also ensure content doesn't have a duplicated title line
         lines = item.content.split('\n')
         if lines and lines[0].strip().startswith('[') and lines[0].strip().endswith(']'):
-             # Replace existing headline
-             lines[0] = f"[{headline}]"
+             # If content already starts with a title, we remove it from content
+             # and rely on the separate title field
+             del lines[0]
+             if lines and not lines[0].strip(): # remove extra newline
+                 del lines[0]
              item.content = '\n'.join(lines)
-        else:
-             # Prepend
-             item.content = f"[{headline}]\n\n{item.content}"
         
         await db.commit()
         await db.refresh(item)

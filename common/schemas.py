@@ -176,6 +176,7 @@ class CoverLetterBase(BaseModel):
 
 class CoverLetterItemBase(BaseModel):
     question: str
+    title: Optional[str] = None
     content: Optional[str] = None
     category: Optional[str] = None
     # hint removed
