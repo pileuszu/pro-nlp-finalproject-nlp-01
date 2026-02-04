@@ -26,7 +26,7 @@ google-cloud-storage
 pypdf
 pdfplumber
 pillow
-rank_bm25
+# pypdf
 numpy
 pgvector
 notion-client
