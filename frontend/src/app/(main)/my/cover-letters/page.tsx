@@ -178,13 +178,6 @@ export default function CoverLettersPage() {
                                         isSelected && "ring-2 ring-blue-500 border-blue-500 bg-blue-50/10 shadow-lg shadow-blue-500/5 hover:ring-blue-500/20"
                                     )} onClick={() => isSelectionMode && toggleSelection(cl.id)}>
 
-                                        {/* Status Tag */}
-                                        <StatusBadge
-                                            status={cl.processing_status || 'COMPLETED'}
-                                            variant="ribbon"
-                                            showIcon={false}
-                                        />
-
                                         {/* Whole Card Link (Active only in normal mode) */}
                                         {!isSelectionMode && (
                                             <Link href={`/my/cover-letters/${cl.id}`} className="absolute inset-0 z-30 rounded-xl" />
@@ -277,6 +270,14 @@ export default function CoverLettersPage() {
                                                 </div>
                                             )}
                                         </CardFooter>
+
+                                        {/* Status Tag - Moved to bottom and updated props */}
+                                        <StatusBadge
+                                            status={cl.processing_status || 'COMPLETED'}
+                                            variant="ribbon"
+                                            showIcon={true}
+                                            className="z-50"
+                                        />
                                     </Card>
                                 </motion.div>
                             );
@@ -339,7 +340,7 @@ export default function CoverLettersPage() {
                                                     <div className="flex gap-1">
                                                         <StatusBadge
                                                             status={cl.processing_status || 'PENDING'}
-                                                            showIcon={false}
+                                                            showIcon={true}
                                                             className="text-[9px] py-0 px-2 shrink-0 h-5"
                                                         />
                                                         {expired && (

@@ -27,7 +27,7 @@ export function StatusBadge({ status, className, showIcon = true, variant = 'def
     const absolutePositioning = "absolute top-4 right-4 z-10";
 
     // Ribbon style for diagonal display
-    const ribbonVisuals = "absolute top-0 -right-3 rotate-[15deg] shadow-sm z-20 px-3 py-0.5 text-[9px] font-black tracking-wider uppercase border-none rounded-sm transform hover:scale-105 hover:rotate-12 transition-all duration-300";
+    const ribbonVisuals = "absolute top-2 -right-3 rotate-[15deg] shadow-sm z-20 px-3 py-0.5 text-[9px] font-black tracking-wider uppercase border-none rounded-sm transform hover:scale-105 hover:rotate-12 transition-all duration-300";
 
     const cardTagStyles = isCardTag
         ? `${absolutePositioning} ${modernBadgeVisuals}`
