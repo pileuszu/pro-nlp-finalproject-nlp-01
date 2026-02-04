@@ -353,21 +353,28 @@ class LLMRefiner:
 **description_for_embedding 작성 규칙 (필수):**
 프로젝트의 description_for_embedding은 반드시 아래 템플릿을 따라 작성하세요:
 
-[문제-해결 매핑]
-1) 문제: (프로젝트에서 직면한 구체적인 문제나 과제)
-   - 해결:
-     - (문제를 해결하기 위해 수행한 구체적인 작업 1 - 소스 코드의 기술적 구현 상세 포함)
-     - (문제를 해결하기 위해 수행한 구체적인 작업 2)
-   - 결과: (해결 후 얻은 성과, 원문에 있을 때만)
+아래 프로젝트 설명 원문을 기반으로,
+내용을 과장하거나 추론하지 말고 원문에 있는 정보만 사용하여
+다음 형식으로 정리해 주세요.
 
-2) 문제: (두 번째 문제, 있다면)
-   - 해결:
-     - (해결 작업)
-   - 결과: (성과, 원문에 있을 때만)
+[프로젝트 개요]
+- 서비스 내용: (프로젝트가 제공하는 서비스와 목적)
+- 개발 내용: (본인이 수행한 주요 개발 작업)
+- 전체 성과: (정량적·정성적 성과, 원문에 있을 때만 / 없으면 "미기재")
 
-[전체 성과]
-- (프로젝트 전체의 정량적/정성적 성과, 원문에 있을 때만)
-- 없으면: - 미기재
+[트러블 슈팅]
+- 문제: (프로젝트 진행 중 직면한 핵심 문제)
+- 해결방안: (문제를 해결하기 위해 실제로 수행한 작업)
+- 결과: (해결 이후의 변화나 성과, 원문에 있을 때만 / 없으면 "미기재")
+
+※ 트러블 슈팅이 여러 개라면 항목별로 구분해 작성해 주세요.
+
+[배운 내용]
+- 성장 경험: (해당 프로젝트를 통해 기술적·개인적으로 배운 점)
+
+[기타]
+- 협업 / 책임감 / 주인의식 등 프로젝트 중 드러난 에피소드가 있다면 작성
+- 없으면 "미기재"
 
 **템플릿 작성 주의사항:**
 - 각 "문제"는 구체적이고 명확해야 합니다
@@ -406,6 +413,54 @@ class LLMRefiner:
                 description_for_embedding=f"분석 오류: {str(e)}\n\n원문 일부:\n{text[:200]}...",
                 job_queries=[]
             )
+
+    async def refine_strengths_and_queries(self, project_name: str, description: str) -> dict:
+        """
+        Extract only Strengths and Job Queries based on the provided description/content.
+        This is used when updating a portfolio manually, to refresh AI metadata without overwriting user edits.
+        """
+        system_prompt = f"""
+당신은 IT 포트폴리오 분석가입니다.
+제공된 **프로젝트 설명(Description)**을 바탕으로, 해당 프로젝트의 기술적 강점과 채용 공고 검색 쿼리를 새로 생성하세요.
+
+**분석 대상:** {project_name}
+
+**추출 항목:**
+1. **strengths**: 이 설명에서 드러난 강점(역량) 3~7개 (tag/claim/evidence/level)
+2. **job_queries**: 이 프로젝트 경험을 바탕으로 지원 가능한 채용 공고 검색용 쿼리 3개 (A, B, C 타입)
+
+**주의사항:**
+- **입력된 설명(Description)에 근거해서만** 작성하세요.
+- strengths.evidence는 설명에 있는 문구를 인용하세요.
+- job_queries는 설명에 언급된 기술 스택과 역할을 반영해야 합니다.
+
+**strengths 작성 규칙:**
+- strengths.tag: [문제 해결, 주인의식, 책임감, 도전, 새로운 기술 적용, 새로운 방법으로 문제 해결, 실험/검증, 설계/구조화, 품질 개선, 성능 최적화, 협업, 커뮤니케이션, 프로젝트 리딩, 데이터/지표 기반 개선] 중 선택
+- claim: 1문장 요약
+- level: low, medium, high
+"""
+        user_prompt = f"[프로젝트 설명]\n{description}"
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+
+        # Temporary schema combining strengths and job_queries
+        class PartialResult(BaseModel):
+            strengths: List[StrengthItem] = Field(..., description="강점 목록")
+            job_queries: List[QueryItem] = Field(..., description="잡 쿼리 목록 3개")
+
+        schema = PartialResult.model_json_schema()
+
+        try:
+            response_text = await self._call_ncp(messages, response_schema=schema)
+            # We return dict directly
+            import json
+            return json.loads(response_text)
+        except Exception as e:
+            logger.error(f"Partial Refinement Failed: {e}")
+            return {"strengths": [], "job_queries": []}
 
     async def update_global_user_profile(self, current_summary: str, current_job_title: str, new_project_info: str) -> dict:
         """

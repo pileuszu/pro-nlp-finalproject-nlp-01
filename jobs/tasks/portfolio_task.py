@@ -50,3 +50,17 @@ async def run_portfolio_embedding(portfolio_id: int):
         except Exception as e:
             logger.error(f"Re-embedding Failed for Portfolio ID {portfolio_id}: {e}")
             raise
+
+async def run_portfolio_refresh(portfolio_id: int):
+    """
+    Task to refresh AI analysis (Strengths, Queries) preserving user edits.
+    """
+    logger.info(f"Starting Portfolio Refresh for ID: {portfolio_id}")
+    async with AsyncSessionLocal() as db:
+        try:
+            service = PortfolioService(db)
+            await service.refresh_analysis_keeping_content(portfolio_id)
+            logger.info(f"Portfolio Refresh Completed for ID: {portfolio_id}")
+        except Exception as e:
+            logger.error(f"Portfolio Refresh Failed for ID {portfolio_id}: {e}")
+            raise

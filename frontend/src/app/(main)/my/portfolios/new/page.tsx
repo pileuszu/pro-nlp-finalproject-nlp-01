@@ -34,6 +34,90 @@ const isValidUrl = (url: string, type: 'github' | 'blog' | 'notion') => {
     }
 };
 
+// Separate component to handle drag & drop logic cleanly
+function DragDropArea({ onFileSelect, isAnalyzing }: { onFileSelect: (file: File) => void, isAnalyzing: boolean }) {
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            onFileSelect(file);
+        }
+    };
+
+    return (
+        <div
+            className={cn(
+                "border-2 border-dashed rounded-3xl p-16 text-center transition-all cursor-pointer bg-white group relative",
+                isDragging ? "border-blue-500 bg-blue-50/50 scale-[0.99]" : "border-slate-200 hover:border-blue-400",
+                isAnalyzing && "opacity-50 pointer-events-none"
+            )}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
+            <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".pdf,.txt,.md"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onFileSelect(file);
+                }}
+            />
+            {isDragging && (
+                <div className="absolute inset-0 flex items-center justify-center bg-blue-500/10 rounded-3xl backdrop-blur-[1px] z-10">
+                    <div className="bg-white px-6 py-3 rounded-xl shadow-xl text-blue-600 font-bold animate-bounce">
+                        여기에 놓아주세요!
+                    </div>
+                </div>
+            )}
+            <div className="flex flex-col items-center">
+                <div className={cn(
+                    "h-20 w-20 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm transition-transform duration-300",
+                    isDragging ? "scale-110 border-blue-200 bg-blue-50" : "group-hover:scale-110"
+                )}>
+                    <Upload className={cn(
+                        "h-10 w-10 transition-colors",
+                        isDragging ? "text-blue-500" : "text-slate-400 group-hover:text-blue-500"
+                    )} />
+                </div>
+                <div className="flex items-center justify-center gap-2 mt-6">
+                    <h3 className="text-xl font-bold text-slate-900">파일 업로드 (PDF, TXT, MD)</h3>
+                    <InfoTooltip message="파일 내에서 여러 프로젝트가 발견되면 각각 별도의 포트폴리오로 자동 분리되어 등록됩니다." />
+                </div>
+                <p className="mt-2 text-slate-500 font-medium">포트폴리오 파일을 선택하거나 이 영역으로 드래그하세요.</p>
+                <div className="mt-8 flex gap-2">
+                    <Badge variant="outline" className="text-slate-400 border-slate-200">PDF</Badge>
+                    <Badge variant="outline" className="text-slate-400 border-slate-200">TXT</Badge>
+                    <Badge variant="outline" className="text-slate-400 border-slate-200">Markdown</Badge>
+                </div>
+            </div>
+            {isAnalyzing && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-3xl z-20">
+                    <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-2" />
+                    <p className="font-bold text-slate-600">파일 분석 중...</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 export default function NewPortfolioPage() {
     const router = useRouter();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -875,36 +959,7 @@ export default function NewPortfolioPage() {
                         </Card>
                     </TabsContent>
                     <TabsContent value="file">
-                        <div
-                            className="border-2 border-dashed border-slate-200 rounded-3xl p-16 text-center hover:border-blue-400 transition-all cursor-pointer bg-white group"
-                            onClick={() => fileInputRef.current?.click()}
-                        >
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="hidden"
-                                accept=".pdf,.txt,.md"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handleFileAnalyze(file);
-                                }}
-                            />
-                            <div className="flex flex-col items-center">
-                                <div className="h-20 w-20 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                                    <Upload className="h-10 w-10 text-slate-400 group-hover:text-blue-500" />
-                                </div>
-                                <div className="flex items-center justify-center gap-2 mt-6">
-                                    <h3 className="text-xl font-bold text-slate-900">파일 업로드 (PDF, TXT, MD)</h3>
-                                    <InfoTooltip message="파일 내에서 여러 프로젝트가 발견되면 각각 별도의 포트폴리오로 자동 분리되어 등록됩니다." />
-                                </div>
-                                <p className="mt-2 text-slate-500 font-medium">포트폴리오 파일을 선택하거나 이 영역으로 드래그하세요.</p>
-                                <div className="mt-8 flex gap-2">
-                                    <Badge variant="outline" className="text-slate-400 border-slate-200">PDF</Badge>
-                                    <Badge variant="outline" className="text-slate-400 border-slate-200">TXT</Badge>
-                                    <Badge variant="outline" className="text-slate-400 border-slate-200">Markdown</Badge>
-                                </div>
-                            </div>
-                        </div>
+                        <DragDropArea onFileSelect={handleFileAnalyze} isAnalyzing={isAnalyzing} />
                     </TabsContent>
                     <TabsContent value="direct">
                         <Card className="border-slate-200 shadow-sm border-2 overflow-hidden hover:border-blue-200 transition-colors bg-white">

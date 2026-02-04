@@ -642,32 +642,96 @@ class PortfolioService:
             except Exception as final_e:
                 logger.error(f"Final failure state update failed (Analysis): {final_e}")
             raise
-    async def process_embedding(self, portfolio_id: int):
+    async def refresh_analysis_keeping_content(self, portfolio_id: int):
         """
-        Re-sync chunks and embeddings for a portfolio.
-        Called after a manual update or status change.
+        Refreshes only the AI-generated parts (Strengths, Job Queries, Embeddings)
+        based on the CURRENT project description/content.
+        This preserves the user's manual edits to Project Name, Period, Role, Stack, etc.
         """
-        logger.info(f"Re-processing embeddings for portfolio {portfolio_id}")
+        logger.info(f"Refreshing AI analysis (Strengths/Queries/Embeddings) for portfolio {portfolio_id}")
         
-        stmt = select(Portfolio).where(Portfolio.id == portfolio_id).options(
-            selectinload(Portfolio.chunks)
+        stmt = (
+            select(Portfolio)
+            .where(Portfolio.id == portfolio_id)
+            .options(
+                selectinload(Portfolio.job_queries),
+                selectinload(Portfolio.chunks)
+            )
         )
         res = await self.db.execute(stmt)
         portfolio = res.scalar_one_or_none()
         
         if not portfolio:
-            logger.error(f"Portfolio {portfolio_id} not found for embedding update")
+            logger.error(f"Portfolio {portfolio_id} not found for refresh")
             return
 
-        # Delete existing chunks first to be safe (though _calculate_and_save_chunks clears the list)
-        from sqlalchemy import delete
-        await self.db.execute(delete(PortfolioChunk).where(PortfolioChunk.portfolio_id == portfolio_id))
+        portfolio.processing_status = ProcessingStatus.PROCESSING
         await self.db.commit()
-        await self.db.refresh(portfolio)
 
-        # Re-calculate and save chunks
-        # We use description for embedding as it contains the refined project details
-        await self._calculate_and_save_chunks(portfolio, portfolio.description or "")
-        
-        await self.db.commit()
-        logger.info(f"Embedding re-sync completed for portfolio {portfolio_id}")
+        try:
+            # 1. Regenerate Strengths & Queries using LLM
+            # We use description_for_embedding (which the user sees as 'content' in edit mode usually)
+            # or 'content' if description is empty.
+            target_text = portfolio.description or portfolio.content or ""
+            
+            if len(target_text) > 50:
+                refined_data = await self.llm_refiner.refine_strengths_and_queries(
+                    project_name=portfolio.project_name, 
+                    description=target_text
+                )
+                
+                # Update Strengths
+                if refined_data.get("strengths"):
+                    # Basic validation/cleaning could go here
+                    portfolio.strengths = refined_data["strengths"]
+                
+                # Update Job Queries
+                if refined_data.get("job_queries"):
+                    # Clear old ones
+                    from sqlalchemy import delete
+                    await self.db.execute(delete(PortfolioJobQuery).where(PortfolioJobQuery.portfolio_id == portfolio_id))
+                    
+                    portfolio.job_queries = []
+                    for jq in refined_data["job_queries"]:
+                        q_emb = None
+                        try:
+                            q_emb = await self.vector_store.get_embedding(jq['query'])
+                        except: pass
+                        
+                        portfolio.job_queries.append(
+                            PortfolioJobQuery(
+                                type=jq['type'],
+                                query_text=jq['query'],
+                                evidence=jq.get('evidence', []),
+                                embedding=q_emb
+                            )
+                        )
+            
+            # 2. Re-calculate Chunks & Embeddings (Standard Procedure)
+            await self._calculate_and_save_chunks(portfolio, target_text)
+
+            portfolio.processing_status = ProcessingStatus.COMPLETED
+            await self.db.commit()
+            
+            # 3. Notify
+            await NotificationService.create_and_notify(
+                db=self.db,
+                user_id=portfolio.user_id,
+                title="AI 분석 업데이트 완료",
+                message=f"[{portfolio.project_name}] 수정된 내용을 바탕으로 AI 분석(강점/채용공고 매칭)이 갱신되었습니다.",
+                link=f"/my/portfolios/{portfolio.id}",
+                notification_type="REFRESH",
+                target_id=portfolio.id
+            )
+            
+            logger.info(f"Portfolio {portfolio_id} AI refresh completed.")
+
+        except Exception as e:
+            logger.error(f"Failed to refresh analysis for portfolio {portfolio_id}: {e}")
+            await self.db.rollback()
+            # Set back to COMPLETED or REVIEW_REQUIRED? safest is likely what it was, but easier to just say COMPLETED with error logged
+            # Or FAILED if critical. Let's try to restore status potentially.
+            # For now, just mark FAILED so user knows.
+            portfolio.processing_status = ProcessingStatus.FAILED
+            await self.db.commit()
+            raise

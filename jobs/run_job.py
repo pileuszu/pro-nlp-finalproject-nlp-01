@@ -21,7 +21,7 @@ logger = logging.getLogger("run_job")
 
 # Import actual tasks
 try:
-    from jobs.tasks.portfolio_task import process_portfolio, run_profile_update, run_portfolio_embedding
+    from jobs.tasks.portfolio_task import process_portfolio, run_profile_update, run_portfolio_embedding, run_portfolio_refresh
     from jobs.tasks.cover_letter_task import (
         process_cover_letter, 
         process_headline_generation, 
@@ -65,6 +65,12 @@ async def main():
                 logger.error("Portfolio ID is required for portfolio_embedding")
                 return
             await run_portfolio_embedding(args.id)
+
+        elif args.task == "portfolio_refresh":
+            if not args.id:
+                logger.error("Portfolio ID is required for portfolio_refresh")
+                return
+            await run_portfolio_refresh(args.id)
             
         elif args.task == "portfolio_analysis":
             if not args.id:
