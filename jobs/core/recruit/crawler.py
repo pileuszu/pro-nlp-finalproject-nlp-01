@@ -4,6 +4,7 @@ import asyncio
 import json
 import base64
 import requests
+import httpx
 import logging
 from bs4 import BeautifulSoup
 from typing import List, Dict, Optional
@@ -73,11 +74,14 @@ class RecruitmentCrawler:
             return ""
         
         try:
-            resp = requests.get(image_url, timeout=10)
-            if resp.status_code != 200:
-                return ""
+            # Use httpx for more robust downloads (handling malformed headers and disconnection better)
+            with httpx.Client(headers=self._get_headers(), timeout=20.0, follow_redirects=True) as client:
+                resp = client.get(image_url)
+                if resp.status_code != 200:
+                    return ""
+                image_content_bytes = resp.content
             
-            image_content = base64.b64encode(resp.content).decode("utf-8")
+            image_content = base64.b64encode(image_content_bytes).decode("utf-8")
             
             url = f"https://vision.googleapis.com/v1/images:annotate?key={self.google_api_key}"
             payload = {
@@ -87,19 +91,21 @@ class RecruitmentCrawler:
                 }]
             }
             
-            vision_resp = requests.post(url, json=payload, timeout=20)
-            if vision_resp.status_code != 200:
-                logger.error(f"Vision API Error: {vision_resp.text}")
-                return ""
+            # Using httpx for Vision API call as well
+            with httpx.Client(timeout=30.0) as client:
+                vision_resp = client.post(url, json=payload)
+                if vision_resp.status_code != 200:
+                    logger.error(f"Vision API Error: {vision_resp.text}")
+                    return ""
+                result = vision_resp.json()
             
-            result = vision_resp.json()
             text_annotations = result.get("responses", [{}])[0].get("textAnnotations", [])
             if text_annotations:
                 return text_annotations[0].get("description", "")
             return ""
         
         except Exception as e:
-            logger.error(f"OCR Error ({image_url}): {e}")
+            logger.error(f"OCR Error ({image_url}): {type(e).__name__} - {e}")
             return ""
     
     def _analyze_job_with_ncp(self, job_data: Dict) -> List[Dict]:
