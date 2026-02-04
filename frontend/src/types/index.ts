@@ -38,7 +38,7 @@ export interface PortfolioStrength {
 export interface Portfolio {
     id: number;
     project_name: string;
-    type: 'link' | 'file' | 'github' | 'notion' | 'blog';
+    type: 'link' | 'file' | 'github' | 'notion' | 'blog' | 'text';
     source_url?: string;
     content?: string;
     created_at: string;

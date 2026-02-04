@@ -195,7 +195,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                 )}
                             </div>
 
-                            {displayPortfolio.source_url && (
+                            {displayPortfolio.source_url && displayPortfolio.type !== 'file' && displayPortfolio.type !== 'text' && (
                                 <div className="space-y-3 pt-6 border-t border-slate-100">
                                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">연결된 리소스</h3>
                                     <a
@@ -233,7 +233,7 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                 </Card>
 
                 {/* Outer Sidebar: AI Insights */}
-                <aside className="w-full lg:w-[360px] lg:sticky lg:top-8 space-y-8 order-2 lg:order-2">
+                <aside className="w-full lg:w-[400px] lg:sticky lg:top-8 space-y-8 order-2 lg:order-2">
                     <div className="space-y-8 p-8 rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
                         {/* Strengths Section */}
                         {displayPortfolio.strengths && displayPortfolio.strengths.length > 0 ? (
