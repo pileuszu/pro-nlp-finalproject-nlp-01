@@ -186,6 +186,7 @@ class PortfolioService:
         portfolio = result.scalar_one()
         
         job_service.trigger_recommendation_update(user_id=user_id)
+        job_service.trigger_profile_update(portfolio_id=portfolio.id)
         
         return portfolio
 
@@ -220,6 +221,7 @@ class PortfolioService:
         # Trigger re-embedding AND partial AI refresh (Strengths, Queries) based on new description.
         # This keeps the user's manual edits but updates the AI-derived metadata.
         job_service.trigger_portfolio_refresh(portfolio_id=portfolio.id)
+        job_service.trigger_profile_update(portfolio_id=portfolio.id)
         
         return portfolio
 

@@ -197,7 +197,7 @@ export default function CoverLettersPage() {
                                             </div>
                                         )}
 
-                                        <CardHeader className={cn("pb-3 space-y-4 relative z-10 transition-[padding,background-color] duration-500", isSelectionMode && "pt-10")}>
+                                        <CardHeader className={cn("pb-3 pr-24 space-y-4 relative z-10 transition-[padding,background-color] duration-500", isSelectionMode && "pt-10")}>
                                             <div className="flex justify-between items-start">
                                                 <div className={cn("p-2.5 rounded-xl border transition-colors duration-300",
                                                     expired ? "bg-slate-100 border-slate-200 shadow-none" : (isSelected ? "bg-blue-600 border-blue-600 shadow-none" : "bg-orange-50 border-orange-100 shadow-sm")
@@ -220,7 +220,7 @@ export default function CoverLettersPage() {
 
                                             <div>
                                                 <CardTitle className={cn(
-                                                    "text-xl font-bold transition-colors duration-300 line-clamp-1 mb-1",
+                                                    "text-xl font-bold transition-colors duration-300 line-clamp-2 mb-1",
                                                     expired ? "text-slate-500" : (isSelected ? "text-blue-700 font-black" : "text-slate-900 group-hover:text-blue-600")
                                                 )}>
                                                     {cl.title}

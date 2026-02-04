@@ -219,12 +219,30 @@ export default function RecruitPage() {
                                                         </Tooltip>
                                                     </TooltipProvider>
                                                 )}
-                                                <div className="flex items-center gap-2 overflow-hidden flex-nowrap">
-                                                    {recruit.tags?.map((tag) => (
-                                                        <Badge key={tag} variant="secondary" className="font-bold bg-muted/80 text-muted-foreground border-none px-2.5 py-0.5 text-[11px] whitespace-nowrap shrink-0">
+                                                <div className="flex items-center gap-1.5 overflow-hidden flex-wrap h-6">
+                                                    {recruit.tags?.slice(0, 3).map((tag) => (
+                                                        <Badge key={tag} variant="secondary" className="font-bold bg-slate-100 text-slate-600 border-none px-2 py-0.5 text-[10px] whitespace-nowrap shrink-0">
                                                             {tag}
                                                         </Badge>
                                                     )) || null}
+                                                    {recruit.tags && recruit.tags.length > 3 && (
+                                                        <TooltipProvider delayDuration={0}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Badge variant="secondary" className="font-bold bg-slate-50 text-slate-400 border border-slate-100 px-1.5 py-0.5 text-[10px] whitespace-nowrap shrink-0 cursor-help hover:bg-slate-100">
+                                                                        +{recruit.tags.length - 3}
+                                                                    </Badge>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="bg-slate-800 text-slate-50 border-slate-700 p-2 rounded-lg text-xs max-w-[200px] flex flex-wrap gap-1 z-50">
+                                                                    {recruit.tags.slice(3).map((tag, i) => (
+                                                                        <span key={i} className="inline-block px-1.5 py-0.5 bg-slate-700 rounded-md border border-slate-600">
+                                                                            {tag}
+                                                                        </span>
+                                                                    ))}
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    )}
                                                 </div>
                                             </CardContent>
                                             <CardFooter className="border-t border-border pt-5 pb-5 px-6 text-[11px] font-black text-muted-foreground flex justify-between items-center bg-muted/30 group-hover:bg-primary/5 transition-colors duration-300 rounded-b-xl uppercase tracking-wider">
@@ -277,12 +295,30 @@ export default function RecruitPage() {
                                                         <span className="text-xs font-black text-muted-foreground uppercase tracking-widest hidden sm:block">|</span>
                                                         <span className="text-sm font-bold text-muted-foreground">{recruit.company}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2 overflow-hidden flex-nowrap">
-                                                        {recruit.tags?.map((tag) => (
-                                                            <span key={tag} className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded border border-border group-hover:bg-card group-hover:border-primary/50 group-hover:text-primary transition-colors duration-300 whitespace-nowrap shrink-0">
-                                                                #{tag}
+                                                    <div className="flex items-center gap-1.5 overflow-hidden flex-nowrap">
+                                                        {recruit.tags?.slice(0, 3).map((tag) => (
+                                                            <span key={tag} className="text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-md border border-transparent group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-600 transition-colors duration-300 whitespace-nowrap shrink-0">
+                                                                {tag}
                                                             </span>
                                                         ))}
+                                                        {recruit.tags && recruit.tags.length > 3 && (
+                                                            <TooltipProvider delayDuration={0}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md border border-slate-100 group-hover:bg-white cursor-help whitespace-nowrap shrink-0">
+                                                                            +{recruit.tags.length - 3}
+                                                                        </span>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent className="bg-slate-800 text-slate-50 border-slate-700 p-2 rounded-lg text-xs max-w-[200px] flex flex-wrap gap-1 z-50">
+                                                                        {recruit.tags.slice(3).map((tag, i) => (
+                                                                            <span key={i} className="inline-block px-1.5 py-0.5 bg-slate-700 rounded-md border border-slate-600">
+                                                                                {tag}
+                                                                            </span>
+                                                                        ))}
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
