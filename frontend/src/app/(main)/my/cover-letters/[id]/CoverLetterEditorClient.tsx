@@ -26,6 +26,7 @@ import { QuestionEditorItem } from "./components/QuestionEditorItem";
 interface QuestionItem {
     id: number;
     question: string;
+    title?: string;
     answer: string;
     hint?: string;
     max_length?: number;
@@ -139,6 +140,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                     setQuestions(polledResult.items.map((item: CoverLetterItem) => ({
                         id: item.id || Date.now() + Math.random(),
                         question: item.question,
+                        title: item.title,
                         answer: item.content,
                         hint: item.hint,
                         max_length: item.max_length,
@@ -179,6 +181,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         setQuestions(data.items.map((item: CoverLetterItem) => ({
                             id: item.id || Date.now() + Math.random(),
                             question: item.question,
+                            title: item.title,
                             answer: item.content,
                             hint: item.hint,
                             max_length: item.max_length,
@@ -234,6 +237,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                 title,
                 questions: questions.map(q => ({
                     question: q.question,
+                    title: q.title,
                     content: q.answer,
                     // hint removed
                     max_length: q.max_length
@@ -268,6 +272,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         setQuestions(version.items_snapshot.map((snap, idx) => ({
             id: Date.now() + idx, // Temp ID for UI
             question: snap.question,
+            title: snap.title,
             answer: snap.content || "",
             max_length: 1000
         })));
@@ -287,6 +292,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
         setQuestions(version.items_snapshot.map((snap, idx) => ({
             id: Date.now() + idx, // Temp ID for UI
             question: snap.question,
+            title: snap.title,
             answer: snap.content || "",
             max_length: 1000
         })));
@@ -340,7 +346,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
             if (res.ok) {
                 const updatedItem = await res.json();
-                updateQuestion(qId, 'answer', updatedItem.content);
+                updateQuestion(qId, 'title', updatedItem.title);
                 alert("소제목이 생성되었습니다!");
             } else {
                 throw new Error("Failed to generate headline");
@@ -417,6 +423,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                 setQuestions(updated.items.map((item: CoverLetterItem) => ({
                                     id: item.id || Date.now() + Math.random(),
                                     question: item.question,
+                                    title: item.title,
                                     answer: item.content,
                                     hint: item.hint,
                                     max_length: item.max_length,

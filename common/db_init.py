@@ -116,6 +116,12 @@ def init_db():
 
                 # Heal 'cover_letters'
                 heal_table("cover_letters", {
+                    "title": "VARCHAR",
+                    "content": "TEXT",
+                    "user_id": "INTEGER",
+                    "recruitment_id": "INTEGER",
+                    "created_at": "TIMESTAMPTZ DEFAULT NOW()",
+                    "updated_at": "TIMESTAMPTZ",
                     "processing_status": "processingstatus DEFAULT 'PENDING'",
                     "gap_analysis": "JSONB",
                     "job_analysis": "JSONB"
@@ -123,6 +129,10 @@ def init_db():
                 
                 # Heal 'cover_letter_items'
                 heal_table("cover_letter_items", {
+                    "question": "TEXT",
+                    "content": "TEXT",
+                    "created_at": "TIMESTAMPTZ DEFAULT NOW()",
+                    "updated_at": "TIMESTAMPTZ",
                     "category": "VARCHAR",
                     "hint": "TEXT",
                     "max_length": "INTEGER DEFAULT 1000",
@@ -150,14 +160,16 @@ def init_db():
                 # Heal 'users'
                 heal_table("users", {
                     "profile_summary": "TEXT",
-                    "desired_job_title": "VARCHAR"
+                    "desired_job_title": "VARCHAR",
+                    "recommendation_version": "INTEGER DEFAULT 0"
                 })
 
                 # Heal 'recruitments'
                 heal_table("recruitments", {
                     "view_count": "INTEGER DEFAULT 0",
                     "embedding": "vector(1024)",
-                    "tags": "JSONB"
+                    "tags": "JSONB",
+                    "questions": "JSONB"
                 })
         except Exception as e:
             logger.error(f"Column healing failed: {e}")

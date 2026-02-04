@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
     poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements from backend for now as they share dependencies
-COPY backend/requirements.txt .
+# Copy requirements and install
+COPY jobs/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy common and jobs

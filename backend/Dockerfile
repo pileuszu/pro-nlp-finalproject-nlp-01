@@ -3,10 +3,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-# Install system dependencies for psycopg2
+# Install system dependencies for psycopg2 and PDF processing
 RUN apt-get update && apt-get install -y \
     libpq-dev \
     gcc \
+    poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Build from Root Context

@@ -27,6 +27,24 @@ except Exception as e:
 class PortfolioService:
     def __init__(self, db: AsyncSession):
         self.db = db
+        self._blog_extractor = None
+
+
+    @property
+    def blog_extractor(self):
+        if not self._blog_extractor:
+            try:
+                from jobs.core.portfolio.extractors.blog_extractor import BlogExtractor
+                self._blog_extractor = BlogExtractor()
+            except ImportError:
+                # Minimal fallback if jobs package is not available
+                class FallbackBlogExtractor:
+                    async def discover_posts(self, url: str):
+                        # Redirect to the existing integrations endpoint logic or simple scrape
+                        from app.api.endpoints.integrations import list_blog_posts
+                        return await list_blog_posts(url)
+                self._blog_extractor = FallbackBlogExtractor()
+        return self._blog_extractor
 
     async def create_portfolio_from_file(self, user_id: int, title: str, file: UploadFile):
         """

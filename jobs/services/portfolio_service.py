@@ -162,28 +162,35 @@ class PortfolioService:
             integration = res_int.scalar_one_or_none()
             token = integration.access_token if integration else None
 
-            if p_type == "file" or p_type == "notion":
-                if p_type == "file":
-                    text = self.file_extractor.extract(source)
-                    # Cleanup local download
-                    if source != portfolio.source_url and os.path.exists(source):
-                        try: os.remove(source)
-                        except: pass
-                    # Notion
-                    if token:
-                        from notion_client import Client
-                        self.notion_extractor.client = Client(auth=token)
-                    notion_title, text = await self.notion_extractor._process_node(source)
-                    
-                    # If project name is placeholder/empty, update it with extracted title
-                    if notion_title and (not portfolio.project_name or "Notion" in portfolio.project_name or "Analysis" in portfolio.project_name):
-                        portfolio.project_name = notion_title
-                        await self.db.commit()
-                elif p_type == "text":
-                    text = portfolio.content or ""
-                    logger.info("Processing manual text input directly.")
+            if p_type == "file":
+                text = self.file_extractor.extract(source)
+                # Cleanup local download
+                if source != portfolio.source_url and os.path.exists(source):
+                    try: os.remove(source)
+                    except: pass
+            elif p_type == "notion":
+                # Notion
+                if token:
+                    from notion_client import Client
+                    self.notion_extractor.client = Client(auth=token)
+                notion_title, text = await self.notion_extractor._process_node(source)
                 
-                # AI-powered split for multi-project documents
+                # If project name is placeholder/empty, update it with extracted title
+                if notion_title and (not portfolio.project_name or "Notion" in portfolio.project_name or "Analysis" in portfolio.project_name):
+                    portfolio.project_name = notion_title
+                    await self.db.commit()
+            elif p_type == "text":
+                text = portfolio.content or ""
+                logger.info("Processing manual text input directly.")
+            elif p_type == "github":
+                extracted_projects = self.github_extractor.extract_multi(source, token=token)
+            elif p_type == "blog":
+                extracted_projects = await self.blog_extractor.extract_multi(source)
+            else:
+                raise ValueError(f"Unknown portfolio type: {p_type}")
+
+            # AI-powered split for multi-project documents (file, notion, text)
+            if p_type in ["file", "notion", "text"]:
                 logger.info(f"Using AI to detect multiple projects in {p_type} content...")
                 combined = await self.llm_refiner.extract_user_data_and_queries(text)
                 
@@ -193,18 +200,12 @@ class PortfolioService:
                     for i, p in enumerate(combined.user_data.projects):
                         extracted_projects.append({
                             "title": p.project_name or (f"{p_type} Project {i+1}"),
-                            "content": text, # Pass original text for refining if needed, or p.description_for_embedding
+                            "content": text, # Pass original text for refining if needed
                             "url": portfolio.source_url,
                             "refined_data": p # Carry over refined data
                         })
                 else:
                     extracted_projects = [{"title": portfolio.project_name or "New Portfolio", "content": text, "url": portfolio.source_url}]
-            elif p_type == "github":
-                extracted_projects = self.github_extractor.extract_multi(source, token=token)
-            elif p_type == "blog":
-                extracted_projects = await self.blog_extractor.extract_multi(source)
-            else:
-                raise ValueError(f"Unknown portfolio type: {p_type}")
 
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
@@ -469,10 +470,9 @@ class PortfolioService:
 
             if p_type == "text" or (portfolio.content and not source.startswith("http")):
                 # USE EXISTING CONTENT FOR RE-ANALYSIS
-                extracted_projects = [{"title": portfolio.project_name, "content": portfolio.content, "url": portfolio.source_url}]
+                text = portfolio.content
             elif p_type == "file":
                 text = self.file_extractor.extract(source)
-                extracted_projects = [{"title": portfolio.project_name or "New File", "content": text, "url": portfolio.source_url}]
                 # Cleanup
                 if source != portfolio.source_url and os.path.exists(source):
                     try: os.remove(source)
@@ -480,18 +480,36 @@ class PortfolioService:
             elif p_type == "notion":
                 # If we have a token from integration, use it. Otherwise use default.
                 if token:
-                    self.notion_extractor.client = None
-                    self.notion_extractor.access_token = token
                     from notion_client import Client
                     self.notion_extractor.client = Client(auth=token)
-                text = await self.notion_extractor.extract(source)
-                extracted_projects = [{"title": portfolio.project_name or "Notion Page", "content": text, "url": source}]
+                notion_title, text = await self.notion_extractor._process_node(source)
+                if notion_title and (not portfolio.project_name or "Notion" in portfolio.project_name):
+                    portfolio.project_name = notion_title
             elif p_type == "github":
                 extracted_projects = self.github_extractor.extract_multi(source, token=token)
             elif p_type == "blog":
                 extracted_projects = await self.blog_extractor.extract_multi(source)
             else:
                 raise ValueError(f"Unknown portfolio type: {p_type}")
+
+            # AI-powered split for multi-project documents (file, notion, text)
+            if p_type in ["file", "notion", "text"] or (p_type == "text" or (portfolio.content and not source.startswith("http"))):
+                if not extracted_projects: # Only if not already extracted (e.g. from file)
+                    logger.info(f"Using AI to detect multiple projects in {p_type} content (Analysis)...")
+                    combined = await self.llm_refiner.extract_user_data_and_queries(text)
+                    
+                    if combined.user_data.projects:
+                        logger.info(f"AI detected {len(combined.user_data.projects)} projects in single {p_type} source (Analysis).")
+                        extracted_projects = []
+                        for i, p in enumerate(combined.user_data.projects):
+                            extracted_projects.append({
+                                "title": p.project_name or (f"{p_type} Project {i+1}"),
+                                "content": text,
+                                "url": portfolio.source_url,
+                                "refined_data": p
+                            })
+                    else:
+                        extracted_projects = [{"title": portfolio.project_name or "New Portfolio", "content": text, "url": portfolio.source_url}]
 
             if not extracted_projects:
                 raise ValueError(f"Extraction failed or no projects found for {p_type}")
@@ -618,11 +636,11 @@ class PortfolioService:
                     target_id=target_portfolio.id
                 )
 
-                # Trigger UI Refresh
+                # Trigger UI Refresh - Use meaningful title for the background link
                 await NotificationService.create_and_notify(
                     db=self.db,
                     user_id=target_portfolio.user_id,
-                    title="", message="",
+                    title="REFRESH_TRIGGER", message=f"Portfolio {target_portfolio.id} processing update",
                     notification_type="REFRESH",
                     target_id=target_portfolio.id
                 )
@@ -724,6 +742,13 @@ class PortfolioService:
                 target_id=portfolio.id
             )
             
+            # 4. Trigger Recommendations
+            try:
+                from jobs.services.recruit_service import precompute_recommendations_for_portfolio
+                await precompute_recommendations_for_portfolio(self.db, portfolio_id)
+            except Exception as e:
+                logger.error(f"Failed to update recs for portfolio {portfolio_id}: {e}")
+
             logger.info(f"Portfolio {portfolio_id} AI refresh completed.")
 
         except Exception as e:

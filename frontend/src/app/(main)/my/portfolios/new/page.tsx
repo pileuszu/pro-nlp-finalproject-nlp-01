@@ -339,21 +339,14 @@ export default function NewPortfolioPage() {
         }
         setIsLoadingBlogPosts(true);
         try {
-            const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/integrations/blog/posts?url=${encodeURIComponent(blogUrl)}`, {
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                setBlogPosts(data);
-                if (data.length === 0) {
-                    toast("포스팅을 찾을 수 없습니다. URL을 확인해 주세요.", "error");
-                }
-            } else {
-                toast("블로그 정보를 불러오는데 실패했습니다.", "error");
+            const data = await portfolioApi.discoverBlogPosts(blogUrl);
+            setBlogPosts(data);
+            if (data.length === 0) {
+                toast("포스팅을 찾을 수 없습니다. URL을 확인해 주세요.", "error");
             }
-        } catch (_error) {
-            console.error(_error);
-            toast("오류가 발생했습니다.", "error");
+        } catch (err) {
+            console.error(err);
+            toast("블로그 정보를 불러오는데 실패했습니다.", "error");
         } finally {
             setIsLoadingBlogPosts(false);
         }
@@ -373,11 +366,14 @@ export default function NewPortfolioPage() {
 
         try {
             for (const url of selectedBlogUrls) {
-                const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/portfolios/analyze-source?source=${encodeURIComponent(url)}&type=blog`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                });
-                if (resp.ok) successCount++;
+                const post = blogPosts.find(p => p.url === url);
+                await portfolioApi.importBlog(url, post?.title || "Blog Portfolio");
+                successCount++;
+
+                // 200ms delay between requests
+                if (selectedBlogUrls.indexOf(url) < selectedBlogUrls.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
             }
 
             toast(`${successCount}개의 블로그 포스팅 분석이 시작되었습니다.`, "success");
@@ -648,12 +644,12 @@ export default function NewPortfolioPage() {
                             <CardContent className="px-8 pb-8 space-y-6">
                                 <div className="p-6 rounded-2xl border border-slate-100 bg-slate-50/50 space-y-4">
                                     <div className="flex items-center gap-2">
-                                        <Label className="font-bold text-slate-700">블로그 주소 또는 포스팅 URL</Label>
-                                        <InfoTooltip message="Velog나 Tistory의 홈 주소를 입력하면 포스팅 목록을 불러옵니다. 특정 포스팅 URL을 직접 입력해도 됩니다." />
+                                        <Label className="font-bold text-slate-700">포스팅 URL (블로그 홈 주소 제외)</Label>
+                                        <InfoTooltip message="Velog나 Tistory의 개별 포스팅 URL을 입력해주세요. (홈 주소 입력 시 분석이 불가능할 수 있습니다)" />
                                     </div>
                                     <div className="flex gap-2">
                                         <Input
-                                            placeholder="https://velog.io/@username"
+                                            placeholder="https://velog.io/@username/post-title"
                                             className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
                                             value={blogUrl}
                                             onChange={(e) => setBlogUrl(e.target.value)}
@@ -665,7 +661,7 @@ export default function NewPortfolioPage() {
                                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-11 px-6 rounded-xl transition-all"
                                         >
                                             {isLoadingBlogPosts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                                            최근 글 불러오기
+                                            포스팅 가져오기
                                         </Button>
                                     </div>
                                 </div>

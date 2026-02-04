@@ -74,33 +74,32 @@ async def run_scraper():
         logger.error(f"Failed to fetch existing recruitments: {e}")
         return
 
-    # Phase 2: Crawl (Long running, NO DB CONNECTION)
+    # Combined Phase 2 & 3: Stream Crawl -> Refine -> Embed -> Save (Incremental)
     try:
-        # Read pages and limit from environment (passed via JobService)
+        # Read pages and limit from environment
         target_pages = int(os.getenv("JOB_EXTRA_PAGES", "3"))
         crawl_limit = os.getenv("JOB_EXTRA_LIMIT")
         crawl_limit = int(crawl_limit) if crawl_limit else None
         
-        logger.info(f"Starting crawler: target_pages={target_pages}, limit={crawl_limit}")
-        crawler = RecruitmentCrawler(target_pages=target_pages) 
-        # This takes 15+ mins, so we must NOT have an open DB session here
-        results = await crawler.crawl_and_parse(exclude_links=existing_links, limit=crawl_limit)
-        logger.info(f"Crawler returned {len(results)} items. Syncing with database...")
-    except Exception as e:
-        logger.error(f"Crawler failed: {e}")
-        logger.error(traceback.format_exc())
-        return
-
-    # Phase 3: Save Results & Index (Use modernized indexer)
-    if not results:
-        logger.info("No new items to save.")
-        return
-
-    try:
+        logger.info(f"Starting crawler (incremental): target_pages={target_pages}, limit={crawl_limit}")
+        crawler = RecruitmentCrawler(target_pages=target_pages)
+        indexer = RecruitIndexer()
+        
+        # Process each item immediately as it is parsed
+        processed_count = 0
         async with AsyncSessionLocal() as db:
-            indexer = RecruitIndexer()
-            added_count = await indexer.add_recruitments(db, results)
-            logger.info(f"Sync complete. Added/Updated {added_count} items through indexer.")
+            async for item in crawler.crawl_and_parse_gen(exclude_links=existing_links, limit=crawl_limit):
+                try:
+                    # Indexer handles embedding and individual commit
+                    await indexer.add_recruitments(db, [item])
+                    processed_count += 1
+                    if processed_count % 5 == 0:
+                        logger.info(f"Progress: Processed {processed_count} items...")
+                except Exception as item_e:
+                    logger.error(f"Failed to index individual item: {item_e}")
+                    continue
+
+        logger.info(f"Incremental sync complete. Total items added/updated: {processed_count}")
     except Exception as e:
-        logger.error(f"Database sync failed: {e}")
+        logger.error(f"Incremental crawler task failed: {e}")
         logger.error(traceback.format_exc())

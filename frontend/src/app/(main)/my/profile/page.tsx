@@ -7,7 +7,7 @@ import { User } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Target, Sparkles, User as UserIcon, Mail, Calendar, Briefcase, Github, Settings as NotionIcon, Unlink, CheckCircle2 } from "lucide-react";
+import { Loader2, Target, Sparkles, User as UserIcon, Mail, Github, Settings as NotionIcon, Unlink, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { integrationApi, UserIntegration } from "@/lib/integrationApi";
 import { cn } from "@/lib/utils";
@@ -65,104 +65,99 @@ export default function ProfilePage() {
 
     return (
         <div className="container max-w-screen-md mx-auto py-12 px-4 md:px-8 space-y-10 animate-in fade-in duration-700">
-            {/* User Intro Section */}
-            <div className="text-center space-y-6">
-                <div className="inline-flex p-4 rounded-[2.5rem] bg-gradient-to-br from-blue-500 to-indigo-600 shadow-xl shadow-blue-500/20 mb-2">
-                    <UserIcon className="h-12 w-12 text-white" />
-                </div>
-                <div className="space-y-2">
-                    <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">{profile.name}님의 프로필</h1>
-                    <div className="flex items-center justify-center gap-2 text-slate-500 font-medium">
-                        <Mail className="h-4 w-4" />
-                        <span>{profile.email}</span>
-                    </div>
-                </div>
+            {/* User Intro Section (Premium Header) */}
+            <div className="relative overflow-hidden rounded-[3.5rem] bg-slate-900 p-12 md:p-16 text-center shadow-3xl">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-blue-600/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 bg-indigo-600/20 rounded-full blur-[100px]" />
 
-                {profile.desired_job_title ? (
+                <div className="relative space-y-8">
                     <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="flex justify-center pt-2"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="inline-flex p-1.5 pr-6 rounded-full bg-white/5 backdrop-blur-2xl border border-white/10 items-center gap-4 text-white/70 text-sm font-semibold"
                     >
-                        <Badge variant="default" className="h-10 px-6 rounded-2xl bg-blue-600 hover:bg-blue-600 text-white font-bold text-sm shadow-lg shadow-blue-500/20 gap-2">
-                            <Target className="h-4 w-4" />
-                            {profile.desired_job_title}
-                        </Badge>
+                        <div className="p-2.5 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/30">
+                            <UserIcon className="h-4 w-4 text-white" />
+                        </div>
+                        {profile.email}
                     </motion.div>
-                ) : (
-                    <div className="pt-2">
-                        <Badge variant="outline" className="h-10 px-6 rounded-2xl border-slate-200 text-slate-400 font-bold text-sm border-dashed">
-                            목표 직무 분석 중...
-                        </Badge>
-                    </div>
-                )}
+
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-5xl md:text-6xl font-black text-white tracking-tighter"
+                    >
+                        {profile.name}<span className="text-blue-500">.</span>
+                    </motion.h1>
+
+                    {profile.desired_job_title ? (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="flex justify-center"
+                        >
+                            <div className="px-8 py-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/5 text-blue-400 font-black text-base shadow-2xl flex items-center gap-3">
+                                <Target className="h-5 w-5" />
+                                {profile.desired_job_title}
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <div className="flex justify-center">
+                            <div className="px-8 py-3 rounded-2xl border border-white/5 bg-white/5 text-slate-500 font-bold text-sm tracking-wide">
+                                분석가 가동 중...
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Profile Content Cards */}
             <div className="grid gap-8">
                 {/* AI Career Summary */}
-                <Card className="border-2 border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/40 overflow-hidden bg-white group">
-                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                        <CardTitle className="flex items-center gap-3 text-xl font-black text-slate-800">
-                            <div className="p-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-blue-600">
-                                <Sparkles className="h-5 w-5 fill-blue-50" />
+                <Card className="border-0 rounded-[3rem] shadow-2xl shadow-blue-500/5 overflow-hidden bg-white/70 backdrop-blur-xl border border-white/20">
+                    <CardHeader className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 p-10 pb-6">
+                        <CardTitle className="flex items-center gap-4 text-2xl font-black text-slate-900 tracking-tight">
+                            <div className="p-3 bg-white rounded-2xl shadow-md border border-blue-100 text-blue-600">
+                                <Sparkles className="h-6 w-6 fill-blue-50" />
                             </div>
-                            AI 통합 커리어 요약
+                            나의 커리어 DNA
                         </CardTitle>
+                        <CardDescription className="text-slate-500 text-base font-medium">AI가 분석한 당신만의 핵심 전문성과 가치입니다.</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-10">
+                    <CardContent className="p-10 pt-6">
                         {profile.profile_summary ? (
-                            <p className="text-lg text-slate-700 leading-loose whitespace-pre-line font-medium antialiased">
+                            <p className="text-xl text-slate-700 leading-[2.2] whitespace-pre-line font-semibold antialiased">
                                 {profile.profile_summary}
                             </p>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center animate-pulse">
-                                    <Sparkles className="h-8 w-8 text-slate-200" />
+                            <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                                <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center animate-pulse border border-slate-100">
+                                    <Sparkles className="h-10 w-10 text-slate-200" />
                                 </div>
-                                <p className="text-slate-400 font-bold italic">
-                                    포트폴리오를 등록하면 AI가 커리어를 분석해 드립니다.
-                                </p>
+                                <div className="text-center space-y-2">
+                                    <p className="text-slate-400 font-bold text-lg">
+                                        포트폴리오를 등록하면 AI가 커리어를 분석해 드립니다.
+                                    </p>
+                                    <p className="text-slate-300 text-sm font-medium">당신의 강점과 성과를 한눈에 정리해 보세요.</p>
+                                </div>
                             </div>
                         )}
                     </CardContent>
                 </Card>
 
-                {/* Additional Info / Settings Placeholder */}
-                <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="p-6 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 shadow-sm">
-                        <div className="p-3 bg-slate-50 rounded-2xl text-slate-400">
-                            <Calendar className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">가입일</div>
-                            <div className="font-bold text-slate-700">2026. 02. 01</div>
-                        </div>
-                    </div>
-                    <div className="p-6 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 shadow-sm">
-                        <div className="p-3 bg-slate-50 rounded-2xl text-slate-400">
-                            <Briefcase className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest">포트폴리오</div>
-                            <div className="font-bold text-slate-700">관리 중</div>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Integration Management */}
-                <Card className="border-2 border-slate-100 rounded-[2.5rem] shadow-xl shadow-slate-200/40 overflow-hidden bg-white">
-                    <CardHeader className="bg-slate-50/50 border-b border-slate-100 p-8">
-                        <CardTitle className="flex items-center gap-3 text-xl font-black text-slate-800">
-                            <div className="p-2.5 bg-white rounded-2xl shadow-sm border border-slate-100 text-slate-900">
-                                <NotionIcon className="h-5 w-5" />
+                <Card className="border-0 rounded-[3rem] shadow-2xl shadow-slate-200/5 overflow-hidden bg-white">
+                    <CardHeader className="p-10 pb-4">
+                        <CardTitle className="flex items-center gap-4 text-2xl font-black text-slate-900 tracking-tight">
+                            <div className="p-3 bg-slate-50 rounded-2xl text-slate-900 border border-slate-100">
+                                <NotionIcon className="h-6 w-6" />
                             </div>
-                            연동된 서비스 관리
+                            디지털 리액션
                         </CardTitle>
-                        <CardDescription className="text-slate-500 font-medium">외부 계정 연동 현황을 확인하고 관리할 수 있습니다.</CardDescription>
+                        <CardDescription className="text-slate-500 text-base font-medium">외부 커리어 플랫폼 연동 현황입니다.</CardDescription>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-4">
+                    <CardContent className="p-10 space-y-4">
                         {[
                             { id: 'github', name: 'GitHub', icon: <Github className="h-5 w-5" />, color: 'bg-slate-900' },
                             { id: 'notion', name: 'Notion', icon: <NotionIcon className="h-5 w-5" />, color: 'bg-slate-100 text-slate-900' }

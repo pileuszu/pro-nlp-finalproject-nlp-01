@@ -31,10 +31,61 @@ class BlogExtractor(BaseExtractor):
     async def discover_posts(self, url: str) -> List[Dict[str, str]]:
         """
         Scrapes a blog home page to find post titles and URLs.
-        Supports Velog and Tistory.
+        Also supports direct post URLs by returning them as a single item.
         """
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            # Check if it's a direct Velog post URL (e.g., /@user/slug)
+            if "velog.io" in url and "/@" in url:
+                parts = url.split("/@")
+                if len(parts) > 1 and "/" in parts[1]:
+                    slug = parts[1].split("/", 1)[1]
+                    # Exclude reserved tabs matching single post pattern
+                    if slug not in ["posts", "series", "about", "tags", "lists", "liked"]:
+                        # Likely a post URL
+                        title = "Single Post"
+                        try:
+                            async with httpx.AsyncClient(headers=self.headers, timeout=5.0, follow_redirects=True) as client:
+                                resp = await client.get(url)
+                                if resp.status_code == 200:
+                                    soup = BeautifulSoup(resp.text, "html.parser")
+                                    # Velog post title is usually in h1
+                                    h1 = soup.find("h1")
+                                    if h1:
+                                        title = h1.get_text(strip=True)
+                                    else:
+                                        title = soup.title.string if soup.title else "Velog Post"
+                        except: pass
+                        
+                        return [{"title": title, "url": url}]
+
+            # Check if it's a direct Tistory post URL (numeric or entry/...)
+            if "tistory.com" in url:
+                # Simple heuristic: if path has digits or 'entry', it might be a post
+                path = url.split("tistory.com")[-1]
+                if len(path) > 1 and (any(c.isdigit() for c in path) or "/entry/" in path):
+                     # Likely a post URL
+                    title = "Single Post"
+                    try:
+                        async with httpx.AsyncClient(headers=self.headers, timeout=5.0, follow_redirects=True) as client:
+                            resp = await client.get(url)
+                            if resp.status_code == 200:
+                                soup = BeautifulSoup(resp.text, "html.parser")
+                                # Tistory post title varies, but usually h1 or title tag
+                                h1 = soup.find("h1") # Many skins use h1 for title
+                                if h1:
+                                    title = h1.get_text(strip=True)
+                                else:
+                                    # Fallback to meta title or page title
+                                    og_title = soup.find("meta", property="og:title")
+                                    if og_title:
+                                        title = og_title.get("content")
+                                    else:
+                                        title = soup.title.string if soup.title else "Tistory Post"
+                    except: pass
+                    
+                    return [{"title": title, "url": url}]
+
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -100,7 +151,7 @@ class BlogExtractor(BaseExtractor):
         # Try to find title from HTML
         title = "Blog Post"
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 soup = BeautifulSoup(resp.text, "html.parser")
                 title = soup.title.string if soup.title else "Blog Post"
@@ -110,7 +161,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_velog(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -133,7 +184,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_tistory(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")
@@ -155,7 +206,7 @@ class BlogExtractor(BaseExtractor):
 
     async def _extract_general(self, url: str) -> str:
         try:
-            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout) as client:
+            async with httpx.AsyncClient(headers=self.headers, timeout=self.timeout, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
                 soup = BeautifulSoup(resp.text, "html.parser")

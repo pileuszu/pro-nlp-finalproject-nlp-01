@@ -13,6 +13,11 @@ class ProcessingStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
+class JobQueryType(str, enum.Enum):
+    TECH = "tech"
+    PROBLEM = "problem"
+    DOMAIN = "domain"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -24,6 +29,7 @@ class User(Base):
     # User Profile Fields (extracted from portfolios)
     profile_summary = Column(Text, nullable=True)  # Overall summary across all projects
     desired_job_title = Column(String, nullable=True)  # Desired job position
+    recommendation_version = Column(Integer, default=0, server_default="0")
 
     portfolios = relationship("Portfolio", back_populates="owner")
     cover_letters = relationship("CoverLetter", back_populates="owner")
@@ -99,7 +105,7 @@ class PortfolioJobQuery(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"))
-    type = Column(String, nullable=True) # A, B, C
+    type = Column(String, nullable=True) # tech, problem, domain
     query_text = Column(String, nullable=True)
     embedding = Column(Vector(1024), nullable=True) # Pre-calculated embedding
     evidence = Column(JSON, nullable=True) # List of strings
@@ -133,6 +139,7 @@ class CoverLetterItem(Base):
     cover_letter_id = Column(Integer, ForeignKey("cover_letters.id"), nullable=False)
     
     question = Column(Text, nullable=False)
+    title = Column(String, nullable=True) # Catchy subheading
     content = Column(Text, nullable=True)
     category = Column(String, nullable=True) # motivation, growth, capability, etc.
     hint = Column(Text, nullable=True)  # 작성 힌트/가이드
