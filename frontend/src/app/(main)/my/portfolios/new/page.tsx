@@ -23,6 +23,17 @@ interface BlogPost {
     title: string;
 }
 
+const isValidUrl = (url: string, type: 'github' | 'blog' | 'notion') => {
+    try {
+        const parsed = new URL(url);
+        if (type === 'github') return parsed.hostname === 'github.com' || parsed.hostname === 'www.github.com';
+        if (type === 'notion') return parsed.hostname.includes('notion.so') || parsed.hostname.includes('notion.site');
+        return true; // Blog can be any valid URL
+    } catch {
+        return false;
+    }
+};
+
 export default function NewPortfolioPage() {
     const router = useRouter();
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -109,6 +120,10 @@ export default function NewPortfolioPage() {
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
             toast("GitHub URL을 입력해주세요.", "warning");
+            return;
+        }
+        if (!isValidUrl(url, 'github')) {
+            toast("유효한 GitHub URL을 입력해주세요. (예: https://github.com/username/repo)", "error");
             return;
         }
         setIsAnalyzing(true);
@@ -234,6 +249,10 @@ export default function NewPortfolioPage() {
 
     const handleBlogDiscover = async () => {
         if (!blogUrl) return;
+        if (!isValidUrl(blogUrl, 'blog')) {
+            toast("유효한 URL을 입력해주세요. (http:// 또는 https:// 포함)", "error");
+            return;
+        }
         setIsLoadingBlogPosts(true);
         try {
             const resp = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/integrations/blog/posts?url=${encodeURIComponent(blogUrl)}`, {
@@ -319,10 +338,16 @@ export default function NewPortfolioPage() {
     };
 
     const handleNotionAnalyze = async (url: string = "all") => {
-        // Check if Notion is connected
+        // Validation for manual URL
+        if (url !== "all" && !isValidUrl(url, 'notion')) {
+            toast("유효한 Notion URL을 입력해주세요. (notion.so 또는 notion.site)", "error");
+            return;
+        }
+
+        // Check if Notion is connected ONLY for workspace sync
         const notionIntegration = integrations.find(i => i.provider === 'notion');
 
-        if (!notionIntegration) {
+        if (url === "all" && !notionIntegration) {
             // Trigger OAuth if not connected
             toast("먼저 Notion 워크스페이스를 연동해주세요.", "warning");
             await handleNotionConnect();
@@ -707,7 +732,7 @@ export default function NewPortfolioPage() {
                                         )}
                                     </div>
 
-                                    {notionIntegration && (
+                                    {notionIntegration ? (
                                         <>
                                             <div className="relative py-4">
                                                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200"></span></div>
@@ -817,34 +842,34 @@ export default function NewPortfolioPage() {
                                                     </div>
                                                 )}
                                             </div>
-
-                                            <div className="relative py-4 mt-4">
-                                                <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100 border-dashed"></span></div>
-                                                <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 px-2 text-slate-300 font-bold italic">직접 URL 입력</span></div>
-                                            </div>
-
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <Label className="font-bold text-slate-700">Notion 페이지 URL</Label>
-                                                <InfoTooltip message="공유된 Notion 페이지 URL을 입력하세요. 계정 연동 시 더 편리하게 가져올 수 있습니다." />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    placeholder="https://www.notion.so/..."
-                                                    className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
-                                                    value={notionUrl}
-                                                    onChange={(e) => setNotionUrl(e.target.value)}
-                                                />
-                                                <Button
-                                                    onClick={() => handleNotionAnalyze(notionUrl)}
-                                                    disabled={isAnalyzing || !notionUrl}
-                                                    variant="outline"
-                                                    className="border-slate-200 hover:bg-slate-100 text-slate-700 font-bold h-11 px-6 rounded-xl transition-all"
-                                                >
-                                                    분석
-                                                </Button>
-                                            </div>
                                         </>
-                                    )}
+                                    ) : null}
+
+                                    <div className="relative py-4 mt-4">
+                                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100 border-dashed"></span></div>
+                                        <div className="relative flex justify-center text-xs uppercase"><span className="bg-slate-50 px-2 text-slate-300 font-bold italic">직접 URL 입력</span></div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Label className="font-bold text-slate-700">Notion 페이지 URL</Label>
+                                        <InfoTooltip message="공유된 Notion 페이지 URL을 입력하세요. 연동 없이도 공개된 페이지라면 분석 가능합니다." />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            placeholder="https://www.notion.so/..."
+                                            className="border-slate-200 bg-white focus-visible:ring-blue-500 h-11"
+                                            value={notionUrl}
+                                            onChange={(e) => setNotionUrl(e.target.value)}
+                                        />
+                                        <Button
+                                            onClick={() => handleNotionAnalyze(notionUrl)}
+                                            disabled={isAnalyzing || !notionUrl}
+                                            variant="outline"
+                                            className="border-slate-200 hover:bg-slate-100 text-slate-700 font-bold h-11 px-6 rounded-xl transition-all"
+                                        >
+                                            분석
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

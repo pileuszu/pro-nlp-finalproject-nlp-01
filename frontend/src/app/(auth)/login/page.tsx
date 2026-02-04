@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { MessageCircle, ArrowRight, Monitor, Server, Database } from "lucide-react";
+import { MessageCircle, ArrowRight, Monitor, Server, Database, Brain } from "lucide-react";
 import { getApiUrl } from "@/lib/apiUtils";
 import { useAuthStore } from "@/stores/useAuthStore";
 
@@ -120,6 +120,13 @@ export default function LoginPage() {
                                             icon: <Database className="w-4 h-4" />,
                                             color: 'from-emerald-500/10 to-teal-500/10 text-emerald-700 border-emerald-200/50 hover:from-emerald-500 hover:to-teal-600 hover:text-white',
                                             glow: 'shadow-emerald-200/50'
+                                        },
+                                        {
+                                            id: 'ai',
+                                            label: 'AI 엔지니어 아이디로 로그인',
+                                            icon: <Brain className="w-4 h-4" />,
+                                            color: 'from-pink-500/10 to-rose-500/10 text-pink-700 border-pink-200/50 hover:from-pink-500 hover:to-rose-600 hover:text-white',
+                                            glow: 'shadow-pink-200/50'
                                         }
                                     ].map((role) => (
                                         <Button

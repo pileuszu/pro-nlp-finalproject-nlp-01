@@ -172,21 +172,7 @@ export default function EditPortfolioPage({ params }: { params: Promise<{ id: st
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="이 프로젝트에 대한 핵심 요약이나 설명을 입력하세요."
-                            className="min-h-[100px] border-slate-200 focus-visible:ring-blue-500"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="content" className="flex items-center gap-2 text-blue-600 font-bold text-xs uppercase tracking-wider">
-                            상세 데이터 (AI 분석 원본)
-                            <Badge variant="outline" className="text-[10px] bg-blue-50 border-blue-100 uppercase">Recommended</Badge>
-                        </Label>
-                        <Textarea
-                            id="content"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="AI가 추출한 원본 텍스트입니다. 필요시 수정하세요."
-                            className="min-h-[300px] border-slate-200 focus-visible:ring-blue-500 bg-slate-50/30 leading-relaxed font-mono text-sm"
+                            className="min-h-[350px] border-slate-200 focus-visible:ring-blue-500 text-base leading-relaxed"
                         />
                     </div>
                 </CardContent>
