@@ -58,7 +58,7 @@ const config: Config = {
                 sm: 'calc(var(--radius) - 4px)'
             },
             fontFamily: {
-                blackhan: ['"Black Han Sans"', 'sans-serif'],
+                climate: ['ClimateCrisisKorean', 'sans-serif'],
             }
         }
     },
