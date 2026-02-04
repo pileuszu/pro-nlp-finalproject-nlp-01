@@ -120,8 +120,8 @@ export default function PortfoliosPage() {
                                 key={portfolio.id}
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                transition={{ delay: index * 0.05 }}
-                                                        <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-visible rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5 relative">
+                            >
+                                <Card className="flex flex-col h-full hover:shadow-xl transition-all duration-500 ease-in-out border-slate-200 hover:-translate-y-1.5 bg-white group overflow-visible rounded-2xl shadow-sm ring-4 ring-transparent hover:ring-blue-500/5 relative">
 
                                     <CardHeader className="pb-4">
                                         <div className="flex justify-between items-start gap-3">
@@ -188,63 +188,63 @@ export default function PortfoliosPage() {
                                     />
                                 </Card>
                             </motion.div>
-                ))}
-            </motion.div>
-            ) : (
-            <motion.div
-                key="list"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-3"
-            >
-                {portfolios.map((portfolio, index) => (
+                        ))}
+                    </motion.div>
+                ) : (
                     <motion.div
-                        key={portfolio.id}
+                        key="list"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="space-y-3"
                     >
-                        <Link href={`/my/portfolios/${portfolio.id}`} className="block group">
-                            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white transition-all duration-500 ease-in-out group-hover:border-blue-200 group-hover:bg-slate-50/50 group-hover:translate-x-1.5 hover:shadow-md">
-                                <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
-                                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-600 transition-[background-color,border-color,color] duration-300 shrink-0">
-                                        {getIcon(portfolio.type)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-3 mb-1">
-                                            <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
-                                                {portfolio.project_name || "프로젝트"}
-                                            </h3>
-                                            <StatusBadge
-                                                status={portfolio.processing_status || 'PENDING'}
-                                                showIcon={false}
-                                                className="text-[9px] py-0 px-2 shrink-0 h-5"
-                                            />
+                        {portfolios.map((portfolio, index) => (
+                            <motion.div
+                                key={portfolio.id}
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <Link href={`/my/portfolios/${portfolio.id}`} className="block group">
+                                    <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white transition-all duration-500 ease-in-out group-hover:border-blue-200 group-hover:bg-slate-50/50 group-hover:translate-x-1.5 hover:shadow-md">
+                                        <div className="flex items-center gap-4 flex-1 min-w-0 pr-4">
+                                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 group-hover:bg-white group-hover:border-blue-100 group-hover:text-blue-600 transition-[background-color,border-color,color] duration-300 shrink-0">
+                                                {getIcon(portfolio.type)}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-base font-bold text-slate-900 group-hover:text-blue-700 transition-colors duration-300 truncate">
+                                                        {portfolio.project_name || "프로젝트"}
+                                                    </h3>
+                                                    <StatusBadge
+                                                        status={portfolio.processing_status || 'PENDING'}
+                                                        showIcon={false}
+                                                        className="text-[9px] py-0 px-2 shrink-0 h-5"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
+                                                    <span className="truncate max-w-[200px]">{portfolio.description || "설명이 없습니다."}</span>
+                                                    <span>•</span>
+                                                    <span>{formatDate(portfolio.created_at)}</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs text-slate-400 font-medium">
-                                            <span className="truncate max-w-[200px]">{portfolio.description || "설명이 없습니다."}</span>
-                                            <span>•</span>
-                                            <span>{formatDate(portfolio.created_at)}</span>
+                                        <div className="flex items-center gap-4 shrink-0">
+                                            <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest hidden sm:block">
+                                                {portfolio.role || 'N/A'}
+                                            </div>
+                                            <div className="h-8 w-8 rounded-full flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all duration-300">
+                                                <LinkIcon className="h-4 w-4" />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-4 shrink-0">
-                                    <div className="text-[10px] font-black text-slate-300 uppercase tracking-widest hidden sm:block">
-                                        {portfolio.role || 'N/A'}
-                                    </div>
-                                    <div className="h-8 w-8 rounded-full flex items-center justify-center text-slate-300 group-hover:text-blue-600 group-hover:bg-blue-50 transition-all duration-300">
-                                        <LinkIcon className="h-4 w-4" />
-                                    </div>
-                                </div>
-                            </div>
-                        </Link>
+                                </Link>
+                            </motion.div>
+                        ))}
                     </motion.div>
-                ))}
-            </motion.div>
                 )}
-        </AnimatePresence>
+            </AnimatePresence>
         </div >
     );
 }

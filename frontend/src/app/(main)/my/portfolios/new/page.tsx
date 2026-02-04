@@ -195,6 +195,7 @@ export default function NewPortfolioPage() {
                 toast("분석에 실패했습니다.", "error");
             }
         } catch (_error) {
+            console.error(_error);
             toast("오류가 발생했습니다.", "error");
         } finally {
             setIsAnalyzing(false);
@@ -248,6 +249,7 @@ export default function NewPortfolioPage() {
                 toast("블로그 정보를 불러오는데 실패했습니다.", "error");
             }
         } catch (_error) {
+            console.error(_error);
             toast("오류가 발생했습니다.", "error");
         } finally {
             setIsLoadingBlogPosts(false);
