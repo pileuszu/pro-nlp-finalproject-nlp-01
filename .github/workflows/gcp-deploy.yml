@@ -1,13 +1,13 @@
 name: Backend GCP Deploy
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - 'backend/**'
-      - 'jobs/**'
-      - 'common/**'
-      - '.github/workflows/gcp-deploy.yml'
+  # push:
+  #   branches: [ "main" ]
+  #   paths:
+  #     - 'backend/**'
+  #     - 'jobs/**'
+  #     - 'common/**'
+  #     - '.github/workflows/gcp-deploy.yml'
   workflow_dispatch:
 
 env:

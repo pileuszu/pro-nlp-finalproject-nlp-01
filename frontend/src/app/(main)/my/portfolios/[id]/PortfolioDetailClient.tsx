@@ -275,11 +275,18 @@ export default function PortfolioDetailClient({ params }: { params: Promise<{ id
                                     {displayPortfolio.job_queries.map((q, i) => (
                                         <div key={i} className="group p-4 rounded-xl border border-slate-100 bg-slate-50/30 hover:bg-white hover:border-purple-200 hover:shadow-md transition-all duration-300">
                                             <div className="flex items-center gap-2 mb-2.5">
-                                                <Badge variant="outline" className="text-[9px] font-black border-purple-200 text-purple-700 bg-purple-50 px-1.5 py-0">
-                                                    TYPE {q.type}
+                                                <Badge variant="outline" className={`text-[9px] font-black px-1.5 py-0 ${q.type === 'tech' || q.type === 'A' ? 'border-blue-200 text-blue-700 bg-blue-50' :
+                                                        q.type === 'problem' || q.type === 'B' ? 'border-purple-200 text-purple-700 bg-purple-50' :
+                                                            'border-orange-200 text-orange-700 bg-orange-50'
+                                                    }`}>
+                                                    {q.type === 'tech' || q.type === 'A' ? '기술 역량' :
+                                                        q.type === 'problem' || q.type === 'B' ? '문제 해결' :
+                                                            q.type === 'domain' || q.type === 'C' ? '도메인 경험' : q.type}
                                                 </Badge>
                                                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">
-                                                    {q.type === 'A' ? 'Core' : q.type === 'B' ? 'Sub' : 'New'}
+                                                    {q.type === 'tech' || q.type === 'A' ? 'Core Tech' :
+                                                        q.type === 'problem' || q.type === 'B' ? 'Problem Solving' :
+                                                            'Domain/Market'}
                                                 </span>
                                             </div>
                                             <p className="text-[12px] text-slate-600 font-bold leading-relaxed">{q.query_text}</p>

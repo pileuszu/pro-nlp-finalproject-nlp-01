@@ -13,6 +13,11 @@ class ProcessingStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
 
+class JobQueryType(str, enum.Enum):
+    TECH = "tech"
+    PROBLEM = "problem"
+    DOMAIN = "domain"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -99,7 +104,7 @@ class PortfolioJobQuery(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     portfolio_id = Column(Integer, ForeignKey("portfolios.id"))
-    type = Column(String, nullable=True) # A, B, C
+    type = Column(String, nullable=True) # tech, problem, domain
     query_text = Column(String, nullable=True)
     embedding = Column(Vector(1024), nullable=True) # Pre-calculated embedding
     evidence = Column(JSON, nullable=True) # List of strings
