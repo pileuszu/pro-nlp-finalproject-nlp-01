@@ -1,6 +1,6 @@
 # 기능 상세 명세서 (Detailed Functional Requirements)
 
-이 문서는 Pro-NLP 플랫폼의 주요 기능들을 상세하게 정의합니다.
+이 문서는 모두취업 플랫폼의 주요 기능들을 상세하게 정의합니다.
 
 ---
 

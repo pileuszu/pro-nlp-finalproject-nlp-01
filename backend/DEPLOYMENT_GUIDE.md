@@ -4,8 +4,8 @@ This guide covers the deployment of the split architecture: **Backend API** (Clo
 
 ## 1. Architecture Overview
 
-- **Backend (`pro-nlp-backend`)**: Optimized for high-concurrency API requests. Handles Auth, CRUD, and Job Triggering.
-- **Jobs (`pro-nlp-jobs`)**: Optimized for heavy AI/NLP processing (longer timeout, higher memory). Handles Portfolio/Cover Letter generation.
+- **Backend (`modu-chwieop-backend`)**: Optimized for high-concurrency API requests. Handles Auth, CRUD, and Job Triggering.
+- **Jobs (`modu-chwieop-jobs`)**: Optimized for heavy AI/NLP processing (longer timeout, higher memory). Handles Portfolio/Cover Letter generation.
 - **Common (`common/`)**: Shared library containing database models and schemas, copied into both images during build.
 
 ## 2. Prerequisites
@@ -24,20 +24,20 @@ Both services are built from the **Root Directory** so they can access the `comm
 ### 3.1 Backend API Image
 ```bash
 # Build context is ROOT (.)
-gcloud builds submit --tag asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/pro-nlp-backend:latest -f backend/Dockerfile .
+gcloud builds submit --tag asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/modu-chwieop-backend:latest -f backend/Dockerfile .
 ```
 
 ### 3.2 Jobs Worker Image
 ```bash
 # Build context is ROOT (.)
-gcloud builds submit --tag asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/pro-nlp-jobs:latest -f jobs/Dockerfile .
+gcloud builds submit --tag asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/modu-chwieop-jobs:latest -f jobs/Dockerfile .
 ```
 
 ## 4. Deploy Backend (Cloud Run Service)
 
 ```bash
-gcloud run deploy pro-nlp-backend \
-  --image asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/pro-nlp-backend:latest \
+gcloud run deploy modu-chwieop-backend \
+  --image asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/modu-chwieop-backend:latest \
   --region asia-northeast3 \
   --platform managed \
   --allow-unauthenticated \
@@ -56,8 +56,8 @@ gcloud run deploy pro-nlp-backend \
 Cloud Run Job is created once and then executed (triggered) by the backend or manually.
 
 ```bash
-gcloud run jobs create pro-nlp-jobs \
-  --image asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/pro-nlp-jobs:latest \
+gcloud run jobs create modu-chwieop-jobs \
+  --image asia-northeast3-docker.pkg.dev/[PROJECT_ID]/[REPO_NAME]/modu-chwieop-jobs:latest \
   --region asia-northeast3 \
   --tasks 1 \
   --parallelism 1 \
@@ -77,7 +77,7 @@ gcloud run jobs create pro-nlp-jobs \
 The backend triggers this job automatically via API, but you can manually test:
 ```bash
 # Run Portfolio Extraction for ID 1
-gcloud run jobs execute pro-nlp-jobs --args="--task=portfolio_extraction --id=1" --region asia-northeast3
+gcloud run jobs execute modu-chwieop-jobs --args="--task=portfolio_extraction --id=1" --region asia-northeast3
 ```
 
 ## 6. CI/CD Pipeline & Environments
@@ -88,8 +88,8 @@ The project uses a dynamic deployment strategy based on GitHub Branches.
 
 | Branch | Environment | Cloud Run Service | Vercel Deployment |
 | :--- | :--- | :--- | :--- |
-| **`develop`** | **Production** | `pro-nlp-backend` | Production Domain (`--prod`) |
-| **`feature/async-architecture-refactor`** | **Preview** | `pro-nlp-backend-preview` | Preview URL (Generating...) |
+| **`develop`** | **Production** | `modu-chwieop-backend` | Production Domain (`--prod`) |
+| **`feature/async-architecture-refactor`** | **Preview** | `modu-chwieop-backend-preview` | Preview URL (Generating...) |
 
 *Note: Any branch matching `feature/**` patterns will trigger a Preview deployment.*
 
@@ -152,8 +152,8 @@ Workflows require the following Secrets to be set in your GitHub repository:
 
 > [!TIP]
 > **Separating Environments**: To have your Preview Frontend talk to your Preview Backend:
-> 1. Push to a feature branch (this creates `pro-nlp-backend-preview` on Cloud Run).
-> 2. Copy the URL of the `pro-nlp-backend-preview` service.
+> 1. Push to a feature branch (this creates `modu-chwieop-backend-preview` on Cloud Run).
+> 2. Copy the URL of the `modu-chwieop-backend-preview` service.
 > 3. Add it as `GCP_PREVIEW_BACKEND_URL` in GitHub Secrets.
 > 4. Future Preview deployments will automatically point to this URL.
 

@@ -15,7 +15,7 @@ const fontSans = FontSans({
 });
 
 export const metadata: Metadata = {
-    title: "Pro-NLP Job Manager",
+    title: "모두취업",
     description: "AI-powered job application manager",
 };
 

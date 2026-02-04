@@ -432,7 +432,7 @@ export default function RecruitPage() {
                         당신의 커리어를 <span className="text-primary drop-shadow-sm">Boost</span>하세요
                     </h1>
                     <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed font-medium">
-                        Pro-NLP는 당신의 포트폴리오를 분석하여 가장 적합한 기업을 추천하고,<br />
+                        모두취업은 당신의 포트폴리오를 분석하여 가장 적합한 기업을 추천하고,<br />
                         자소서 초안까지 작성해주는 최첨단 채용 서비스입니다.
                     </p>
                 </div>

@@ -61,7 +61,7 @@ export default function LoginPage() {
                 {/* Branding Section */}
                 <div className="text-center space-y-1 mb-6">
                     <h1 className="text-3xl font-black tracking-tight text-slate-900">
-                        Pro-NLP <span className="text-blue-600">Login</span>
+                        모두취업 <span className="text-blue-600">로그인</span>
                     </h1>
                     <p className="text-xs text-slate-500 font-bold uppercase tracking-widest opacity-60">
                         Secure AI Recruitment Partner
@@ -151,7 +151,7 @@ export default function LoginPage() {
                             </div>
 
                             <p className="text-[10px] text-center text-slate-400/80 leading-relaxed px-6 font-medium">
-                                로그인 시 Pro-NLP의 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">이용약관</span> 및 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">개인정보처리방침</span>에 동의하게 됩니다.
+                                로그인 시 모두취업의 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">이용약관</span> 및 <span className="underline cursor-pointer hover:text-blue-500 transition-colors">개인정보처리방침</span>에 동의하게 됩니다.
                             </p>
 
                             <div className="pt-2">

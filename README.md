@@ -1,4 +1,4 @@
-# PRO-NLP FINAL PROJECT
+# 모두취업 (구 Pro-NLP Final Project)
 
 이 프로젝트는 **Monorepo** 구조로, 백엔드와 프론트엔드 코드를 하나의 리포지토리에서 통합 관리합니다.
 

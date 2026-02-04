@@ -144,8 +144,8 @@ print("STDOUT: Initializing FastAPI app object...", flush=True)
 _app_definition_start = time.time()
 
 app = FastAPI(
-    title="Pro-NLP AI Recruitment Platform API",
-    description="Pro-NLP Backend",
+    title="모두취업 API",
+    description="모두취업 Backend",
     version="1.1.4",
     lifespan=lifespan
 )
