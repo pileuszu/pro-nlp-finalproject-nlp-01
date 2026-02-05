@@ -138,6 +138,7 @@ class JasoseolScraper:
             # Get Questions (Iterate over employments inside the recruitment group)
             employments = recruit.get('employments', [])
             all_questions = []
+            seen_questions = set()
             
             for emp in employments:
                 emp_id = emp.get('id')
@@ -145,11 +146,16 @@ class JasoseolScraper:
                 
                 # Format questions
                 for q in raw_qs:
+                    q_text = q.get('question', '').strip()
+                    if not q_text or q_text in seen_questions:
+                        continue
+                    
+                    seen_questions.add(q_text)
                     total_count = q.get('total_count')
                     max_len = total_count if total_count and total_count > 0 else None
                     
                     all_questions.append({
-                        "question": q.get('question'),
+                        "question": q_text,
                         "limit": max_len,
                         "employment_category": emp.get('name')
                     })
