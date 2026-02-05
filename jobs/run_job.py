@@ -122,6 +122,11 @@ async def main():
             limit = args.id if args.id else 20
             await run_fix_questions(limit=limit)
 
+        elif args.task == "deduplicate_questions":
+            logger.info("Running question deduplication task...")
+            from jobs.tasks.recruit_task import run_deduplicate_questions
+            await run_deduplicate_questions()
+
         else:
             logger.error(f"Unknown task: {args.task}")
             

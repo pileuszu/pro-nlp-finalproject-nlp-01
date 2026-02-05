@@ -205,3 +205,53 @@ async def run_fix_questions(limit: int = 20):
                 continue
                 
         logger.info(f"Question fix task complete. Fixed {fixed_count} items.")
+
+async def run_deduplicate_questions():
+    """
+    Iterates through all recruitment records and deduplicates their questions.
+    """
+    logger.info("Starting global recruitment question deduplication...")
+    
+    async with AsyncSessionLocal() as db:
+        stmt = select(Recruitment).where(Recruitment.questions.isnot(None))
+        result = await db.execute(stmt)
+        recruitments = result.scalars().all()
+        
+        updated_count = 0
+        total_count = len(recruitments)
+        
+        for recruit in recruitments:
+            questions = recruit.questions
+            if not questions or not isinstance(questions, list):
+                continue
+                
+            seen_texts = set()
+            new_questions = []
+            has_duplicates = False
+            
+            for q in questions:
+                if not isinstance(q, dict):
+                    continue
+                    
+                q_text = q.get('question', '').strip()
+                if not q_text:
+                    continue
+                    
+                if q_text not in seen_texts:
+                    seen_texts.add(q_text)
+                    new_questions.append(q)
+                else:
+                    has_duplicates = True
+            
+            if has_duplicates:
+                recruit.questions = new_questions
+                db.add(recruit)
+                updated_count += 1
+                
+                if updated_count % 10 == 0:
+                    await db.commit()
+                    logger.info(f"Progress: Deduplicated {updated_count} records so far...")
+        
+        await db.commit()
+    
+    logger.info(f"Question deduplication complete. Updated {updated_count} out of {total_count} records.")

@@ -168,3 +168,31 @@ async def fix_questions(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Job 트리거 실패: {str(e)}")
+
+@router.post(
+    "/deduplicate-questions",
+    status_code=202,
+    summary="자기소개서 문항 중복 제거 (Job 트리거)",
+    description="데이터베이스의 모든 채용 공고를 순회하며 중복된 자기소개서 문항을 제거합니다. X-Admin-Secret 헤더 필요."
+)
+async def deduplicate_questions(
+    background_tasks: BackgroundTasks,
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret")
+):
+    """
+    중복 문항 제거 Job을 트리거합니다.
+    """
+    if x_admin_secret != settings.ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+    
+    try:
+        from app.services.job_service import job_service
+        job_service.trigger_deduplicate_questions()
+        
+        return {
+            "success": True,
+            "message": "자기소개서 문항 중복 제거 Job이 트리거되었습니다.",
+            "task": "deduplicate_questions"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Job 트리거 실패: {str(e)}")
