@@ -11,7 +11,7 @@ export default function LandingPage() {
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-140px)] text-center px-4 animate-in fade-in duration-700">
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight lg:text-7xl mb-6">
                 취업의 모든 과정 <br />
-                <span className="text-primary">모두취업</span>과 함께
+                <span className="text-primary font-climate font-black">모두취업</span>과 함께
             </h1>
             <p className="text-xl text-muted-foreground max-w-[600px] mb-8 leading-relaxed">
                 포트폴리오 관리부터 공고 추천, 자기소개서 작성까지.<br />
