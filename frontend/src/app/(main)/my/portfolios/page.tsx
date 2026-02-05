@@ -116,7 +116,7 @@ export default function PortfoliosPage() {
                         transition={{ duration: 0.3 }}
                         className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
                     >
-                        {portfolios.map((portfolio, index) => (
+                        {portfolios.map((portfolio) => (
                             <motion.div
                                 key={portfolio.id}
                                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
