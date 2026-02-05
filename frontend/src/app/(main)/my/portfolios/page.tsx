@@ -71,12 +71,13 @@ export default function PortfoliosPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 container max-w-screen-xl mx-auto py-8 px-4 md:px-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-8 gap-4 flex-wrap">
-                <div className="flex-1">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">내 포트폴리오</h1>
-                    <p className="text-slate-500 mt-2 font-medium">등록된 포트폴리오를 관리하고 채용 공고에 활용하세요.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-8 gap-6">
+                <div>
+                    <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-3">내 포트폴리오</h1>
+                    <p className="text-slate-500 font-medium text-sm sm:text-base">등록된 포트폴리오를 관리하고 채용 공고에 활용하세요.</p>
                 </div>
-                <div className="flex items-center gap-4">
+
+                <div className="flex items-center gap-3 sm:gap-4">
                     <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner">
                         <Button
                             variant="ghost"
@@ -96,10 +97,10 @@ export default function PortfoliosPage() {
                         </Button>
                     </div>
 
-                    <Link href="/my/portfolios/new">
-                        <Button variant="brand" className="h-11 pl-5 pr-6 rounded-xl font-bold shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2">
+                    <Link href="/my/portfolios/new" className="flex-1 sm:flex-none">
+                        <Button variant="brand" className="w-full h-11 pl-5 pr-6 rounded-xl font-bold shadow-lg shadow-blue-500/10 flex items-center justify-center gap-2">
                             <Plus className="h-5 w-5" />
-                            <span>새 포트폴리오 등록</span>
+                            <span className="whitespace-nowrap">새 포트폴리오 등록</span>
                         </Button>
                     </Link>
                 </div>
