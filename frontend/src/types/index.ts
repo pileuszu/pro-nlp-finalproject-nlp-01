@@ -20,6 +20,7 @@ export interface Recruit {
     required_qualifications?: string;
     preferred_qualifications?: string;
     view_count?: number;
+    questions?: { question: string; limit?: string | number }[];
 }
 
 export interface PortfolioJobQuery {

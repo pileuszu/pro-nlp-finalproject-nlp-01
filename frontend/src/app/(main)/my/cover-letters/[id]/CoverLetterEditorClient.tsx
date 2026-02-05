@@ -229,11 +229,11 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         setShowRecruitPanel(true);
 
                         if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
-                            setQuestions(data.questions.map((q: { question: string; limit?: string }, idx: number) => ({
+                            setQuestions(data.questions.map((q: { question: string; limit?: string | number }, idx: number) => ({
                                 id: Date.now() + idx,
                                 question: q.question,
                                 answer: "",
-                                max_length: q.limit ? parseInt(q.limit.replace(/[^0-9]/g, '')) || 1000 : 1000
+                                max_length: q.limit ? parseInt(String(q.limit).replace(/[^0-9]/g, '')) || 1000 : 1000
                             })));
                         }
                     }
