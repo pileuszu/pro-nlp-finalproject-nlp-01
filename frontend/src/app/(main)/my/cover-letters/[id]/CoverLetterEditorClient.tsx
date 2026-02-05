@@ -15,7 +15,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
-import { CoverLetterItem, GapAnalysisResult, NotificationEventDetail, CoverLetterVersion } from "@/types";
+import { CoverLetterItem, GapAnalysisResult, NotificationEventDetail, CoverLetterVersion, CoverLetter } from "@/types";
 
 // --- Sub-Components ---
 import { RecruitInfoPanel } from "./components/RecruitInfoPanel";
@@ -52,6 +52,7 @@ interface RecruitDetail {
     required_qualifications?: string;
     preferred_qualifications?: string;
     tags?: string[];
+    questions?: { question: string; limit?: string; employment_category?: string }[];
 }
 
 type AiMode = 'draft' | 'strategy' | 'refine';
@@ -90,13 +91,12 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
 
     // Polling logic for AI generation result
     const [pollingTarget, setPollingTarget] = useState<string>("");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: polledResult } = usePolling<any>(
+    const { data: polledResult } = usePolling<CoverLetter>(
         pollingTarget,
         3000,
-        (data) => (data.processing_status || data.status) === 'REVIEW_REQUIRED' ||
-            (data.processing_status || data.status) === 'COMPLETED' ||
-            (data.processing_status || data.status) === 'FAILED'
+        (data) => data.processing_status === 'REVIEW_REQUIRED' ||
+            data.processing_status === 'COMPLETED' ||
+            data.processing_status === 'FAILED'
     );
 
     const handleConfirm = async () => {
@@ -125,15 +125,19 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
     useEffect(() => {
         if (!polledResult) return;
 
-        const currentStatus = polledResult.processing_status || polledResult.status;
-        const isDone = ['REVIEW_REQUIRED', 'COMPLETED', 'FAILED'].includes(currentStatus);
+        const currentStatus = polledResult.processing_status;
+        const isDone = currentStatus && ['REVIEW_REQUIRED', 'COMPLETED', 'FAILED'].includes(currentStatus);
 
         if (isDone) {
             setStatus(currentStatus);
 
             if (currentStatus !== 'FAILED') {
                 if (polledResult.gap_analysis) {
-                    setGapAnalysis(prev => ({ ...prev, ...polledResult.gap_analysis }));
+                    setGapAnalysis(prev => ({
+                        matching_points: polledResult.gap_analysis?.matching_points || prev?.matching_points || [],
+                        missing_elements: polledResult.gap_analysis?.missing_elements || prev?.missing_elements || [],
+                        overall_fit: polledResult.gap_analysis?.overall_fit || prev?.overall_fit || ""
+                    }));
                 }
 
                 if (polledResult.items && Array.isArray(polledResult.items) && polledResult.items.length > 0) {
@@ -223,6 +227,15 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         setLinkedRecruit(data);
                         setTitle(`[지원] ${data.company} - ${data.title}`);
                         setShowRecruitPanel(true);
+
+                        if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+                            setQuestions(data.questions.map((q: { question: string; limit?: string | number }, idx: number) => ({
+                                id: Date.now() + idx,
+                                question: q.question,
+                                answer: "",
+                                max_length: q.limit ? parseInt(String(q.limit).replace(/[^0-9]/g, '')) || 1000 : 1000
+                            })));
+                        }
                     }
                 } catch (e) { console.error(e); }
             }

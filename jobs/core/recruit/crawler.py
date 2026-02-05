@@ -14,6 +14,11 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 logger = logging.getLogger(__name__)
 
 # Pydantic schema for recruitment data
+class QuestionItem(BaseModel):
+    question: str = Field(..., description="자기소개서 문항 질문 내용")
+    limit: Optional[str] = Field(None, description="글자수 제한 (예: '500', '1000', '무제한')")
+    employment_category: Optional[str] = Field(None, description="직무 카테고리 (해당되는 경우)")
+
 class RecruitmentItem(BaseModel):
     title: str = Field(..., description="직무명 + 공고제목")
     company: str = Field(..., description="회사명")
@@ -30,7 +35,7 @@ class RecruitmentItem(BaseModel):
     required_qualifications: Optional[str] = Field(None, description="자격 요건")
     preferred_qualifications: Optional[str] = Field(None, description="우대 사항")
     tags: Optional[List[str]] = Field(None, description="기술 스택 (리스트: React, TypeScript, Next.js, Java, Spring, Python, PyTorch, Node.js, Go, Swift, AWS, Kubernetes 중 해당되는 것 모두 선택)")
-    questions: Optional[List[Dict]] = Field(None, description="자기소개서 문항 리스트 (질문과 글자수 포함)")
+    questions: Optional[List[QuestionItem]] = Field(None, description="자기소개서 문항 리스트")
 
 class RecruitmentList(BaseModel):
     items: List[RecruitmentItem] = Field(default_factory=list, description="채용 공고 리스트")

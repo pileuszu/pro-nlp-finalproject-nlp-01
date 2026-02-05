@@ -199,8 +199,6 @@ export default function NewPortfolioPage() {
     const githubIntegration = integrations.find(i => i.provider === 'github');
     const notionIntegration = integrations.find(i => i.provider === 'notion');
 
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
     const handleGithubAnalyze = async (url: string) => {
         if (!url) {
             toast("GitHub URL을 입력해주세요.", "warning");

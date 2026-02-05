@@ -46,6 +46,17 @@ class JobService:
     def trigger_recruit_indexing(self):
         return self.trigger_job(task="recruit_indexing")
 
+    def trigger_fix_questions(self, limit: int = 20):
+        # We pass limit as 'id' argument hack or environment variable?
+        # run_job.py logic above uses args.id as limit for this task.
+        return self.trigger_job(task="fix_questions", target_id=limit)
+
+    def trigger_deduplicate_questions(self):
+        """
+        Triggers a task to deduplicate recruitment questions across all records.
+        """
+        return self.trigger_job(task="deduplicate_questions")
+
     def trigger_cover_letter_item_headline(self, item_id: int):
         return self.trigger_job(task="cover_letter_item_headline", target_id=item_id)
 

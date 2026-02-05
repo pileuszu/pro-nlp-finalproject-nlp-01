@@ -89,14 +89,15 @@ export default function CoverLettersPage() {
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 container max-w-screen-xl mx-auto py-8 px-4 md:px-8">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-8 flex-wrap gap-4">
-                <div className="min-w-[200px]">
-                    <h1 className="text-3xl font-bold tracking-tight text-slate-900 leading-tight">내 자기소개서</h1>
-                    <p className="text-slate-500 mt-2 font-medium">작성 중인 자소서와 완료된 자소서를 한눈에 관리하세요.</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-8 gap-6 mb-8 sm:mb-12">
+                <div>
+                    <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mb-2 sm:mb-3">내 자기소개서</h1>
+                    <p className="text-slate-500 font-medium text-sm sm:text-base">작성한 자기소개서를 관리하고 맞춤형 피드백을 받아보세요.</p>
                 </div>
-                <div className="flex items-center gap-3 ml-auto">
+
+                <div className="flex items-center gap-2 sm:gap-3 ml-auto w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
                     {/* View Toggle */}
-                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner mr-2">
+                    <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-inner mr-1 sm:mr-2 shrink-0">
                         <Button
                             variant="ghost"
                             size="sm"
@@ -115,35 +116,36 @@ export default function CoverLettersPage() {
                         </Button>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0 ml-auto sm:ml-0">
                         {isSelectionMode ? (
                             <>
                                 <Button
                                     variant="destructive"
                                     onClick={handleBulkDelete}
                                     disabled={selectedIds.length === 0}
-                                    className="h-11 pl-5 pr-6 rounded-xl font-bold shadow-lg shadow-red-500/10 flex items-center justify-center gap-2"
+                                    className="h-10 sm:h-11 px-3 sm:pl-5 sm:pr-6 rounded-xl font-bold shadow-lg shadow-red-500/10 flex items-center justify-center gap-2"
                                 >
                                     <Trash2 className="h-4 w-4" />
-                                    <span>{selectedIds.length}개 삭제</span>
+                                    <span className="hidden xs:inline">{selectedIds.length}개 삭제</span>
+                                    <span className="xs:hidden">{selectedIds.length}</span>
                                 </Button>
                                 <Button
                                     variant="outline"
                                     onClick={() => { setIsSelectionMode(false); setSelectedIds([]); }}
-                                    className="h-11 pl-5 pr-6 rounded-xl border-slate-200 font-bold flex items-center justify-center gap-2"
+                                    className="h-10 sm:h-11 px-3 sm:pl-5 sm:pr-6 rounded-xl border-slate-200 font-bold flex items-center justify-center gap-2"
                                 >
                                     <X className="h-4 w-4" />
-                                    <span>취소</span>
+                                    <span className="hidden xs:inline">취소</span>
                                 </Button>
                             </>
                         ) : (
                             <Button
                                 variant="outline"
                                 onClick={() => setIsSelectionMode(true)}
-                                className="h-11 pl-5 pr-6 rounded-xl border-slate-200 font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
+                                className="h-10 sm:h-11 px-3 sm:pl-5 sm:pr-6 rounded-xl border-slate-200 font-bold hover:bg-slate-50 flex items-center justify-center gap-2"
                             >
                                 <LayoutList className="h-4 w-4" />
-                                <span>일괄 관리</span>
+                                <span className="whitespace-nowrap">일괄 관리</span>
                             </Button>
                         )}
                     </div>

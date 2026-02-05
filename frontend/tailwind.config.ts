@@ -58,7 +58,7 @@ const config: Config = {
                 sm: 'calc(var(--radius) - 4px)'
             },
             fontFamily: {
-                climate: ['ClimateCrisisKorean', 'sans-serif'],
+                pretendard: ['Pretendard', 'sans-serif'],
             }
         }
     },

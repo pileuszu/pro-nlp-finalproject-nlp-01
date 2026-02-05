@@ -55,7 +55,7 @@ describe('RecruitPage', () => {
     it('renders the hero section and search input', () => {
         render(<RecruitPage />);
         expect(screen.getByText(/당신의 커리어를/i)).toBeInTheDocument();
-        expect(screen.getByPlaceholderText(/찾으시는 회사나 직무/i)).toBeInTheDocument();
+        expect(screen.getByPlaceholderText(/회사, 직무, 기술 스택 검색/i)).toBeInTheDocument();
     });
 
     it('fetches and displays recruits from the mock API', async () => {

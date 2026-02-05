@@ -1,5 +1,6 @@
 import os
 import logging
+import asyncio
 import traceback
 from sqlalchemy import select
 from common.database import AsyncSessionLocal
@@ -103,3 +104,154 @@ async def run_scraper():
     except Exception as e:
         logger.error(f"Incremental crawler task failed: {e}")
         logger.error(traceback.format_exc())
+
+async def run_fix_questions(limit: int = 20):
+    """
+    Identifies recruitments with malformed questions (Korean keys) and fixes them
+    by re-crawling and re-parsing.
+    """
+    logger.info(f"Starting question fix task (limit={limit})...")
+    
+    from jobs.core.recruit.crawler import RecruitmentCrawler
+    from jobs.core.recruit.scrapers.saramin import SaraminScraper
+    import urllib.parse
+    
+    crawler = RecruitmentCrawler()
+    
+    async with AsyncSessionLocal() as db:
+        # Fetch candidates: Check recent ones first
+        stmt = select(Recruitment).where(Recruitment.questions.isnot(None)).order_by(Recruitment.id.desc()).limit(limit * 10)
+        result = await db.execute(stmt)
+        candidates = result.scalars().all()
+        
+        fixed_count = 0
+        
+        for recruit in candidates:
+            if fixed_count >= limit:
+                break
+                
+            questions = recruit.questions
+            if not questions:
+                continue
+                
+            # Check if malformed (has Korean key '질문')
+            is_malformed = False
+            for q in questions:
+                if isinstance(q, dict) and '질문' in q:
+                    is_malformed = True
+                    break
+            
+            if not is_malformed:
+                continue
+                
+            logger.info(f"Fixing Recruitment {recruit.id} ({recruit.title})...")
+            
+            content_text = ""
+            image_urls = []
+            
+            try:
+                # 1. Fetch Content
+                if recruit.link and "saramin.co.kr" in recruit.link:
+                    scraper = SaraminScraper()
+                    parsed = urllib.parse.urlparse(recruit.link)
+                    qs = urllib.parse.parse_qs(parsed.query)
+                    rec_idx = qs.get('rec_idx', [None])[0]
+                    
+                    if rec_idx:
+                        content_text, image_urls = await scraper.get_job_details(rec_idx)
+                
+                if not content_text and recruit.link:
+                    # Fallback to generic crawler
+                    # get_job_detail is a sync method, run in executor
+                    loop = asyncio.get_event_loop()
+                    content_text, images_str, _ = await loop.run_in_executor(None, crawler.get_job_detail, recruit.link)
+                    image_urls = images_str.split(", ") if images_str else []
+                
+                if not content_text:
+                    logger.warning(f"Failed to fetch content for {recruit.id}")
+                    continue
+                    
+                # 2. Re-parse with LLM (Strict Schema)
+                job_data = {
+                    'company': recruit.company,
+                    'title': recruit.title,
+                    'url': recruit.link,
+                    'apply_url': recruit.link,
+                    'content_text': content_text,
+                    'content_images': ", ".join(image_urls)
+                }
+                
+                loop = asyncio.get_event_loop()
+                items = await loop.run_in_executor(None, crawler._analyze_job_with_ncp, job_data)
+                
+                if items:
+                    # Take the first item's questions
+                    # We only update questions, avoiding overwrite of other manual fields if any
+                    new_questions = items[0].get('questions')
+                    if new_questions:
+                        # Convert to dict if they are Pydantic models (should already be dicts from crawler)
+                        recruit.questions = new_questions
+                        db.add(recruit)
+                        await db.commit()
+                        logger.info(f"-> Fixed questions for {recruit.id}")
+                        fixed_count += 1
+                    else:
+                        logger.warning(f"-> LLM returned no questions for {recruit.id}")
+                else:
+                    logger.warning(f"-> LLM returned no items for {recruit.id}")
+            
+            except Exception as e:
+                logger.error(f"Error fixing {recruit.id}: {e}")
+                continue
+                
+        logger.info(f"Question fix task complete. Fixed {fixed_count} items.")
+
+async def run_deduplicate_questions():
+    """
+    Iterates through all recruitment records and deduplicates their questions.
+    """
+    logger.info("Starting global recruitment question deduplication...")
+    
+    async with AsyncSessionLocal() as db:
+        stmt = select(Recruitment).where(Recruitment.questions.isnot(None))
+        result = await db.execute(stmt)
+        recruitments = result.scalars().all()
+        
+        updated_count = 0
+        total_count = len(recruitments)
+        
+        for recruit in recruitments:
+            questions = recruit.questions
+            if not questions or not isinstance(questions, list):
+                continue
+                
+            seen_texts = set()
+            new_questions = []
+            has_duplicates = False
+            
+            for q in questions:
+                if not isinstance(q, dict):
+                    continue
+                    
+                q_text = q.get('question', '').strip()
+                if not q_text:
+                    continue
+                    
+                if q_text not in seen_texts:
+                    seen_texts.add(q_text)
+                    new_questions.append(q)
+                else:
+                    has_duplicates = True
+            
+            if has_duplicates:
+                recruit.questions = new_questions
+                db.add(recruit)
+                updated_count += 1
+                
+                if updated_count % 10 == 0:
+                    await db.commit()
+                    logger.info(f"Progress: Deduplicated {updated_count} records so far...")
+        
+        await db.commit()
+    
+    logger.info(f"Question deduplication complete. Updated {updated_count} out of {total_count} records.")

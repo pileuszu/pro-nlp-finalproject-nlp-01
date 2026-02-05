@@ -7,7 +7,7 @@ import { User } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Target, Sparkles, User as UserIcon, Mail, Github, Settings as NotionIcon, Unlink, CheckCircle2 } from "lucide-react";
+import { Loader2, Target, Sparkles, User as UserIcon, Github, Settings as NotionIcon, Unlink, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { integrationApi, UserIntegration } from "@/lib/integrationApi";
 import { cn } from "@/lib/utils";

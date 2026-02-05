@@ -44,6 +44,7 @@ export default function RecruitPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
     const [searchType, setSearchType] = useState("all");
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
 
     const SEARCH_TYPES = [
         { label: "통합검색", value: "all" },
@@ -437,17 +438,17 @@ export default function RecruitPage() {
                     </p>
                 </div>
 
-                <div className="max-w-3xl mx-auto relative group flex items-center gap-3">
+                <div className="max-w-3xl mx-auto relative group flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <div className="relative flex-1 group">
                         <div className="absolute inset-0 bg-primary/5 blur-2xl rounded-full -z-10 group-focus-within:bg-primary/10 transition-colors"></div>
-                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                        <Search className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground group-focus-within:text-primary transition-colors" />
                         <Input
                             placeholder={
-                                searchType === 'title' ? "직무 키워드로 검색해보세요 (예: 프론트엔드)" :
-                                    searchType === 'company' ? "기업명으로 검색해보세요 (예: 카카오)" :
-                                        "찾으시는 회사나 직무, 기술 스택을 검색해보세요"
+                                searchType === 'title' ? "직무 키워드로" :
+                                    searchType === 'company' ? "기업명으로" :
+                                        "회사, 직무, 기술 스택 검색"
                             }
-                            className="pl-16 h-16 rounded-3xl border-border focus-visible:ring-primary bg-card shadow-xl shadow-muted/50 hover:shadow-2xl hover:shadow-muted/60 transition-all text-lg font-medium"
+                            className="pl-12 sm:pl-16 h-14 sm:h-16 rounded-2xl sm:rounded-3xl border-border focus-visible:ring-primary bg-card shadow-lg sm:shadow-xl shadow-muted/50 hover:shadow-2xl hover:shadow-muted/60 transition-all text-base sm:text-lg font-medium"
                             value={searchQuery}
                             onChange={(e) => {
                                 setSearchQuery(e.target.value);
@@ -468,15 +469,15 @@ export default function RecruitPage() {
                         <DropdownMenuTrigger asChild>
                             <Button
                                 variant="outline"
-                                className="h-16 px-6 rounded-3xl border-border bg-card shadow-lg shadow-muted/40 hover:bg-muted transition-all flex items-center gap-2 group min-w-max"
+                                className="h-14 sm:h-16 px-4 sm:px-6 rounded-2xl sm:rounded-3xl border-border bg-card shadow-md sm:shadow-lg shadow-muted/40 hover:bg-muted transition-all flex items-center gap-2 group min-w-max"
                             >
-                                <span className="text-sm font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                                <span className="text-xs sm:text-sm font-black text-muted-foreground uppercase tracking-widest whitespace-nowrap">
                                     {SEARCH_TYPES.find(t => t.value === searchType)?.label}
                                 </span>
                                 <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="min-w-[120px] w-auto rounded-2xl p-1.5 border-slate-200 shadow-xl animate-in fade-in zoom-in duration-200">
+                        <DropdownMenuContent align="end" className="min-w-[120px] w-auto rounded-xl sm:rounded-2xl p-1.5 border-slate-200 shadow-xl animate-in fade-in zoom-in duration-200">
                             {SEARCH_TYPES.map((type) => (
                                 <DropdownMenuItem
                                     key={type.value}
@@ -534,73 +535,178 @@ export default function RecruitPage() {
                         </div>
                     </div>
 
-                    {/* 카테고리 & 기술 필터 바 (Tabs 바로 아래 위치) */}
-                    <div className="space-y-8 mb-12 animate-in slide-in-from-top-4 fade-in duration-700">
-                        {/* 필터 헤더 및 초기화 버튼 */}
-                        <div className="flex items-center justify-between border-b border-border pb-4">
-                            <div className="flex items-center gap-3">
-                                <span className="text-xl font-black text-foreground tracking-tight">상세 필터</span>
-                                {(selectedCategories.length > 0 || selectedTechs.length > 0 || searchQuery !== "") && (
-                                    <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-lg font-bold text-[11px] animate-in zoom-in duration-300">
-                                        {selectedCategories.length + selectedTechs.length + (searchQuery !== "" ? 1 : 0)}개 필터 활성
-                                    </Badge>
-                                )}
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={resetFilters}
-                                disabled={selectedCategories.length === 0 && selectedTechs.length === 0 && searchQuery === ""}
-                                className="text-muted-foreground hover:text-primary hover:bg-muted font-bold text-[12px] gap-1.5 transition-all disabled:opacity-30"
-                            >
-                                <MoreHorizontal className="h-3.5 w-3.5 rotate-90" /> 필터 초기화
-                            </Button>
-                        </div>
-
-                        {/* 직무 카테고리 (Wrap Layout) */}
-                        <div className="space-y-3">
-                            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest block pl-1">직무</span>
-                            <div className="flex flex-wrap gap-2.5">
-                                {JOB_CATEGORIES.map((cat) => (
-                                    <Button
-                                        key={cat.value}
-                                        variant="outline"
-                                        onClick={() => toggleCategory(cat.value)}
-                                        className={cn(
-                                            "rounded-full h-11 px-6 font-bold transition-all duration-300 border-2 whitespace-nowrap",
-                                            (cat.value === 'all' && selectedCategories.length === 0) || selectedCategories.includes(cat.value)
-                                                ? "bg-foreground border-foreground text-background shadow-xl shadow-foreground/10 scale-105"
-                                                : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-muted"
-                                        )}
-                                    >
-                                        {cat.label}
-                                    </Button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* 기술 스택 (Unified) */}
-                        <div className="space-y-3">
-                            <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest block pl-1">기술 스택</span>
-                            <div className="flex flex-wrap gap-2">
-                                {TECH_STACKS.flatMap(group => group.items).map((tech) => (
-                                    <Badge
-                                        key={tech}
-                                        variant={selectedTechs.includes(tech) ? "default" : "outline"}
-                                        onClick={() => toggleTech(tech)}
-                                        className={cn(
-                                            "cursor-pointer px-5 py-2.5 rounded-2xl font-bold transition-all duration-300 border-2 select-none text-[13px]",
-                                            selectedTechs.includes(tech)
-                                                ? "bg-primary border-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105"
-                                                : "bg-card text-muted-foreground border-border hover:border-muted-foreground hover:text-foreground"
-                                        )}
-                                    >
-                                        {tech}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </div>
+                    {/* Mobile Filter Toggle */}
+                    <div className="md:hidden mb-6">
+                        <Button
+                            variant="outline"
+                            className="w-full h-12 rounded-xl flex items-center justify-between px-6 font-bold"
+                            onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        >
+                            <span className="flex items-center gap-2">
+                                <MoreHorizontal className={cn("h-4 w-4 transition-transform", isFilterOpen && "rotate-90")} />
+                                상세 필터 {(selectedCategories.length + selectedTechs.length > 0) && `(${selectedCategories.length + selectedTechs.length})`}
+                            </span>
+                            <ChevronDown className={cn("h-4 w-4 transition-transform", isFilterOpen && "rotate-180")} />
+                        </Button>
                     </div>
+
+                    {/* 카테고리 & 기술 필터 바 (Tabs 바로 아래 위치) */}
+                    <AnimatePresence>
+                        {(isFilterOpen || (typeof window !== 'undefined' && window.innerWidth >= 768)) && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className={cn(
+                                    "space-y-6 sm:space-y-8 mb-8 sm:mb-12 overflow-hidden",
+                                    "hidden md:block" // Desktop: always show
+                                )}
+                            >
+                                {/* 필터 헤더 및 초기화 버튼 (Desktop) */}
+                                <div className="hidden md:flex items-center justify-between border-b border-border pb-4">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xl font-black text-foreground tracking-tight">상세 필터</span>
+                                        {(selectedCategories.length > 0 || selectedTechs.length > 0) && (
+                                            <Badge variant="secondary" className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-lg font-bold text-[11px] animate-in zoom-in duration-300">
+                                                {selectedCategories.length + selectedTechs.length}개 필터 활성
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={resetFilters}
+                                        disabled={selectedCategories.length === 0 && selectedTechs.length === 0 && searchQuery === ""}
+                                        className="text-muted-foreground hover:text-primary hover:bg-muted font-bold text-[12px] gap-1.5 transition-all disabled:opacity-30"
+                                    >
+                                        <MoreHorizontal className="h-3.5 w-3.5 rotate-90" /> 필터 초기화
+                                    </Button>
+                                </div>
+
+                                {/* 직무 카테고리 (Wrap Layout) */}
+                                <div className="space-y-3">
+                                    <span className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-widest block pl-1">직무</span>
+                                    <div className="flex flex-wrap gap-2 sm:gap-2.5">
+                                        {JOB_CATEGORIES.map((cat) => (
+                                            <Button
+                                                key={cat.value}
+                                                variant="outline"
+                                                onClick={() => toggleCategory(cat.value)}
+                                                className={cn(
+                                                    "rounded-full h-9 sm:h-11 px-4 sm:px-6 text-xs sm:text-sm font-bold transition-all duration-300 border-2 whitespace-nowrap",
+                                                    (cat.value === 'all' && selectedCategories.length === 0) || selectedCategories.includes(cat.value)
+                                                        ? "bg-foreground border-foreground text-background shadow-lg sm:shadow-xl shadow-foreground/10 scale-105"
+                                                        : "bg-card border-border text-muted-foreground hover:border-primary/50 hover:text-primary hover:bg-muted"
+                                                )}
+                                            >
+                                                {cat.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 기술 스택 (Unified) */}
+                                <div className="space-y-3">
+                                    <span className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-widest block pl-1">기술 스택</span>
+                                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                        {TECH_STACKS.flatMap(group => group.items).map((tech) => (
+                                            <Badge
+                                                key={tech}
+                                                variant={selectedTechs.includes(tech) ? "default" : "outline"}
+                                                onClick={() => toggleTech(tech)}
+                                                className={cn(
+                                                    "cursor-pointer px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl font-bold transition-all duration-300 border-2 select-none text-[11px] sm:text-[13px]",
+                                                    selectedTechs.includes(tech)
+                                                        ? "bg-primary border-primary text-primary-foreground shadow-md sm:shadow-lg shadow-primary/20 scale-105"
+                                                        : "bg-card text-muted-foreground border-border hover:border-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                {tech}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="md:hidden flex justify-end pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={resetFilters}
+                                        disabled={selectedCategories.length === 0 && selectedTechs.length === 0}
+                                        className="text-muted-foreground hover:text-primary font-bold text-[11px] gap-1.5 disabled:opacity-30"
+                                    >
+                                        필터 초기화
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Mobile Only Filter View (Simplified replacement for the above logic that handles mobile toggle properly) */}
+                    <AnimatePresence>
+                        {isFilterOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: "auto" }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="md:hidden space-y-6 mb-8 overflow-hidden border-b border-border pb-6"
+                            >
+                                {/* 직무 카테고리 */}
+                                <div className="space-y-3">
+                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block pl-1">직무</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {JOB_CATEGORIES.map((cat) => (
+                                            <Button
+                                                key={cat.value}
+                                                variant="outline"
+                                                onClick={() => toggleCategory(cat.value)}
+                                                className={cn(
+                                                    "rounded-full h-9 px-4 text-xs font-bold transition-all border-2 whitespace-nowrap",
+                                                    (cat.value === 'all' && selectedCategories.length === 0) || selectedCategories.includes(cat.value)
+                                                        ? "bg-foreground border-foreground text-background"
+                                                        : "bg-card border-border text-muted-foreground"
+                                                )}
+                                            >
+                                                {cat.label}
+                                            </Button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 기술 스택 */}
+                                <div className="space-y-3">
+                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest block pl-1">기술 스택</span>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {TECH_STACKS.flatMap(group => group.items).map((tech) => (
+                                            <Badge
+                                                key={tech}
+                                                variant={selectedTechs.includes(tech) ? "default" : "outline"}
+                                                onClick={() => toggleTech(tech)}
+                                                className={cn(
+                                                    "cursor-pointer px-3 py-1.5 rounded-xl font-bold transition-all border-2 text-[11px]",
+                                                    selectedTechs.includes(tech)
+                                                        ? "bg-primary border-primary text-primary-foreground"
+                                                        : "bg-card text-muted-foreground border-border"
+                                                )}
+                                            >
+                                                {tech}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="flex justify-end pt-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={resetFilters}
+                                        disabled={selectedCategories.length === 0 && selectedTechs.length === 0}
+                                        className="text-muted-foreground hover:text-primary font-bold text-[11px] gap-1.5 disabled:opacity-30"
+                                    >
+                                        초기화
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
                     {loading ? (
                         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
