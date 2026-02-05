@@ -127,15 +127,15 @@ class AICoverLetterService:
                             core_values=recruitment.company_description or ""
                         )
                         # Save outline result
-                        item.content = f"""**[개요 생성 결과]**
-**한 줄 결론**: {outline_data.get('one_liner')}
+                        item.content = f"""
+한 줄 결론: {outline_data.get('one_liner')}
 
-**핵심 메시지**: {', '.join(outline_data.get('key_messages', []))}
+핵심 메시지: {', '.join(outline_data.get('key_messages', []))}
 
-**문단 구성 계획**:
+문단 구성 계획:
 """
                         for plan in outline_data.get('paragraph_plans', []):
-                            item.content += f"\n- **{plan.get('section_title')}**: {plan.get('paragraph_goal')}"
+                            item.content += f"\n- {plan.get('section_title')}: {plan.get('paragraph_goal')}"
                             if plan.get('key_points'):
                                 item.content += f" ({', '.join(plan.get('key_points'))})"
                         
