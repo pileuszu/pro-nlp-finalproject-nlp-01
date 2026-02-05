@@ -11,12 +11,15 @@ router = APIRouter()
     summary="채용 공고 크롤링 트리거",
     description="배경 작업으로 채용 공고 크롤링을 시작합니다. 관리자 비밀번호가 필요합니다."
 )
-def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
+def trigger_crawling(
+    background_tasks: BackgroundTasks, 
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret")
+):
     """
     Trigger the recruitment crawling process in the background.
     Requires a secret key for basic security.
     """
-    if secret != settings.ADMIN_SECRET:
+    if x_admin_secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
     
     from app.services.job_service import job_service
@@ -33,11 +36,14 @@ def trigger_crawling(background_tasks: BackgroundTasks, secret: str):
     summary="급속 채용 공고 크롤링 트리거 (1페이지, 1개)",
     description="빠른 테스트를 위해 1페이지에서 1개의 공고만 크롤링합니다. 관리자 비밀번호가 필요합니다."
 )
-def trigger_fast_crawling(background_tasks: BackgroundTasks, secret: str):
+def trigger_fast_crawling(
+    background_tasks: BackgroundTasks, 
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret")
+):
     """
     Trigger a limited crawling process (1 page, 1 item) for testing.
     """
-    if secret != settings.ADMIN_SECRET:
+    if x_admin_secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
     
     from app.services.job_service import job_service
@@ -55,7 +61,7 @@ def trigger_fast_crawling(background_tasks: BackgroundTasks, secret: str):
     description="모든 테이블을 삭제하고 다시 생성합니다. 스키마 변경 시 유용하지만 모든 데이터가 삭제되니 주의하십시오."
 )
 async def clear_database(
-    secret: str,
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret"),
     db = Depends(get_async_db)  # Use dependency for session
 ):
     """
@@ -64,7 +70,7 @@ async def clear_database(
     WARNING: This will delete everything!
     """
     # Security check
-    if secret != settings.ADMIN_SECRET:
+    if x_admin_secret != settings.ADMIN_SECRET:
         raise HTTPException(status_code=403, detail="Invalid admin secret")
 
     try:
@@ -109,7 +115,7 @@ async def clear_database(
 )
 async def generate_embeddings(
     background_tasks: BackgroundTasks,
-    x_admin_secret: Optional[str] = Header(None)
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret")
 ):
     """
     임베딩 생성 Job을 트리거합니다.
@@ -130,6 +136,35 @@ async def generate_embeddings(
             "success": True,
             "message": "임베딩 생성 Job이 트리거되었습니다.",
             "task": "recruit_indexing"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Job 트리거 실패: {str(e)}")
+
+@router.post(
+    "/fix-questions",
+    status_code=202,
+    summary="잘못된 질문 양식 수정 (Job 트리거)",
+    description="한글 키(질문 등)를 사용하는 공고를 찾아 다시 크롤링하고 표준 양식으로 수정합니다. X-Admin-Secret 헤더 필요."
+)
+async def fix_questions(
+    background_tasks: BackgroundTasks,
+    limit: int = 20,
+    x_admin_secret: Optional[str] = Header(None, alias="x-admin-secret")
+):
+    """
+    잘못된 질문 양식 수정 Job을 트리거합니다.
+    """
+    if x_admin_secret != settings.ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+    
+    try:
+        from app.services.job_service import job_service
+        job_service.trigger_fix_questions(limit=limit)
+        
+        return {
+            "success": True,
+            "message": f"질문 수정 Job이 트리거되었습니다. (Limit: {limit})",
+            "task": "fix_questions"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Job 트리거 실패: {str(e)}")

@@ -114,6 +114,14 @@ async def main():
             from jobs.tasks.recruit_task import run_scraper
             # Scraper now manages its own DB sessions to prevent timeouts
             await run_scraper()
+            
+        elif args.task == "fix_questions":
+            logger.info("Running question fix task...")
+            from jobs.tasks.recruit_task import run_fix_questions
+            # Use 'id' arg as limit if provided, otherwise default 20
+            limit = args.id if args.id else 20
+            await run_fix_questions(limit=limit)
+
         else:
             logger.error(f"Unknown task: {args.task}")
             

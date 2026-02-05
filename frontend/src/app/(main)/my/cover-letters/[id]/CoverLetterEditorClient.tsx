@@ -52,6 +52,7 @@ interface RecruitDetail {
     required_qualifications?: string;
     preferred_qualifications?: string;
     tags?: string[];
+    questions?: { question: string; limit?: string; employment_category?: string }[];
 }
 
 type AiMode = 'draft' | 'strategy' | 'refine';
@@ -223,6 +224,15 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                         setLinkedRecruit(data);
                         setTitle(`[지원] ${data.company} - ${data.title}`);
                         setShowRecruitPanel(true);
+
+                        if (data.questions && Array.isArray(data.questions) && data.questions.length > 0) {
+                            setQuestions(data.questions.map((q: any, idx: number) => ({
+                                id: Date.now() + idx,
+                                question: q.question,
+                                answer: "",
+                                max_length: q.limit ? parseInt(q.limit.replace(/[^0-9]/g, '')) || 1000 : 1000
+                            })));
+                        }
                     }
                 } catch (e) { console.error(e); }
             }
