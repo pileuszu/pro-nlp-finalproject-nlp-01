@@ -493,7 +493,7 @@ export default function CoverLetterEditorPage({ params }: { params: Promise<{ id
                                         onClick={() => setShowRecruitPanel(!showRecruitPanel)}
                                         className={cn("h-8 gap-1.5 text-xs border-border transition-all", showRecruitPanel && "bg-foreground text-background border-foreground shadow-md")}
                                     >
-                                        <Sparkles className="h-3.5 w-3.5" /> 스튜디오 {showRecruitPanel ? "닫기" : "열기"}
+                                        <Sparkles className="h-3.5 w-3.5" /> 패널 {showRecruitPanel ? "닫기" : "열기"}
                                     </Button>
                                 </div>
                             </div>

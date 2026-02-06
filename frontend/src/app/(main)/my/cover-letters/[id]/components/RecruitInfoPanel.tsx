@@ -85,7 +85,7 @@ export function RecruitInfoPanel({
                                                 className="font-black text-xl tracking-tight text-foreground"
                                             >
                                                 {panelTab === 'history' ? '버전 이력 관리' :
-                                                    panelTab === 'ai_writing' ? 'AI 라이팅 스튜디오' :
+                                                    panelTab === 'ai_writing' ? 'AI 자소서 작성' :
                                                         '채용 공고 원문'}
                                             </motion.h2>
                                         </AnimatePresence>
@@ -102,16 +102,16 @@ export function RecruitInfoPanel({
                             </div>
                             <TabsList className="grid grid-cols-3 w-full h-11 bg-muted p-1 rounded-xl border border-border/50 shadow-inner mb-2 font-pretendard">
                                 <TabsTrigger
+                                    value="ai_writing"
+                                    className="flex items-center gap-2 rounded-lg font-bold text-[12px] data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
+                                >
+                                    <Sparkles className="h-3.5 w-3.5 text-blue-500" /> 자소서 작성
+                                </TabsTrigger>
+                                <TabsTrigger
                                     value="recruit"
                                     className="flex items-center gap-2 rounded-lg font-bold text-[12px] data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
                                 >
                                     <FileText className="h-3.5 w-3.5" /> 공고 원문
-                                </TabsTrigger>
-                                <TabsTrigger
-                                    value="ai_writing"
-                                    className="flex items-center gap-2 rounded-lg font-bold text-[12px] data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
-                                >
-                                    <Sparkles className="h-3.5 w-3.5 text-blue-500" /> AI 라이팅
                                 </TabsTrigger>
                                 <TabsTrigger
                                     value="history"
@@ -186,7 +186,7 @@ export function RecruitInfoPanel({
                                 <div className="bg-blue-600 p-6 rounded-3xl shadow-xl shadow-blue-500/20 mb-2 group relative overflow-hidden">
                                     <Sparkles className="absolute -top-4 -right-4 h-24 w-24 text-white/10 rotate-12" />
                                     <p className="text-white text-md font-black mb-1 flex items-center gap-2 relative z-10">
-                                        AI 라이팅 스튜디오
+                                        AI 자소서 작성
                                     </p>
                                     <p className="text-blue-100 text-[12px] leading-relaxed font-semibold relative z-10">
                                         지원자님의 모든 포트폴리오를 참조하여 최적의 답변을 생성합니다.
