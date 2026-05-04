@@ -2,7 +2,9 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 export function isMockMode(): boolean {
     if (typeof window === 'undefined') return false;
-    return window.location.hostname.includes('github.io') || process.env.NEXT_PUBLIC_MOCK === 'true';
+    return window.location.hostname.includes('github.io') || 
+           window.location.hostname.includes('localhost') ||
+           process.env.NEXT_PUBLIC_MOCK === 'true';
 }
 
 function normalizeMockPath(path: string): string {

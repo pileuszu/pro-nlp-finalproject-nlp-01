@@ -11,11 +11,12 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function LoginPage() {
     const [loading, setLoading] = useState(false);
+    const [kakaoLoading, setKakaoLoading] = useState(false);
     const router = useRouter();
     const { login } = useAuthStore();
 
     const handleKakaoLogin = () => {
-        setLoading(true);
+        setKakaoLoading(true);
         const client_id = "36cb87d77a70e26540f4e7c71bc02c87";
         const redirect_uri = window.location.origin + "/auth/kakao/callback";
         const kakaoAuthUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${client_id}&redirect_uri=${redirect_uri}&response_type=code`;
@@ -42,11 +43,12 @@ export default function LoginPage() {
                 // 메인 페이지로 이동
                 router.push("/recruit");
             } else {
-                alert("테스트 로그인에 실패했습니다.");
+                const errorData = await res.json().catch(() => ({}));
+                alert(errorData.detail || "테스트 로그인에 실패했습니다. Mock 데이터를 확인해주세요.");
             }
         } catch (e) {
             console.error(e);
-            alert("로그인 중 오류가 발생했습니다.");
+            alert("로그인 중 오류가 발생했습니다. 개발자 도구 콘솔을 확인해주세요.");
         } finally {
             setLoading(false);
         }
@@ -70,7 +72,7 @@ export default function LoginPage() {
 
                 <Card className={cn(
                     "border-slate-200 bg-white overflow-hidden rounded-[32px] transition-all duration-500",
-                    loading ? "shadow-none" : "shadow-2xl"
+                    (loading || kakaoLoading) ? "shadow-none" : "shadow-2xl"
                 )}>
                     <CardHeader className="space-y-2 text-center bg-slate-50/30 border-b border-slate-100/50 py-8">
                         <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">환영합니다!</CardTitle>
@@ -86,10 +88,10 @@ export default function LoginPage() {
                                 size="lg"
                                 className="w-full h-15 bg-[#FEE500] hover:bg-[#FEE500]/95 text-slate-900 text-base font-bold shadow-xl shadow-yellow-200/50 transition-all active:scale-[0.97] rounded-2xl border-none"
                                 onClick={handleKakaoLogin}
-                                disabled={loading}
+                                disabled={loading || kakaoLoading}
                             >
                                 <MessageCircle className="mr-3 h-6 w-6 fill-current" />
-                                {loading ? "연결 중..." : "카카오로 3초만에 시작하기"}
+                                {kakaoLoading ? "연결 중..." : "카카오로 3초만에 시작하기"}
                             </Button>
 
                             <div className="space-y-4">
@@ -138,7 +140,7 @@ export default function LoginPage() {
                                                 !loading && role.glow
                                             )}
                                             onClick={() => handleTestLogin(role.id)}
-                                            disabled={loading}
+                                            disabled={loading || kakaoLoading}
                                         >
                                             <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-white/80 shadow-inner group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
                                                 {role.icon}
