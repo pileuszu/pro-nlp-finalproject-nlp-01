@@ -5,16 +5,30 @@ export function isMockMode(): boolean {
     return window.location.hostname.includes('github.io') || process.env.NEXT_PUBLIC_MOCK === 'true';
 }
 
-export function getApiUrl(path: string): string {
+// Helper to normalize paths and include basePath for GitHub Pages
+function normalizeMockPath(path: string): string {
     const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
     const basePath = isGitHubPages ? '/pro-nlp-finalproject-nlp-01' : '';
+    
+    let cleanPath = path;
+    if (path.startsWith('http')) {
+        try {
+            cleanPath = new URL(path).pathname;
+        } catch (e) {}
+    }
+    
+    if (!cleanPath.startsWith('/')) cleanPath = '/' + cleanPath;
+    
+    // Remove duplicate basePath if present
+    if (basePath && cleanPath.startsWith(basePath)) {
+        return cleanPath;
+    }
+    return `${basePath}${cleanPath}`;
+}
 
+export function getApiUrl(path: string): string {
     if (isMockMode()) {
-        const cleanPath = path.startsWith('/') ? path : `/${path}`;
-        if (basePath && cleanPath.startsWith(basePath)) {
-            return cleanPath;
-        }
-        return `${basePath}${cleanPath}`;
+        return normalizeMockPath(path);
     }
 
     let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
@@ -34,56 +48,51 @@ export function getApiUrl(path: string): string {
     return `${baseUrl}${prefix}${cleanPath}`;
 }
 
-export async function fetchWithAuth(url: string, options: RequestInit = {}) {
-    if (isMockMode()) {
-        return mockFetch(url, options);
-    }
-
-    const token = useAuthStore.getState().token;
-    const headers: HeadersInit = {
-        ...options.headers,
-        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
+// Global Fetch Interceptor for Mock Mode
+if (typeof window !== 'undefined' && isMockMode()) {
+    const originalFetch = window.fetch;
+    window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : (input as URL).toString();
+        // If it's a request for mock data itself, use original fetch to avoid infinite loop
+        if (url.includes('/mock-data/')) {
+            return originalFetch(input, init);
+        }
+        return mockFetch(url, init);
     };
+}
 
-    if (options.method && !["GET", "HEAD"].includes(options.method.toUpperCase())) {
-        const isFormData = options.body instanceof FormData;
-        if (!isFormData && !(headers as Record<string, string>)["Content-Type"]) {
-            (headers as Record<string, string>)["Content-Type"] = "application/json";
-        }
-    }
-
-    const res = await fetch(url, { ...options, headers });
-
-    if (res.status === 401) {
-        useAuthStore.getState().logout();
-        if (typeof window !== 'undefined') {
-            window.location.href = '/login';
-        }
-    }
-
-    return res;
+export async function fetchWithAuth(url: string, options: RequestInit = {}) {
+    // If global fetch is already patched, this will automatically call mockFetch via window.fetch
+    return fetch(url, options);
 }
 
 async function mockFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const method = options.method?.toUpperCase() || 'GET';
-    const path = url.split('?')[0];
     const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
     const basePath = isGitHubPages ? '/pro-nlp-finalproject-nlp-01' : '';
+    
+    // Extract path from URL
+    let path = url;
+    if (url.startsWith('http')) {
+        try {
+            path = new URL(url).pathname;
+        } catch (e) {}
+    }
+    const cleanPath = path.split('?')[0];
 
-    // Helper to return JSON responses
     const jsonRes = (data: any, status = 200) => new Response(JSON.stringify(data), {
         status,
         headers: { 'Content-Type': 'application/json' }
     });
 
     // 1. Intercept Auth
-    if ((path.includes('/auth/login') || path.includes('/auth/test-login')) && method === 'POST') {
+    if ((cleanPath.includes('/auth/login') || cleanPath.includes('/auth/test-login')) && method === 'POST') {
         try {
             const body = JSON.parse(options.body as string);
             const email = body.email || '';
             const role = body.role || '';
             let targetEmail = email;
-            if (role && path.includes('test-login')) {
+            if (role && cleanPath.includes('test-login')) {
                 targetEmail = `exhibit_${role}@pro-nlp.ai`;
             }
 
@@ -103,29 +112,27 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
         return jsonRes({ detail: "테스트 계정 정보를 확인해주세요." }, 401);
     }
 
-    // 2. Intercept Writes (POST/PUT/PATCH/DELETE) - Return dummy success for Demo
+    // 2. Intercept Writes (POST/PUT/PATCH/DELETE)
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
-        if (path.includes('/portfolios/upload') || path.includes('/portfolios/analyze')) {
-            // Pick a mock portfolio ID for demo flow
+        if (cleanPath.includes('/portfolios/upload') || cleanPath.includes('/portfolios/analyze')) {
             return jsonRes({ success: true, portfolio_id: 6, status: 'completed' });
         }
-        if (path.includes('/integrations/github/auth-url') || path.includes('/integrations/notion/auth-url')) {
+        if (cleanPath.includes('/integrations/github/auth-url') || cleanPath.includes('/integrations/notion/auth-url')) {
             return jsonRes({ url: "#" });
         }
-        // General success for other writes
         return jsonRes({ success: true, message: "Mocking 환경에서 처리되었습니다." });
     }
 
     // 3. Handle Read operations (GET)
     try {
         let mockFile = '';
-        if (path.includes('/recruits')) mockFile = 'recruitments.json';
-        else if (path.includes('/portfolios')) mockFile = 'portfolios.json';
-        else if (path.includes('/cover-letters')) mockFile = 'cover_letters.json';
-        else if (path.includes('/cover-letter-items')) mockFile = 'cover_letter_items.json';
-        else if (path.includes('/notifications')) mockFile = 'notifications.json';
-        else if (path.includes('/integrations')) mockFile = 'user_integrations.json';
-        else if (path.includes('/users/me')) {
+        if (cleanPath.includes('/recruits')) mockFile = 'recruitments.json';
+        else if (cleanPath.includes('/portfolios')) mockFile = 'portfolios.json';
+        else if (cleanPath.includes('/cover-letters')) mockFile = 'cover_letters.json';
+        else if (cleanPath.includes('/cover-letter-items')) mockFile = 'cover_letter_items.json';
+        else if (cleanPath.includes('/notifications')) mockFile = 'notifications.json';
+        else if (cleanPath.includes('/integrations')) mockFile = 'user_integrations.json';
+        else if (cleanPath.includes('/users/me')) {
             const token = useAuthStore.getState().token || '';
             const userId = token.replace('mock-token-', '');
             const usersRes = await fetch(`${basePath}/mock-data/users.json`);
@@ -138,7 +145,6 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             const res = await fetch(`${basePath}/mock-data/${mockFile}`);
             const rawData = await res.json();
 
-            // Normalize data
             const normalize = (obj: any) => {
                 if (!obj || typeof obj !== 'object') return obj;
                 const arrayFields = ['tags', 'questions', 'tech_stack', 'strengths'];
@@ -152,27 +158,26 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
 
             const data = Array.isArray(rawData) ? rawData.map(normalize) : normalize(rawData);
 
-            // Detail mapping
-            const idMatch = path.match(/\/(\d+)$/);
+            const idMatch = cleanPath.match(/\/(\d+)$/);
             if (idMatch) {
                 const id = idMatch[1];
                 const item = data.find((i: { id: string }) => String(i.id) === id);
                 return item ? jsonRes(item) : jsonRes({ detail: "Not Found" }, 404);
             }
 
-            // List mapping with metadata for recruits
-            if (path.includes('/recruits')) {
+            if (cleanPath.includes('/recruits')) {
                 return jsonRes({
                     items: data.slice(0, 10),
                     meta: { total: data.length, page: 1, limit: 10, totalPages: 1 }
                 });
             }
-
             return jsonRes(data);
         }
     } catch (e) {
         console.error("Mock fetch error:", e);
     }
 
+    // Default to original fetch for anything else (like internal Next.js assets)
+    // but in mock mode, if we reach here for an API call, it's a 404
     return jsonRes({ detail: "Mock data not found" }, 404);
 }
