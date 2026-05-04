@@ -91,7 +91,7 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             // We'll pick ID 6 (김OO)
             const usersRes = await fetch('/mock-data/users.json');
             const users = await usersRes.json();
-            const me = users.find((u: any) => u.id === '6' || u.name === '김OO');
+            const me = users.find((u: { id: string; name: string }) => u.id === '6' || u.name === '김OO');
             return new Response(JSON.stringify(me), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
@@ -103,7 +103,7 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             const idMatch = path.match(/\/(\d+)$/);
             if (idMatch) {
                 const id = idMatch[1];
-                const item = data.find((i: any) => i.id === id);
+                const item = data.find((i: { id: string }) => i.id === id);
                 if (item) {
                     return new Response(JSON.stringify(item), { status: 200, headers: { 'Content-Type': 'application/json' } });
                 }
@@ -111,7 +111,7 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             }
 
             // Handle filtering/pagination (simple mock)
-            let filteredData = data;
+            const filteredData = data;
             if (path.includes('/recruits')) {
                 // Return in the expected RecruitListResponse format
                 return new Response(JSON.stringify({
