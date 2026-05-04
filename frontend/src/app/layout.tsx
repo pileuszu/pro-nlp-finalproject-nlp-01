@@ -1,5 +1,3 @@
-import { Analytics } from "@vercel/analytics/next"
-import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from "next";
 import { Noto_Sans_KR as FontSans } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -7,6 +5,8 @@ import "./globals.css";
 import { MSWComponent } from "@/components/MSWComponent";
 import { ToastProvider } from "@/components/ui/toast-context";
 import { ThemeProvider } from "@/components/theme-provider";
+import { MockingHandler } from "@/components/MockingHandler";
+import { Suspense } from "react";
 
 const fontSans = FontSans({
     subsets: ["latin"],
@@ -38,12 +38,14 @@ export default function RootLayout({
                         disableTransitionOnChange
                     >
                         <ToastProvider>
-                            {children}
+                            <Suspense fallback={null}>
+                                <MockingHandler>
+                                    {children}
+                                </MockingHandler>
+                            </Suspense>
                         </ToastProvider>
                     </ThemeProvider>
                 </MSWComponent>
-                <Analytics />
-                <SpeedInsights />
             </body>
         </html>
     );
