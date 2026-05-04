@@ -12,9 +12,20 @@ def fill_empty_values(data, filename):
             continue
         
         for key, value in item.items():
-            # Treat both empty string and None as "empty"
-            if value == "" or value is None:
-                # Specific rules per file/key
+            # 1. Convert JSON-encoded strings to real arrays/objects
+            if key in ['tags', 'questions', 'tech_stack', 'strengths'] and isinstance(value, str):
+                try:
+                    if value.strip():
+                        item[key] = json.loads(value)
+                    else:
+                        item[key] = []
+                except:
+                    # If parsing fails, default to empty list
+                    item[key] = []
+
+            # 2. Fill empty values with defaults
+            curr_value = item.get(key)
+            if curr_value == "" or curr_value is None:
                 if filename == 'recruitments.json':
                     if key == 'company_description':
                         item[key] = "기업 상세 정보가 등록되지 않았습니다."
@@ -31,9 +42,9 @@ def fill_empty_values(data, filename):
                     elif key == 'salary':
                         item[key] = "회사 내규에 따름"
                     elif key in ['tags', 'questions']:
-                        item[key] = "[]"
+                        item[key] = []
                     elif key == 'embedding':
-                        item[key] = "[]"
+                        item[key] = []
                     else:
                         item[key] = "정보 없음"
                 
@@ -41,7 +52,7 @@ def fill_empty_values(data, filename):
                     if key == 'content' and item.get('description'):
                         item[key] = item['description']
                     elif key == 'embedding':
-                        item[key] = "[]"
+                        item[key] = []
                     else:
                         item[key] = "정보 없음"
                 
@@ -53,14 +64,14 @@ def fill_empty_values(data, filename):
                     else:
                         item[key] = "정보 없음"
                 
-                elif key in ['tags', 'questions']:
-                    item[key] = "[]"
+                elif key in ['tags', 'questions', 'tech_stack']:
+                    item[key] = []
                 else:
                     item[key] = "정보 없음"
             
-            # Additional cleanup: if a field should be a list but is empty string, make it "[]"
-            if key in ['tags', 'questions', 'tech_stack'] and (value == "" or value is None):
-                item[key] = "[]"
+            # Final safety check for list fields
+            if key in ['tags', 'questions', 'tech_stack'] and item[key] == "":
+                item[key] = []
 
     return data
 
