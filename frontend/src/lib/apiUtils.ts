@@ -63,12 +63,39 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}) {
 async function mockFetch(url: string, options: RequestInit = {}): Promise<Response> {
     const method = options.method?.toUpperCase() || 'GET';
     const path = url.split('?')[0];
+    const isGitHubPages = typeof window !== 'undefined' && window.location.hostname.includes('github.io');
+    const basePath = isGitHubPages ? '/pro-nlp-finalproject-nlp-01' : '';
 
-    // 1. Intercept Auth and Create/Update/Delete operations
-    const isAuth = path.includes('/auth/register') || path.includes('/auth/login') || path.includes('/auth/kakao');
+    // 1. Intercept Auth
+    if (path.includes('/auth/login') && method === 'POST') {
+        try {
+            const body = JSON.parse(options.body as string);
+            const email = body.email || '';
+            
+            // Allow login for exhibit users
+            if (email.includes('exhibit')) {
+                const usersRes = await fetch(`${basePath}/mock-data/users.json`);
+                const users = await usersRes.json();
+                const user = users.find((u: { email: string }) => u.email === email);
+                
+                if (user) {
+                    return new Response(JSON.stringify({
+                        access_token: "mock-token-" + user.id,
+                        token_type: "bearer",
+                        user: user
+                    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+                }
+            }
+        } catch (e) {
+            console.error("Login mock error:", e);
+        }
+        return new Response(JSON.stringify({ detail: "테스트 계정 정보를 확인해주세요." }), { status: 401 });
+    }
+
+    const isAuth = path.includes('/auth/register') || path.includes('/auth/kakao');
     const isWrite = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
 
-    if (isAuth || isWrite) {
+    if (isAuth || (isWrite && !path.includes('/auth/login'))) {
         return new Response(JSON.stringify({ detail: "현재 Mocking 에서 지원하지않는 기능입니다." }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' }
@@ -78,6 +105,7 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
     // 2. Handle Read operations (GET)
     try {
         let mockFile = '';
+        // Map common endpoints to mock files
         if (path.includes('/recruits')) {
             mockFile = 'recruitments.json';
         } else if (path.includes('/portfolios')) {
@@ -87,16 +115,17 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
         } else if (path.includes('/notifications')) {
             mockFile = 'notifications.json';
         } else if (path.includes('/users/me')) {
-            // Return one of the allowed users as "me" for demo purposes
-            // We'll pick ID 6 (김OO)
-            const usersRes = await fetch('/mock-data/users.json');
+            const token = useAuthStore.getState().token || '';
+            const userId = token.replace('mock-token-', '');
+            
+            const usersRes = await fetch(`${basePath}/mock-data/users.json`);
             const users = await usersRes.json();
-            const me = users.find((u: { id: string; name: string }) => u.id === '6' || u.name === '김OO');
+            const me = users.find((u: { id: string }) => u.id === userId) || users[0];
             return new Response(JSON.stringify(me), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
 
         if (mockFile) {
-            const res = await fetch(`/mock-data/${mockFile}`);
+            const res = await fetch(`${basePath}/mock-data/${mockFile}`);
             const data = await res.json();
 
             // Handle list vs detail
@@ -113,7 +142,6 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             // Handle filtering/pagination (simple mock)
             const filteredData = data;
             if (path.includes('/recruits')) {
-                // Return in the expected RecruitListResponse format
                 return new Response(JSON.stringify({
                     items: filteredData.slice(0, 10),
                     meta: { total: filteredData.length, page: 1, limit: 10, totalPages: 1 }
