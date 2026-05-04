@@ -126,13 +126,31 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
 
         if (mockFile) {
             const res = await fetch(`${basePath}/mock-data/${mockFile}`);
-            const data = await res.json();
+            const rawData = await res.json();
+
+            // Normalize data (ensure arrays are actual arrays)
+            const normalize = (obj: any) => {
+                if (!obj || typeof obj !== 'object') return obj;
+                const arrayFields = ['tags', 'questions', 'tech_stack', 'strengths'];
+                arrayFields.forEach(field => {
+                    if (typeof obj[field] === 'string') {
+                        try {
+                            obj[field] = JSON.parse(obj[field]);
+                        } catch (e) {
+                            obj[field] = [];
+                        }
+                    }
+                });
+                return obj;
+            };
+
+            const data = Array.isArray(rawData) ? rawData.map(normalize) : normalize(rawData);
 
             // Handle list vs detail
             const idMatch = path.match(/\/(\d+)$/);
             if (idMatch) {
                 const id = idMatch[1];
-                const item = data.find((i: { id: string }) => i.id === id);
+                const item = data.find((i: { id: string }) => String(i.id) === id);
                 if (item) {
                     return new Response(JSON.stringify(item), { status: 200, headers: { 'Content-Type': 'application/json' } });
                 }
@@ -140,15 +158,14 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
             }
 
             // Handle filtering/pagination (simple mock)
-            const filteredData = data;
             if (path.includes('/recruits')) {
                 return new Response(JSON.stringify({
-                    items: filteredData.slice(0, 10),
-                    meta: { total: filteredData.length, page: 1, limit: 10, totalPages: 1 }
+                    items: data.slice(0, 10),
+                    meta: { total: data.length, page: 1, limit: 10, totalPages: 1 }
                 }), { status: 200, headers: { 'Content-Type': 'application/json' } });
             }
 
-            return new Response(JSON.stringify(filteredData), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
     } catch (e) {
         console.error("Mock fetch error:", e);
