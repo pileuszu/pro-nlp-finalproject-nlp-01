@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { MessageCircle, ArrowRight, Monitor, Server, Database, Brain } from "lucide-react";
-import { getApiUrl } from "@/lib/apiUtils";
+import { getApiUrl, fetchWithAuth } from "@/lib/apiUtils";
 import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function LoginPage() {
@@ -25,7 +25,7 @@ export default function LoginPage() {
     const handleTestLogin = async (role: string) => {
         setLoading(true);
         try {
-            const res = await fetch(getApiUrl("/auth/test-login"), {
+            const res = await fetchWithAuth(getApiUrl("/auth/test-login"), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role })
