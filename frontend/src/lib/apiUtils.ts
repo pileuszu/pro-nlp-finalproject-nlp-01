@@ -201,9 +201,25 @@ async function mockFetch(url: string, options: RequestInit = {}): Promise<Respon
                 const id = idMatch[1];
                 const item = data.find((i: { id: string }) => String(i.id) === id);
                 if (item) {
-                    // For cover letters, ensure processing_status is set for demo
+                    // For cover letters, join with items
                     if (cleanPath.includes('/cover-letters')) {
                         item.processing_status = item.processing_status || 'COMPLETED';
+                        
+                        // Load and attach items
+                        try {
+                            const allItems = await getMockData('cover_letter_items.json');
+                            item.items = allItems
+                                .filter((it: any) => String(it.cover_letter_id) === String(id))
+                                .map((it: any) => ({
+                                    ...it,
+                                    id: parseInt(it.id),
+                                    key_points: typeof it.key_points === 'string' ? JSON.parse(it.key_points) : it.key_points,
+                                    suggested_improvements: typeof it.suggested_improvements === 'string' ? JSON.parse(it.suggested_improvements) : it.suggested_improvements
+                                }));
+                        } catch (e) {
+                            console.error("Failed to load mock items for cover letter", e);
+                            item.items = [];
+                        }
                     }
                     return jsonRes(item);
                 }
