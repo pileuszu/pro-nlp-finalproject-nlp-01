@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useToast } from "@/components/ui/toast-context";
 import { useAuthStore } from "@/stores/useAuthStore";
-import { getApiUrl } from "@/lib/apiUtils";
+import { getApiUrl, isMockMode } from "@/lib/apiUtils";
 
 export interface Notification {
     id: number;
@@ -41,8 +41,8 @@ export function useNotifications(options: UseNotificationsOptions = { showToast:
             });
             if (res.ok) {
                 const data = await res.json();
-                setNotifications(data.items);
-                setUnreadCount(data.unread_count);
+                setNotifications(data?.items || []);
+                setUnreadCount(data?.unread_count || 0);
             }
         } catch (err) {
             console.error("Failed to fetch notifications", err);
@@ -155,7 +155,8 @@ export function useNotifications(options: UseNotificationsOptions = { showToast:
 
         // If inactive, do not connect SSE to save resources/cost.
         // We relying on fetchNotifications() called by visibility/idle handlers when becoming active.
-        if (!isRealtimeActive) {
+        // If inactive or in Mock mode, do not connect SSE.
+        if (!isRealtimeActive || isMockMode()) {
             return;
         }
 
