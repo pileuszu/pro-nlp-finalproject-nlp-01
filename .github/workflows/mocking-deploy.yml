@@ -1,9 +1,6 @@
 name: Mocking Frontend Deploy (GitHub Pages)
 
 on:
-  push:
-    branches:
-      - mocking-sample
   workflow_dispatch:
 
 permissions:
