@@ -17,7 +17,7 @@
   },
   {
     "id": "57",
-    "user_id": "6",
+    "user_id": "8",
     "recruitment_id": "32",
     "rank_order": "23",
     "reason": "[\"[GitHub Project] 주식회사 두꺼비세상의 백엔드 개발자는 NestJS 기반의 서버 애플리케이션 개발과 MySQL/MongoDB 데이터 모델링을 포함하며, React/Next.js를 통한 프론트엔드 개발 지원도 포함되어 있어 풀스택 역량을 발휘하기에 좋습니다.\"]",
@@ -81,7 +81,7 @@
   },
   {
     "id": "65",
-    "user_id": "9",
+    "user_id": "8",
     "recruitment_id": "94",
     "rank_order": "10",
     "reason": "[\"[Open-Domain Question Answering (ODQA)] 네이버랩스의 Data-centric AI Research 인턴십은 차세대 통합 모델을 개발하는 연구 역할을 제공하므로, 질문 답변 시스템을 포함한 다양한 도메인에서 작업해 본 사용자에게 적합합니다.\"]",
@@ -89,7 +89,7 @@
   },
   {
     "id": "66",
-    "user_id": "7",
+    "user_id": "9",
     "recruitment_id": "73",
     "rank_order": "26",
     "reason": "[\"[리플 트립] 투믹스의 AI 서비스 풀스택 개발자는 사용자가 보유한 기술과 일치하며 특히 Stable Diffusion과 관련된 프로젝트 경험이 있어 매우 적합합니다.\"]",
@@ -105,7 +105,7 @@
   },
   {
     "id": "68",
-    "user_id": "7",
+    "user_id": "9",
     "recruitment_id": "108",
     "rank_order": "28",
     "reason": "[\"[리플 트립] Superb AI의 Machine Learning Engineer는 다양한 산업 현장에서의 문제 해결을 목표로 하며, 이는 사용자의 광범위한 AI 프로젝트 경험과 일치합니다.\"]",
@@ -121,7 +121,7 @@
   },
   {
     "id": "70",
-    "user_id": "8",
+    "user_id": "7",
     "recruitment_id": "81",
     "rank_order": "22",
     "reason": "[\"[레거시 프로시저 Airflow 이관] 메가존클라우드의 Backend Developer 직무는 AI agent 배포 및 RAG 시스템 백엔드 개발에 초점을 맞추며, Kubernetes 환경에서의 애플리케이션 개발 경험이 필요합니다. 이는 사용자가 현재 가지고 있는 클라우드 및 데이터 파이프라인 설계 경험과 일치합니다.\"]",
@@ -145,7 +145,7 @@
   },
   {
     "id": "73",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "73",
     "rank_order": "28",
     "reason": "[\"[내부 운영용 어드민 API 개발] 공고 6은 AI 서비스 개발에 중점을 두고 있으며, Python 기반 개발이나 데이터 처리 경험을 선호합니다. 또한, Docker와 같은 기술 스택을 사용하는 점에서 사용자의 현재 스킬셋과 잘 맞습니다.\"]",
@@ -225,7 +225,7 @@
   },
   {
     "id": "83",
-    "user_id": "9",
+    "user_id": "7",
     "recruitment_id": "81",
     "rank_order": "29",
     "reason": "[\"[LLM 서비스에서 라우팅·캐시·폴백 전략의 비용-지연-품질 트레이드오프 분석] 메가존클라우드의 Backend Developer 직무는 RAG 시스템 백엔드 개발과 AI/ML 워크플로우 및 파이프라인 연동을 포함하며, 이는 사용자가 수행한 RAG 관련 작업과 직접적으로 관련이 있습니다.\"]",
@@ -449,7 +449,7 @@
   },
   {
     "id": "155",
-    "user_id": "9",
+    "user_id": "7",
     "recruitment_id": "178",
     "rank_order": "23",
     "reason": "[\"[StudyBuddy AI (강의자료 기반 Q&A/요약/퀴즈 생성 웹서비스)] 사용자가 OpenAI API와 Spring Boot를 사용하여 AI 프로젝트를 개발한 경험이 있으며, 이는 공고 6의 AI 기반 보안관제 업무 자동화와 RAG 파이프라인 구축에 필요한 기술과 일치합니다.\"]",
@@ -465,7 +465,7 @@
   },
   {
     "id": "157",
-    "user_id": "9",
+    "user_id": "7",
     "recruitment_id": "194",
     "rank_order": "29",
     "reason": "[\"[StudyBuddy AI (강의자료 기반 Q&A/요약/퀴즈 생성 웹서비스)] 사용자가 Spring Boot와 PostgreSQL을 사용한 백엔드 시스템 개발 경험이 있으며, 이는 공고 12의 백엔드 시스템 개발 및 운영 요구사항과 일치합니다.\"]",
@@ -561,7 +561,7 @@
   },
   {
     "id": "169",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "43",
     "rank_order": "7",
     "reason": "[\"[이탈 예측(Churn Prediction) 학습 데이터셋 생성] 사용자가 데이터 파이프라인 구축 및 운영 경험이 있으며, LLM 인퍼런스 서버 구축 및 운영, 다양한 환경에서의 서비스 패키징 및 배포 자동화 경험이 필요하다.\"]",
@@ -577,7 +577,7 @@
   },
   {
     "id": "171",
-    "user_id": "8",
+    "user_id": "7",
     "recruitment_id": "108",
     "rank_order": "9",
     "reason": "[\"[이탈 예측(Churn Prediction) 학습 데이터셋 생성] 사용자가 대규모 GPU기반 MLOps Platform Backend Engineer로서, Kubernetes 기반 MLOps 플랫폼 설계 및 개발 경험이 있으며, 대규모 데이터 저장, 처리, 관리를 위한 데이터 플랫폼 개발 경험이 있다.\"]",
@@ -585,7 +585,7 @@
   },
   {
     "id": "172",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "226",
     "rank_order": "27",
     "reason": "[\"[이탈 예측(Churn Prediction) 학습 데이터셋 생성] 사용자가 대규모 데이터 수집/적재/처리를 위한 빅데이터 파이프라인 설계 및 구축 경험이 있으며, AI/머신러닝, 딥러닝 모델 개발 및 운영 경험이 있다.\"]",
@@ -593,7 +593,7 @@
   },
   {
     "id": "173",
-    "user_id": "8",
+    "user_id": "7",
     "recruitment_id": "44",
     "rank_order": "28",
     "reason": "[\"[이탈 예측(Churn Prediction) 학습 데이터셋 생성] 사용자가 대규모 GPU기반 MLOps Platform Backend Engineer로서, Kubernetes 기반 MLOps 플랫폼 설계 및 개발 경험이 있으며, 대규모 데이터 저장, 처리, 관리를 위한 데이터 플랫폼 개발 경험이 있다.\"]",
@@ -601,7 +601,7 @@
   },
   {
     "id": "174",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "45",
     "rank_order": "29",
     "reason": "[\"[레거시 프로시저 Airflow 이관] 사용자는 데이터 파이프라인 설계 및 운영 경험이 있으며, 특히 Airflow를 사용한 워크플로우 재구축 경험이 있습니다. 또한, 클라우드 환경에서 데이터 파이프라인 설계 및 운영 경험이 요구되는 공고 11에도 적합합니다.\"]",
@@ -609,7 +609,7 @@
   },
   {
     "id": "175",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "198",
     "rank_order": "24",
     "reason": "[\"[레거시 프로시저 Airflow 이관] 사용자는 데이터 파이프라인 설계 및 운영 경험이 있으며, 특히 Airflow를 사용한 워크플로우 재구축 경험이 있습니다. 또한, 다양한 데이터 소스(RDB, API, 로그 등)로부터 데이터를 수집하고 ETL 파이프라인을 운영하는 경험이 있어, 이러한 기술이 요구되는 공고 14에도 적합합니다.\"]",
@@ -617,7 +617,7 @@
   },
   {
     "id": "176",
-    "user_id": "8",
+    "user_id": "7",
     "recruitment_id": "220",
     "rank_order": "2",
     "reason": "[\"[실시간 주문 지연 알림 서비스 개발] 사용자는 Spring Boot와 유사한 Spring Framework를 사용한 경험이 있어, 백엔드 개발 및 유지보수에 적합합니다.\"]",
@@ -713,7 +713,7 @@
   },
   {
     "id": "188",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "80",
     "rank_order": "6",
     "reason": "[\"[AWS S3 스토리지 비용 최적화] 사용자는 클라우드 인프라 비용 절감과 관련된 경험이 있으며, 이는 메가존클라우드의 AI Full-Stack Engineer 직무에서 요구하는 클라우드 기반 인프라 이해와 관련된 요구사항과 일치합니다.\"]",
@@ -753,7 +753,7 @@
   },
   {
     "id": "193",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "30",
     "rank_order": "18",
     "reason": "[\"[내부 운영용 어드민 API 개발] 사용자는 LLM 기반 애플리케이션에 대한 이해도와 Python을 활용한 백엔드 개발 경험이 있어 AI 백엔드 엔지니어 역할에 적합합니다.\"]",
@@ -817,7 +817,7 @@
   },
   {
     "id": "201",
-    "user_id": "9",
+    "user_id": "7",
     "recruitment_id": "44",
     "rank_order": "23",
     "reason": "[\"[EvalLab] NAVER Cloud의 대규모 GPU 기반 MLOps Platform Backend Engineer 역할은 대규모 분산 학습 효율 최적화 및 모델 서빙 시스템 개발과 관련이 있으며, 이는 사용자가 대규모 데이터셋을 관리하고 실험 추적 시스템을 구축한 경험과 매우 유사합니다.\"]",
@@ -833,7 +833,7 @@
   },
   {
     "id": "203",
-    "user_id": "9",
+    "user_id": "8",
     "recruitment_id": "29",
     "rank_order": "25",
     "reason": "[\"[DocQA Challenge (RAG 기반 문서 질의응답)] 사용자는 LLM Engineer로서의 프로젝트 경험이 있으며, 이는 레브잇의 Product Engineer (AI & Data) 직무에서 요구하는 LLM 기반 쇼핑 AI Agent 서비스 개발 경험과 일치합니다.\"]",
@@ -969,7 +969,7 @@
   },
   {
     "id": "220",
-    "user_id": "7",
+    "user_id": "8",
     "recruitment_id": "172",
     "rank_order": "4",
     "reason": "[\"[OpsHelper] 씨앤토트의 Bigdata, 데이터 엔지니어 모집 공고는 Microsoft Azure를 활용한 빅데이터 시스템 구축을 요구하며, 이는 사용자가 AWS EC2를 사용한 경험이 있어 클라우드 환경에 익숙함을 보여줍니다.\"]",
@@ -993,7 +993,7 @@
   },
   {
     "id": "223",
-    "user_id": "7",
+    "user_id": "8",
     "recruitment_id": "83",
     "rank_order": "1",
     "reason": "[\"[AuthCore - 인증·권한 공통 모듈 리팩토링] 메가존클라우드의 Data Engineer는 다양한 데이터 소스 처리, ETL 파이프라인 구축 등이 필요하며, 이는 사용자가 DataCleaner 프로젝트에서 보여준 데이터 처리 능력과 일치합니다.\"]",
@@ -1041,7 +1041,7 @@
   },
   {
     "id": "229",
-    "user_id": "7",
+    "user_id": "9",
     "recruitment_id": "76",
     "rank_order": "27",
     "reason": "[\"[OrderFlow] 사용자는 AI 도구와 시스템 설계에 관심이 많으며, 이는 NHN Cloud의 AI 전환 백엔드 개발 요구사항에 잘 맞습니다.\"]",
@@ -1057,7 +1057,7 @@
   },
   {
     "id": "231",
-    "user_id": "7",
+    "user_id": "8",
     "recruitment_id": "238",
     "rank_order": "29",
     "reason": "[\"[SearchBoost] 레진엔터테인먼트의 데이터 엔지니어 공고는 Python 및 SQL을 활용한 데이터 처리 경험이 필요하며, 이는 사용자가 가진 다양한 데이터 처리 및 분석 프로젝트 경험과 일치합니다.\"]",
@@ -1105,7 +1105,7 @@
   },
   {
     "id": "237",
-    "user_id": "7",
+    "user_id": "9",
     "recruitment_id": "30",
     "rank_order": "9",
     "reason": "[\"[ChatLive - 실시간 알림 및 채팅 서버] 사용자는 LLM 기반 애플리케이션 개발에 관심이 있으며, 이는 AI 백엔드 엔지니어로서 LLM 기반 애플리케이션 개발 경험과 관련이 있습니다.\"]",
@@ -1113,7 +1113,7 @@
   },
   {
     "id": "238",
-    "user_id": "7",
+    "user_id": "8",
     "recruitment_id": "231",
     "rank_order": "28",
     "reason": "[\"[DataCleaner] Microsoft Azure를 활용한 빅데이터 시스템 구축과 데이터 파이프라인 구축 경험이 사용자의 대규모 데이터 처리 및 ETL 경험과 일치합니다.\"]",
@@ -1345,7 +1345,7 @@
   },
   {
     "id": "285",
-    "user_id": "9",
+    "user_id": "8",
     "recruitment_id": "308",
     "rank_order": "19",
     "reason": "[\"[Efficient Transformer for Long-Context Korean QA] 사용자의 프로젝트에서 데이터 중심 훈련(Data-centric Training)과 실험 추적 관리를 통해 데이터 품질 개선과 성능 향상을 이루었던 경험은 공고 18의 데이터 품질 관리 및 모니터링 체계 마련과 관련이 있습니다.\"]",
@@ -1369,7 +1369,7 @@
   },
   {
     "id": "288",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "310",
     "rank_order": "15",
     "reason": "[\"[내부 운영용 어드민 API 개발] 센드버드의 AI Agent Engineer 포지션에서는 Python, Django, FastAPI 등 사용자의 주요 기술 스택을 활용하여 AI 기반 백엔드 API 개발 경험을 쌓을 수 있습니다.\"]",
@@ -1665,7 +1665,7 @@
   },
   {
     "id": "326",
-    "user_id": "8",
+    "user_id": "7",
     "recruitment_id": "578",
     "rank_order": "105",
     "reason": "[\"[내부 운영용 어드민 API 개발] (주)데이타솔루션의 개발자는 클라우드 기반 업무 시스템 개발 및 유지보수를 담당하며, Spring Boot와 AWS 등의 경험이 필요합니다. 이는 사용자가 Spring Boot와 유사한 FastAPI를 사용하고, 클라우드 환경에 배포한 경험과 관련이 있습니다.\"]",
@@ -1673,7 +1673,7 @@
   },
   {
     "id": "327",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "313",
     "rank_order": "106",
     "reason": "[\"[Train Simulation in WebGL] 레브잇의 Product Engineer Internship 직무는 LLM 기반 쇼핑 AI Agent 서비스에 필요한 기능을 설계 및 개발하는 것으로, 이는 사용자가 최신 프로젝트에서 WebGL 기반의 실시간 3D 기차 시뮬레이션을 성공적으로 구현한 경험과 관련이 있습니다.\"]",
@@ -1681,7 +1681,7 @@
   },
   {
     "id": "328",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "386",
     "rank_order": "107",
     "reason": "[\"[Train Simulation in WebGL] 또 다른 데이타솔루션의 데이터 엔지니어 채용 공고는 클라우드 기반 업무 시스템 개발 및 유지보수를 포함하며, 이는 사용자가 데이터 처리 및 관리 역량을 보유하고 있다는 점과 관련이 있습니다.\"]",
@@ -1697,7 +1697,7 @@
   },
   {
     "id": "330",
-    "user_id": "8",
+    "user_id": "6",
     "recruitment_id": "374",
     "rank_order": "12",
     "reason": "[\"[Train Simulation 3D WebGL Project] 사용자의 프로젝트는 사용자 정의 카메라 기능과 쉽게 편집 가능한 트랙 구성을 포함하며, 이는 복잡한 데이터를 시각적으로 효과적으로 표현하고 관리하는 능력을 나타냅니다. 이러한 경험은 Vue.js와 React 기반의 UI 컴포넌트 개발 및 REST API 연동을 요구하는 이 공고에 잘 맞습니다.\"]",
@@ -1705,7 +1705,7 @@
   },
   {
     "id": "331",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "566",
     "rank_order": "13",
     "reason": "[\"[Train Simulation 3D WebGL Project] 사용자는 WebGL, JavaScript, HTML, CSS 등을 사용한 프로젝트 경험이 있습니다. 이 기술은 모빌리티 관련 웹/앱 개발 및 운영에서 React/ReactNative 설계 및 개발에 유용하게 활용될 수 있습니다. 또한, 사용자는 복잡한 시스템을 성공적으로 개발한 경험이 있어 모빌리티 시스템의 개발 및 유지보수에 기여할 수 있을 것입니다.\"]",
@@ -1713,7 +1713,7 @@
   },
   {
     "id": "332",
-    "user_id": "8",
+    "user_id": "6",
     "recruitment_id": "205",
     "rank_order": "14",
     "reason": "[\"[Train Simulation 3D WebGL Project] 사용자는 복잡한 3D 시뮬레이션 프로젝트를 성공적으로 완료했으며, 이는 React / React Native 기반 프론트엔드 구조 설계 및 개발에 유용한 경험이 됩니다. 또한, TypeScript를 활용한 안정적인 UI 로직 구현과 데이터 시각화 경험이 이 공고에 적합합니다.\"]",
@@ -1721,7 +1721,7 @@
   },
   {
     "id": "333",
-    "user_id": "8",
+    "user_id": "6",
     "recruitment_id": "452",
     "rank_order": "1",
     "reason": "[\"[Train Simulation 3D WebGL Project] Vue.js와 React 기반의 UI 컴포넌트 개발 경험이 있으며, 이는 해당 직무의 주요 요구사항 중 하나입니다.\"]",
@@ -1729,7 +1729,7 @@
   },
   {
     "id": "334",
-    "user_id": "8",
+    "user_id": "6",
     "recruitment_id": "133",
     "rank_order": "15",
     "reason": "[\"[Train Simulation 3D WebGL Project] Swift 및 iOS 개발 경험이 없지만, 사용자의 기술적 다양성과 적응력을 고려했을 때 도전해볼 만합니다.\"]",
@@ -1737,7 +1737,7 @@
   },
   {
     "id": "335",
-    "user_id": "8",
+    "user_id": "6",
     "recruitment_id": "564",
     "rank_order": "16",
     "reason": "[\"[Train Simulation 3D WebGL Project] 복잡한 AI 분석 데이터를 시각화하는 대시보드 개발 경험이 있어 사용자 친화적인 UI/UX 설계에 유리합니다.\"]",
@@ -1745,7 +1745,7 @@
   },
   {
     "id": "336",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "86",
     "rank_order": "0",
     "reason": "[\"[Train Simulation 3D WebGL Project] 생성형 AI 및 디지털 제품 개발 경험이 있으며, 이는 현재 산업의 중요한 트렌드입니다.\"]",
@@ -1753,7 +1753,7 @@
   },
   {
     "id": "337",
-    "user_id": "8",
+    "user_id": "9",
     "recruitment_id": "563",
     "rank_order": "18",
     "reason": "[\"[Train Simulation 3D WebGL Project] CRM 웹 서비스의 기능 개선 및 유지보수 경험이 있어 유사한 프로젝트에도 기여할 수 있습니다.\"]",
@@ -1777,7 +1777,7 @@
   },
   {
     "id": "340",
-    "user_id": "9",
+    "user_id": "8",
     "recruitment_id": "614",
     "rank_order": "0",
     "reason": "[\"[Efficient Transformer for Long-Context Korean QA] 사용자는 데이터 모델링 및 데이터 웨어하우스 구축에 대한 경험이 있으며, 이는 토스증권의 Data Analytics Engineer 역할에서 요구되는 데이터 마트 설계 및 운영 능력과 일치합니다.\"]",

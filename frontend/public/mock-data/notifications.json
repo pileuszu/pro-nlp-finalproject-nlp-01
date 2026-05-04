@@ -1,7 +1,7 @@
 [
   {
     "id": "46",
-    "user_id": "9",
+    "user_id": "6",
     "title": "포트폴리오 분석 완료",
     "message": "[Open-Domain Question Answering (ODQA)] AI 분석이 완료되었습니다. 내용을 검토해 주세요.",
     "is_read": "true",
@@ -82,7 +82,7 @@
   },
   {
     "id": "56",
-    "user_id": "6",
+    "user_id": "9",
     "title": "자기소개서 일괄 생성 완료",
     "message": "[Superb AI - [R&D] Machine Learning Engineer] 자기소개서의 모든 문항 작성이 완료되었습니다.",
     "is_read": "false",
@@ -145,7 +145,7 @@
   },
   {
     "id": "70",
-    "user_id": "6",
+    "user_id": "9",
     "title": "자기소개서 일괄 생성 완료",
     "message": "[NAVER Cloud - Multimodal VLOps (체험형 인턴)] 자기소개서의 모든 문항 작성이 완료되었습니다.",
     "is_read": "false",
@@ -154,7 +154,7 @@
   },
   {
     "id": "71",
-    "user_id": "6",
+    "user_id": "9",
     "title": "자기소개서 일괄 생성 완료",
     "message": "[디노티시아 - [전문연구요원] LLM Engineer] 자기소개서의 모든 문항 작성이 완료되었습니다.",
     "is_read": "false",
@@ -163,7 +163,7 @@
   },
   {
     "id": "72",
-    "user_id": "6",
+    "user_id": "9",
     "title": "자기소개서 일괄 생성 완료",
     "message": "[Superb AI - [R&D] Machine Learning Engineer] 자기소개서의 모든 문항 작성이 완료되었습니다.",
     "is_read": "true",
@@ -172,7 +172,7 @@
   },
   {
     "id": "73",
-    "user_id": "6",
+    "user_id": "9",
     "title": "자기소개서 일괄 생성 완료",
     "message": "[주식회사 두꺼비세상 - [아파트너] AI 백엔드 엔지니어] 자기소개서의 모든 문항 작성이 완료되었습니다.",
     "is_read": "true",
